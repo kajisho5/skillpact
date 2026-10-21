@@ -123,7 +123,9 @@ def hash_files(skill_dir, contract_path=None, include=("SKILL.md", "scripts/**",
     skill_dir = Path(skill_dir).resolve(); c, cpath = load_contract(skill_dir, contract_path)
     files = {}
     for pat in include:
-        for f in sorted(skill_dir.glob(pat)):
+        # Path.glob("x/**") yields only directories before Python 3.13; use rglob for portability
+        found = skill_dir.joinpath(pat[:-3]).rglob("*") if pat.endswith("/**") else skill_dir.glob(pat)
+        for f in sorted(found):
             if f.is_file() and "__pycache__" not in f.parts: files[str(f.relative_to(skill_dir))] = sha256(f)
     c["integrity"] = {"algorithm": "sha256", "files": files, "signatures": []}
     cpath.write_text(json.dumps(c, ensure_ascii=False, indent=2) + "\n")
@@ -270,7 +272,7 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
             if netbox and not t.get("network"): cmd = ["unshare", "-rn"] + cmd
             t0 = time.time(); fails = []
             try:
-                p = subprocess.run(cmd, cwd=work, env=cenv, capture_output=True, text=True, timeout=t.get("timeout_s", 120))
+                p = subprocess.run(cmd, cwd=work, env=cenv, capture_output=True, text=True, timeout=t.get("timeout_s", 120) * float(os.environ.get("SKILLPACT_TIMEOUT_SCALE", "1")))
                 code, out, errout = p.returncode, p.stdout, p.stderr
             except subprocess.TimeoutExpired:
                 code, out, errout = None, "", "timeout"; fails.append("timeout")

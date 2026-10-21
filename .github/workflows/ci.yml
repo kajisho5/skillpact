@@ -6,12 +6,16 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix: { python: ["3.11", "3.12", "3.13"] }
+    env: { SKILLPACT_TIMEOUT_SCALE: "4" }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "${{ matrix.python }}" }
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: allow unprivileged user namespaces (network-isolated tests use unshare -rn)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: cd ref && pip install -e .[test,sigstore]
       - run: cd ref && python -m pytest -q tests
       - name: flagship conformance (L3)

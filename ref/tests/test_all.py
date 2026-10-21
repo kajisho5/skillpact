@@ -1,3 +1,4 @@
+import hashlib
 import copy, json, shutil, subprocess, sys
 from pathlib import Path
 import pytest
@@ -52,7 +53,8 @@ def test_name_mismatch_and_missing_entry(skill):
     assert {"NAME_MISMATCH", "ENTRY_MISSING"} <= codes
 
 def test_backward_compat_skill_md_unchanged():
-    assert (SAMPLE / "SKILL.md").read_bytes() == (ROOT.parent / "ffmpeg-skill-ro" / "SKILL.md").read_bytes()
+    # sha256 of upstream kajisho5/ffmpeg-skill@4334225 SKILL.md (contract must not require SKILL.md edits)
+    assert hashlib.sha256((SAMPLE / "SKILL.md").read_bytes()).hexdigest() == "d6e50f4f7d5cd181bbb956303d5bb27371865eff17f273ac47e50536fe5a1477"
 
 def test_failing_test_detected(skill):
     c = C(skill); case = next(t for t in c["tests"]["cases"] if t["id"] == "probe-basic"); case["expect"]["stdout_json"][0]["equals"] = 999; W(skill, c)

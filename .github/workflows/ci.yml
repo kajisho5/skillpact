@@ -8,12 +8,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix: { python: ["3.11", "3.12", "3.13"] }
-    env: { SKILLPACT_TIMEOUT_SCALE: "4" }
+    env: { SKILLPACT_TIMEOUT_SCALE: "2" }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "${{ matrix.python }}" }
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: ffmpeg 7.1 (Ubuntu's 6.1 hangs in media.pad; tracked as an ffmpeg-skill compat issue)
+        run: |
+          curl -sL https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz | tar xJ
+          echo "$PWD/$(ls -d ffmpeg-n7.1-*)/bin" >> "$GITHUB_PATH"
+      - run: ffmpeg -version | head -1
       - name: allow unprivileged user namespaces (network-isolated tests use unshare -rn)
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: cd ref && pip install -e .[test,sigstore]

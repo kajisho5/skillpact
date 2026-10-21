@@ -1,0 +1,135 @@
+{
+  "contract_version": "0.3",
+  "kind": "tool",
+  "skill": {
+    "name": "thumbnail-skill",
+    "version": "0.1.0"
+  },
+  "compat": {
+    "agents": {
+      "claude-code": {
+        "status": "expected"
+      },
+      "cursor": {
+        "status": "expected"
+      },
+      "codex": {
+        "status": "expected"
+      }
+    },
+    "interfaces": [
+      "skill-md",
+      "cli"
+    ]
+  },
+  "requirements": {
+    "binaries": [],
+    "runtimes": [
+      {
+        "name": "python3",
+        "version": ">=3.9",
+        "check": [
+          "python3",
+          "--version"
+        ]
+      }
+    ],
+    "packages": [
+      {
+        "ecosystem": "pypi",
+        "name": "Pillow",
+        "version": ">=10.0",
+        "import": "PIL"
+      }
+    ]
+  },
+  "permissions": {
+    "read": {
+      "level": "scoped",
+      "scope": [
+        "$INPUT",
+        "$SKILL_DIR/**"
+      ],
+      "why": "TODO(init): confirm"
+    },
+    "write": {
+      "level": "scoped",
+      "scope": [
+        "$OUTPUT",
+        "$WORKDIR/**"
+      ],
+      "why": "TODO(init): confirm: heuristic match in SKILL.md/scripts"
+    },
+    "network": {
+      "level": "scoped",
+      "scope": [
+        "TODO.example"
+      ],
+      "why": "TODO(init): confirm: heuristic match in SKILL.md/scripts"
+    },
+    "exec": {
+      "level": "scoped",
+      "scope": [
+        "python3"
+      ],
+      "why": "TODO(init): confirm"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "cli.thumbnail",
+      "summary": "TODO(init): confirm — console script thumbnail (thumbnail_skill.cli:main)",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "thumbnail_skill.cli"
+        ]
+      },
+      "effects": [
+        "read",
+        "write",
+        "network",
+        "exec"
+      ]
+    }
+  ],
+  "tests": {
+    "cases": [
+      {
+        "id": "cli.thumbnail-help",
+        "capability": "cli.thumbnail",
+        "run": [
+          "python3",
+          "-m",
+          "thumbnail_skill.cli",
+          "--help"
+        ],
+        "expect": {
+          "exit_code": 0
+        },
+        "env": {
+          "PYTHONPATH": "$SKILL_DIR/src"
+        }
+      }
+    ]
+  },
+  "x": {
+    "init": {
+      "source": "heuristic",
+      "version_from": "pyproject.toml",
+      "uncertain": [
+        "/capabilities",
+        "/permissions/network",
+        "/permissions/read",
+        "/permissions/write"
+      ]
+    }
+  }
+}

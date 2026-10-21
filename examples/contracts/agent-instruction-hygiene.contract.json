@@ -1,0 +1,71 @@
+{
+  "contract_version": "0.3",
+  "kind": "instructions",
+  "skill": {
+    "name": "agent-instruction-hygiene",
+    "version": "1.2.0"
+  },
+  "compat": {
+    "agents": {
+      "claude-code": {
+        "status": "expected"
+      },
+      "cursor": {
+        "status": "expected"
+      },
+      "codex": {
+        "status": "expected"
+      }
+    },
+    "interfaces": [
+      "skill-md"
+    ]
+  },
+  "requirements": {
+    "binaries": [],
+    "runtimes": []
+  },
+  "permissions": {
+    "read": {
+      "level": "none"
+    },
+    "write": {
+      "level": "none"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "none"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "guide",
+      "summary": "Use when writing or revising a skill (SKILL.md), a CLAUDE.md/AGENTS.md file, or a task prompt. Gives criteria for stripping out verbose instructions, excessive confirmation requirements, and overly recipe-like steps that were tuned for older, less capable models.",
+      "entry": {
+        "doc": "SKILL.md"
+      },
+      "effects": []
+    }
+  ],
+  "tests": {
+    "cases": []
+  },
+  "x": {
+    "init": {
+      "source": "heuristic",
+      "version_from": "package.json",
+      "uncertain": [
+        "/capabilities",
+        "/permissions/read"
+      ]
+    }
+  }
+}

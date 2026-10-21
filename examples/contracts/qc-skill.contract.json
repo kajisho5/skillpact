@@ -1,0 +1,159 @@
+{
+  "contract_version": "0.3",
+  "kind": "tool",
+  "skill": {
+    "name": "qc-skill",
+    "version": "0.1.0"
+  },
+  "compat": {
+    "agents": {
+      "claude-code": {
+        "status": "expected"
+      },
+      "cursor": {
+        "status": "expected"
+      },
+      "codex": {
+        "status": "expected"
+      }
+    },
+    "interfaces": [
+      "skill-md",
+      "cli"
+    ]
+  },
+  "requirements": {
+    "binaries": [
+      {
+        "name": "ffmpeg",
+        "check": [
+          "ffmpeg",
+          "--version"
+        ]
+      },
+      {
+        "name": "ffprobe",
+        "check": [
+          "ffprobe",
+          "--version"
+        ]
+      },
+      {
+        "name": "git",
+        "check": [
+          "git",
+          "--version"
+        ]
+      },
+      {
+        "name": "curl",
+        "check": [
+          "curl",
+          "--version"
+        ]
+      }
+    ],
+    "runtimes": [
+      {
+        "name": "python3",
+        "version": ">=3.9",
+        "check": [
+          "python3",
+          "--version"
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "read": {
+      "level": "scoped",
+      "scope": [
+        "$INPUT",
+        "$SKILL_DIR/**"
+      ],
+      "why": "TODO(init): confirm"
+    },
+    "write": {
+      "level": "scoped",
+      "scope": [
+        "$OUTPUT",
+        "$WORKDIR/**"
+      ],
+      "why": "TODO(init): confirm: heuristic match in SKILL.md/scripts"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "scoped",
+      "scope": [
+        "curl",
+        "ffmpeg",
+        "ffprobe",
+        "git",
+        "python3"
+      ],
+      "why": "TODO(init): confirm"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "scoped",
+      "scope": [],
+      "why": "TODO(init): confirm: heuristic match in SKILL.md/scripts"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "cli.qc",
+      "summary": "TODO(init): confirm — console script qc (qc_skill.cli:main)",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "qc_skill.cli"
+        ]
+      },
+      "effects": [
+        "read",
+        "write",
+        "exec",
+        "send"
+      ]
+    }
+  ],
+  "tests": {
+    "cases": [
+      {
+        "id": "cli.qc-help",
+        "capability": "cli.qc",
+        "run": [
+          "python3",
+          "-m",
+          "qc_skill.cli",
+          "--help"
+        ],
+        "expect": {
+          "exit_code": 0
+        },
+        "env": {
+          "PYTHONPATH": "$SKILL_DIR/src"
+        }
+      }
+    ]
+  },
+  "x": {
+    "init": {
+      "source": "heuristic",
+      "version_from": "pyproject.toml",
+      "uncertain": [
+        "/capabilities",
+        "/permissions/read",
+        "/permissions/send",
+        "/permissions/write",
+        "/requirements/binaries"
+      ]
+    }
+  }
+}

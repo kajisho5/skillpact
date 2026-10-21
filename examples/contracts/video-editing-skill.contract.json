@@ -1,0 +1,114 @@
+{
+  "contract_version": "0.3",
+  "kind": "tool",
+  "skill": {
+    "name": "video-editing-skill",
+    "version": "0.2.0"
+  },
+  "compat": {
+    "agents": {
+      "claude-code": {
+        "status": "expected"
+      },
+      "cursor": {
+        "status": "expected"
+      },
+      "codex": {
+        "status": "expected"
+      }
+    },
+    "interfaces": [
+      "skill-md",
+      "cli"
+    ]
+  },
+  "requirements": {
+    "binaries": [],
+    "runtimes": [
+      {
+        "name": "python3",
+        "version": ">=3.9",
+        "check": [
+          "python3",
+          "--version"
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "read": {
+      "level": "scoped",
+      "scope": [
+        "$INPUT",
+        "$SKILL_DIR/**"
+      ],
+      "why": "TODO(init): confirm"
+    },
+    "write": {
+      "level": "none"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "scoped",
+      "scope": [
+        "python3"
+      ],
+      "why": "TODO(init): confirm"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "cli.video-editing",
+      "summary": "TODO(init): confirm — console script video-editing (video_editing_skill.cli:main)",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "video_editing_skill.cli"
+        ]
+      },
+      "effects": [
+        "read",
+        "exec"
+      ]
+    }
+  ],
+  "tests": {
+    "cases": [
+      {
+        "id": "cli.video-editing-help",
+        "capability": "cli.video-editing",
+        "run": [
+          "python3",
+          "-m",
+          "video_editing_skill.cli",
+          "--help"
+        ],
+        "expect": {
+          "exit_code": 0
+        },
+        "env": {
+          "PYTHONPATH": "$SKILL_DIR/src"
+        }
+      }
+    ]
+  },
+  "x": {
+    "init": {
+      "source": "heuristic",
+      "version_from": "pyproject.toml",
+      "uncertain": [
+        "/capabilities",
+        "/permissions/read"
+      ]
+    }
+  }
+}

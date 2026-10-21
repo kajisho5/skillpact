@@ -1,0 +1,153 @@
+{
+  "contract_version": "0.3",
+  "kind": "tool",
+  "skill": {
+    "name": "subtitle-skill",
+    "version": "0.1.0"
+  },
+  "compat": {
+    "agents": {
+      "claude-code": {
+        "status": "expected"
+      },
+      "cursor": {
+        "status": "expected"
+      },
+      "codex": {
+        "status": "expected"
+      }
+    },
+    "interfaces": [
+      "skill-md",
+      "cli"
+    ]
+  },
+  "requirements": {
+    "binaries": [
+      {
+        "name": "ffmpeg",
+        "check": [
+          "ffmpeg",
+          "--version"
+        ]
+      },
+      {
+        "name": "ffprobe",
+        "check": [
+          "ffprobe",
+          "--version"
+        ]
+      },
+      {
+        "name": "git",
+        "check": [
+          "git",
+          "--version"
+        ]
+      }
+    ],
+    "runtimes": [
+      {
+        "name": "python3",
+        "version": ">=3.9",
+        "check": [
+          "python3",
+          "--version"
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "read": {
+      "level": "scoped",
+      "scope": [
+        "$INPUT",
+        "$SKILL_DIR/**"
+      ],
+      "why": "TODO(init): confirm"
+    },
+    "write": {
+      "level": "scoped",
+      "scope": [
+        "$OUTPUT",
+        "$WORKDIR/**"
+      ],
+      "why": "TODO(init): confirm: heuristic match in SKILL.md/scripts"
+    },
+    "network": {
+      "level": "scoped",
+      "scope": [
+        "TODO.example"
+      ],
+      "why": "TODO(init): confirm: heuristic match in SKILL.md/scripts"
+    },
+    "exec": {
+      "level": "scoped",
+      "scope": [
+        "ffmpeg",
+        "ffprobe",
+        "git",
+        "python3"
+      ],
+      "why": "TODO(init): confirm"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "cli.subtitle-skill",
+      "summary": "TODO(init): confirm — console script subtitle-skill (subtitle_skill.cli:main)",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "subtitle_skill.cli"
+        ]
+      },
+      "effects": [
+        "read",
+        "write",
+        "network",
+        "exec"
+      ]
+    }
+  ],
+  "tests": {
+    "cases": [
+      {
+        "id": "cli.subtitle-skill-help",
+        "capability": "cli.subtitle-skill",
+        "run": [
+          "python3",
+          "-m",
+          "subtitle_skill.cli",
+          "--help"
+        ],
+        "expect": {
+          "exit_code": 0
+        },
+        "env": {
+          "PYTHONPATH": "$SKILL_DIR/src"
+        }
+      }
+    ]
+  },
+  "x": {
+    "init": {
+      "source": "heuristic",
+      "version_from": "pyproject.toml",
+      "uncertain": [
+        "/capabilities",
+        "/permissions/network",
+        "/permissions/read",
+        "/permissions/write",
+        "/requirements/binaries"
+      ]
+    }
+  }
+}

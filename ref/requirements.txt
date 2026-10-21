@@ -1,0 +1,4 @@
+jsonschema>=4.20
+PyYAML>=6
+cryptography>=42
+pytest>=8

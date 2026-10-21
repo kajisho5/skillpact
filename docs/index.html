@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkillPact — contracts for Agent Skills · SEVENTHWELL</title>
+<meta name="description" content="Declare, test and sign what an Agent Skill does — checked before install, compiled into every harness.">
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;color:#111}code,pre{background:#f4f4f4;border-radius:4px}pre{padding:12px;overflow:auto}h1{margin-bottom:0}.sub{color:#555;margin-top:4px}a{color:#0b5fff}table{border-collapse:collapse}td,th{border:1px solid #ddd;padding:4px 8px}</style></head><body>
+<h1>SkillPact</h1><p class="sub">Machine-readable contracts for Agent Skills — by SEVENTHWELL</p>
+<p>A <code>skill.contract.json</code> next to an unchanged <code>SKILL.md</code>. The author <b>declares</b> every effect (read · write · network · exec · spend · send), ships <b>tests</b> that run network-isolated, and <b>signs</b> it (ed25519 or Sigstore). Harnesses check it <em>before install</em>.</p>
+<table><tr><th>Level</th><th>Meaning</th></tr><tr><td>L1 declared</td><td>valid contract</td></tr><tr><td>L2 tested</td><td>conformance tests pass offline</td></tr><tr><td>L3 signed</td><td>hashes + trusted signature</td></tr></table>
+<h2>One policy, every harness</h2><p>A harness policy decides allow / ask / deny per capability and compiles to Claude Code, Cursor, Codex and Gemini CLI configs. Runtime enforcement is left to APS, ACS and HushSpec (export provided).</p>
+<pre>skillpact conformance ./my-skill
+skillpact policy-compile ./my-skill policy.json --target claude-code
+skillpact convert ./my-skill --to mda</pre>
+<h2>Specs &amp; schemas</h2><ul>
+<li><a href="schema/v0.3.json">Contract schema v0.3</a> · <a href="schema/policy-v0.3.json">Policy schema v0.3</a></li>
+<li><a href="https://github.com/kajisho5/skillpact">Source &amp; spec (GitHub)</a> · OWASP Agentic Skills Top 10 mapping</li></ul>
+<p><small>Spec CC BY 4.0 · code Apache-2.0 · © 2026 SEVENTHWELL</small></p></body></html>

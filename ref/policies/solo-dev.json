@@ -1,0 +1,61 @@
+{
+  "policy_version": "0.1",
+  "defaults": {
+    "read": "allow",
+    "write": "ask",
+    "network": "ask",
+    "exec": "ask",
+    "spend": "deny",
+    "send": "ask"
+  },
+  "rules": [
+    {
+      "id": "write-workdir",
+      "effect": "write",
+      "scope": [
+        "$OUTPUT",
+        "$WORKDIR/**",
+        "$INPUT_DIR/**",
+        "$TMPDIR/**"
+      ],
+      "decision": "allow"
+    },
+    {
+      "id": "exec-media",
+      "effect": "exec",
+      "scope": [
+        "ffmpeg",
+        "ffprobe",
+        "python3",
+        "node"
+      ],
+      "decision": "allow"
+    },
+    {
+      "id": "net-docs",
+      "effect": "network",
+      "scope": [
+        "*.github.com",
+        "api.github.com"
+      ],
+      "decision": "allow"
+    }
+  ],
+  "ask_on_destructive": true,
+  "limits": {
+    "max_turns": 200,
+    "max_tool_calls": 500,
+    "max_wall_seconds": 3600,
+    "max_cost_usd": 5
+  },
+  "sandbox": {
+    "filesystem": "workdir",
+    "network": "allowlist",
+    "egress_allowlist": [
+      "*.github.com"
+    ]
+  },
+  "audit": {
+    "otel_genai": true
+  }
+}

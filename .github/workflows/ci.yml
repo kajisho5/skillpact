@@ -1,0 +1,20 @@
+name: ci
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { python: ["3.11", "3.12", "3.13"] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python }}" }
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: cd ref && pip install -e .[test,sigstore]
+      - run: cd ref && python -m pytest -q tests
+      - name: flagship conformance (L3)
+        run: cd ref && python -m skillpact.cli conformance ../samples/ffmpeg-skill --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ="
+      - name: schemas in docs match package
+        run: cmp ref/skillpact/schema.json docs/schema/v0.3.json && cmp ref/skillpact/policy_schema.json docs/schema/policy-v0.3.json

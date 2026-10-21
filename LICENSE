@@ -1,0 +1,10 @@
+This repository is dual-licensed by content type:
+
+- Specification documents (spec_v*.md, harness_research.md, showcase.md, and other prose):
+  Creative Commons Attribution 4.0 International (CC BY 4.0) — see LICENSE-spec-CC-BY-4.0.txt
+- Code, JSON Schemas and sample policies (ref/, samples/*.py, ref/skillpact/*.json, ref/policies/):
+  Apache License 2.0 — see ref/LICENSE
+
+Sample contracts describe third-party skills (kajisho5/*, MIT); the skills themselves are not included
+except as a local copy under samples/ffmpeg-skill used for testing, which remains under its own MIT license.
+Downloaded harness schemas (ref/skillpact/harness_schemas/) remain under their publishers' terms.

@@ -1,0 +1,278 @@
+{
+  "contract_version": "0.3",
+  "kind": "tool",
+  "skill": {
+    "name": "github-solo",
+    "version": "0.0.0",
+    "license": "MIT",
+    "source": "https://github.com/kajisho5/github-solo-skill"
+  },
+  "compat": {
+    "agents": {
+      "claude-code": {
+        "status": "expected"
+      },
+      "cursor": {
+        "status": "expected"
+      },
+      "codex": {
+        "status": "expected"
+      }
+    },
+    "interfaces": [
+      "skill-md",
+      "cli",
+      "mcp-stdio"
+    ]
+  },
+  "requirements": {
+    "binaries": [
+      {
+        "name": "gh",
+        "check": [
+          "gh",
+          "--version"
+        ],
+        "optional": true,
+        "when": "token fallback: gh auth token"
+      },
+      {
+        "name": "git",
+        "check": [
+          "git",
+          "--version"
+        ],
+        "optional": true
+      }
+    ],
+    "runtimes": [
+      {
+        "name": "python3",
+        "version": ">=3.9",
+        "check": [
+          "python3",
+          "--version"
+        ]
+      }
+    ],
+    "env": [
+      {
+        "name": "GH_TOKEN",
+        "required": false,
+        "secret": true,
+        "description": "GitHub token (falls back to GITHUB_TOKEN, then gh auth token)"
+      },
+      {
+        "name": "GITHUB_TOKEN",
+        "required": false,
+        "secret": true
+      }
+    ]
+  },
+  "permissions": {
+    "read": {
+      "level": "scoped",
+      "scope": [
+        "remote:github.com/repos/*/*/**",
+        "$SKILL_DIR/**",
+        "$WORKDIR/**"
+      ],
+      "why": "audits repository settings through the GitHub API"
+    },
+    "write": {
+      "level": "scoped",
+      "scope": [
+        "remote:github.com/repos/*/*/settings/**",
+        "remote:github.com/repos/*/*/contents/.github/**"
+      ],
+      "why": "apply: changes repo settings / commits workflow files; dry run unless --yes / confirm=true",
+      "confirm": "each"
+    },
+    "network": {
+      "level": "scoped",
+      "scope": [
+        "api.github.com",
+        "github.com"
+      ],
+      "why": "GitHub REST API only"
+    },
+    "exec": {
+      "level": "scoped",
+      "scope": [
+        "python3",
+        "gh",
+        "git"
+      ]
+    },
+    "spend": {
+      "level": "none",
+      "why": "free features only"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "repo.audit",
+      "summary": "Diagnose a repo's settings for a solo developer",
+      "entry": {
+        "cli": [
+          "python3",
+          "$SKILL_DIR/scripts/solo.py",
+          "audit"
+        ],
+        "mcp_tool": "solo_audit"
+      },
+      "effects": [
+        "read",
+        "network",
+        "exec"
+      ],
+      "idempotent": true,
+      "effect_scopes": {
+        "exec": [
+          "python3"
+        ]
+      }
+    },
+    {
+      "id": "repo.apply",
+      "summary": "Apply missing settings (dry run unless --yes)",
+      "entry": {
+        "cli": [
+          "python3",
+          "$SKILL_DIR/scripts/solo.py",
+          "apply"
+        ],
+        "mcp_tool": "solo_apply"
+      },
+      "effects": [
+        "read",
+        "write",
+        "network",
+        "exec"
+      ],
+      "destructive": false,
+      "idempotent": true,
+      "dry_run": {
+        "supported": true,
+        "flag": "(default; --yes to execute)",
+        "effects": [
+          "read",
+          "network"
+        ]
+      }
+    },
+    {
+      "id": "repo.restore",
+      "summary": "Undo applied settings from a saved snapshot",
+      "entry": {
+        "cli": [
+          "python3",
+          "$SKILL_DIR/scripts/solo.py",
+          "restore"
+        ],
+        "mcp_tool": "solo_restore"
+      },
+      "effects": [
+        "read",
+        "write",
+        "network",
+        "exec"
+      ],
+      "destructive": true
+    },
+    {
+      "id": "repo.dependabot",
+      "summary": "Print a generated dependabot.yml (reads the repo's languages via the GitHub API)",
+      "entry": {
+        "cli": [
+          "python3",
+          "$SKILL_DIR/scripts/solo.py",
+          "dependabot"
+        ]
+      },
+      "effects": [
+        "read",
+        "network",
+        "exec"
+      ],
+      "effect_scopes": {
+        "exec": [
+          "python3"
+        ]
+      }
+    }
+  ],
+  "tests": {
+    "cases": [
+      {
+        "id": "help",
+        "capability": "repo.audit",
+        "run": [
+          "python3",
+          "$SKILL_DIR/scripts/solo.py",
+          "--help"
+        ],
+        "expect": {
+          "exit_code": 0,
+          "stdout_contains": "audit"
+        }
+      },
+      {
+        "id": "dependabot-offline",
+        "capability": "repo.dependabot",
+        "run": [
+          "python3",
+          "$SKILL_DIR/scripts/solo.py",
+          "dependabot",
+          "kajisho5/ffmpeg-skill"
+        ],
+        "expect": {
+          "exit_code": 0,
+          "stdout_contains": "version: 2"
+        },
+        "network": true
+      },
+      {
+        "id": "dependabot-no-network-fails-cleanly",
+        "capability": "repo.dependabot",
+        "run": [
+          "python3",
+          "$SKILL_DIR/scripts/solo.py",
+          "dependabot",
+          "kajisho5/ffmpeg-skill"
+        ],
+        "expect": {
+          "exit_code": 2,
+          "stderr_contains": "network error"
+        }
+      },
+      {
+        "id": "audit-live",
+        "capability": "repo.audit",
+        "network": true,
+        "skip_unless_env": [
+          "GH_TOKEN"
+        ],
+        "run": [
+          "python3",
+          "$SKILL_DIR/scripts/solo.py",
+          "audit",
+          "kajisho5/ffmpeg-skill"
+        ],
+        "expect": {
+          "exit_code": 0
+        }
+      }
+    ]
+  },
+  "x": {
+    "findings": [
+      "SKILL.md description is 1137 chars (> 1024, agentskills.io limit)",
+      "version not declared in any manifest (no package.json/pyproject version)",
+      "dependabot was assumed offline; the network sandbox showed it calls api.github.com -> contract corrected"
+    ]
+  }
+}

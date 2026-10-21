@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skillpact"
+version = "0.3.0.dev0"
+description = "SkillPact: machine-readable contracts for Agent Skills (reference implementation)"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = ["jsonschema>=4.20", "PyYAML>=6", "cryptography>=42"]
+
+[project.optional-dependencies]
+sigstore = ["sigstore>=4"]
+test = ["pytest>=8"]
+
+[project.scripts]
+skillpact = "skillpact.cli:main"
+
+[tool.setuptools.package-data]
+skillpact = ["*.json", "harness_schemas/*"]

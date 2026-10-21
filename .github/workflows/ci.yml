@@ -13,10 +13,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "${{ matrix.python }}" }
-      - name: ffmpeg 7.1 (Ubuntu's 6.1 hangs in media.pad; tracked as an ffmpeg-skill compat issue)
+      - name: ffmpeg 8.1 (Ubuntu's 6.1 hangs in media.pad; tracked as an ffmpeg-skill compat issue)
         run: |
-          curl -sL https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz | tar xJ
-          echo "$PWD/$(ls -d ffmpeg-n7.1-*)/bin" >> "$GITHUB_PATH"
+          curl -sL https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz | tar xJ
+          echo "$PWD/$(ls -d ffmpeg-n8.1-*)/bin" >> "$GITHUB_PATH"
       - run: ffmpeg -version | head -1
       - name: allow unprivileged user namespaces (network-isolated tests use unshare -rn)
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://seventh-well.com/skillpact/schema/v0.3.json",
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.3.json",
   "contract_version": "0.3",
   "kind": "tool",
   "skill": {
@@ -19110,7 +19110,7 @@
       {
         "type": "ed25519",
         "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
-        "sig": "K8UogOgaVHowt2NDLGhwr2Sf+bbO67OHD8Vd9PrAcR1CEAUc4M8DdhdcahUdvDjCTwUMAB2aayh1vxQfEFvQDA==",
+        "sig": "ZA3vqnJZjzoTuoLCQo6XQGCHU/ZdlpFiPPM+nzoBFOYX2XcfWbkRlUwXYQhRXlSSaoT3tTLKP9um3FJURLW2AQ==",
         "signer": "SEVENTHWELL"
       }
     ]

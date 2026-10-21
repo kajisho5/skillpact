@@ -1,6 +1,6 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "https://seventh-well.com/skillpact/schema/v0.3.json",
+ "$id": "https://kajisho5.github.io/skillpact/schema/v0.3.json",
  "title": "SkillPact contract 0.3 (skill.contract.json, next to SKILL.md)",
  "type": "object",
  "required": [

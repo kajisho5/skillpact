@@ -7,7 +7,7 @@ can recover the exact contract. Every import marks what it had to guess under x.
 import hashlib, json, re
 from pathlib import Path
 
-CANON = "https://seventh-well.com/skillpact/"
+CANON = "https://kajisho5.github.io/skillpact/"
 _TOOL = {"read": "Read", "write": "Write", "exec": "Bash", "network": "WebFetch"}
 _AV = {"read": "fs.read", "write": "fs.write", "exec": "proc.exec", "network": "http.fetch"}
 _AV_REV = {"fs.read": "read", "fs.write": "write", "proc.exec": "exec", "shell.exec": "exec", "http.fetch": "network", "net.fetch": "network"}

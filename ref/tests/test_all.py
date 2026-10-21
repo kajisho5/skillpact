@@ -226,7 +226,7 @@ from skillpact import interop, owasp, sigstore_sig
 
 def test_schema_ids_canonical():
     for f in ("schema.json", "policy_schema.json"):
-        assert json.loads((ROOT / "skillpact" / f).read_text())["$id"].startswith("https://seventh-well.com/skillpact/schema/")
+        assert json.loads((ROOT / "skillpact" / f).read_text())["$id"].startswith("https://kajisho5.github.io/skillpact/schema/")
 
 def test_to_mda_and_lossy():
     c = C(SAMPLE); out = interop.to_mda(c, SAMPLE / "skill.contract.json"); r = out["metadata"]["mda"]["requires"]

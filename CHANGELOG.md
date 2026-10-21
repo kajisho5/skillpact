@@ -7,7 +7,7 @@ All notable changes to the SkillPact spec and reference implementation. Unreleas
 - `convert`: import/export MDA Open Spec 1.0 `metadata.mda.requires` and AutoVault `capabilities` (lossy report + pointer back to the full contract).
 - `owasp`: per-skill OWASP Agentic Skills Top 10 assessment; `spec/owasp_mapping.md`.
 - `export --format aps|acs` in addition to hushspec / rego.
-- Canonical schema URLs under `https://seventh-well.com/skillpact/schema/`.
+- Canonical schema URLs under `https://kajisho5.github.io/skillpact/schema/`.
 ### Changed
 - README positioning: declare + test + sign before install; runtime enforcement delegated to APS / ACS / HushSpec.
 

@@ -3,8 +3,8 @@
 License: CC BY 4.0 (spec) / Apache-2.0 (reference code). © 2026 SEVENTHWELL (shogo kajiyama). **Unpublished draft.**
 
 ## 1. 正式 URL
-- Contract schema: `https://seventh-well.com/skillpact/schema/v0.3.json`
-- Policy schema: `https://seventh-well.com/skillpact/schema/policy-v0.3.json`
+- Contract schema: `https://kajisho5.github.io/skillpact/schema/v0.3.json`
+- Policy schema: `https://kajisho5.github.io/skillpact/schema/policy-v0.3.json`
 - Contract は `"$schema"` にこの URL を書いてよい(任意)。`contract_version` は `"0.3"`(0.1/0.2 も引き続き valid)。
 
 ## 2. Sigstore 署名(任意、ed25519 と併用可)
@@ -33,5 +33,5 @@ License: CC BY 4.0 (spec) / Apache-2.0 (reference code). © 2026 SEVENTHWELL (sh
 
 ## Changelog 0.2 → 0.3
 - 追加: Sigstore 署名、MDA/AutoVault 変換、OWASP 対応表と CLI、APS/ACS export、正式 `$id`。
-- 変更: schema `$id` を seventh-well.com/skillpact/schema/ 配下へ。
+- 変更: schema `$id` を kajisho5.github.io/skillpact/schema/ 配下へ。
 - 互換: 0.2 contract はそのまま valid。

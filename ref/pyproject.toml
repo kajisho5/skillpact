@@ -19,3 +19,6 @@ skillpact = "skillpact.cli:main"
 
 [tool.setuptools.package-data]
 skillpact = ["*.json", "harness_schemas/*"]
+
+[tool.setuptools.packages.find]
+include = ["skillpact*"]

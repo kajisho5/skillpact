@@ -1,4 +1,4 @@
-"""Map a SkillPact contract onto the OWASP Agentic Skills Top 10 (owasp.github.io/www-project-agentic-skills-top-10, 2026).
+"""Map a SkillPact contract onto the OWASP Agentic Skills Top 10 (https://owasp.org/www-project-agentic-skills-top-10/, 2026).
 status: addressed = the contract gives machine-checkable evidence; partial = helps but does not settle it; out_of_scope."""
 from . import core
 

@@ -18,3 +18,5 @@ jobs:
         run: cd ref && python -m skillpact.cli conformance ../samples/ffmpeg-skill --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ="
       - name: schemas in docs match package
         run: cmp ref/skillpact/schema.json docs/schema/v0.3.json && cmp ref/skillpact/policy_schema.json docs/schema/policy-v0.3.json
+      - name: schema reference page is up to date
+        run: python tools/gen_schema_docs.py && git diff --exit-code docs/

@@ -56,3 +56,12 @@ def test_sandbox_hides_home(tmp_path):
         d = mkskill(tmp_path, "g", c, {"run.sh": "echo hi\n"})
         assert core.run_tests(d)["cases"][0]["ok"]
     finally: secret.unlink()
+
+
+def test_policy_version_08_and_legacy_01():
+    import pytest
+    for v in ("0.8", "0.1"):
+        p = POL(); p["policy_version"] = v
+        assert core.match_policy(base("pv"), p)["decision"] in ("allow", "ask", "deny")
+    p = POL(); p["policy_version"] = "0.9"
+    with pytest.raises(ValueError): core.match_policy(base("pv"), p)

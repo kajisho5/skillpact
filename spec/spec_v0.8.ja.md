@@ -168,7 +168,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 | `openWorldHint` | network・send・spend がある |
 
 ## 13. ハーネスポリシーと変換
-- ポリシーは `policy-v0.8.json` に従います。照合器は capability ごとに `decision` と `decision_worst_case`（条件付きの効果を含む）を出さなければなりません（MUST）。
+- ポリシーは `policy-v0.8.json` に従います。照合器は capability ごとに `decision` と `decision_worst_case`（条件付きの効果を含む）を出さなければなりません（MUST）。0.8.x 正誤：ポリシーは `"policy_version": "0.8"` とスキーマ `policy-v0.8-r1.json` を使うべきです（SHOULD）。`"0.1"` は同じ形式の旧名で、引き続き受け付けなければなりません（MUST）。
 - `..` などを含むパスの scope は拒否しなければなりません（MUST）。
 - `scope` のないポリシーのルールは、その効果のすべての scope（`level: any` を含む）に当てはまります（0.8.x 正誤）。
 - `min_contract_version`：これより古い契約は拒否しなければなりません（MUST）。

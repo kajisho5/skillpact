@@ -168,7 +168,7 @@ All implementations MUST match globs exactly as follows; `fnmatch` or shell glob
 | `openWorldHint` | network / send / spend present |
 
 ## 13. Harness policy and compilation
-- Policies follow `policy-v0.8.json`. For each capability a matcher MUST output `decision` and `decision_worst_case` (including conditional effects).
+- Policies follow `policy-v0.8.json`. For each capability a matcher MUST output `decision` and `decision_worst_case` (including conditional effects). Erratum 0.8.x: policies SHOULD use `"policy_version": "0.8"` and schema `policy-v0.8-r1.json`; `"0.1"` is the legacy name of the same format and MUST still be accepted.
 - A path scope with traversal MUST be denied.
 - A policy rule without `scope` matches every scope of its effect, including `level: any` (erratum 0.8.x).
 - `min_contract_version`: contracts older than this MUST be denied.

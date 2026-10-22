@@ -70,7 +70,7 @@ python3 -m skillpact.cli owasp <skill_dir>
 python3 -m skillpact.cli mcp-check      <skill_dir> python3 '$SKILL_DIR/mcp/server.py'
 python3 -m pytest -q ref/tests                                           # 100 tests (some skip without bwrap / opa / Sigstore)
 ```
-Requires Python ≥ 3.11 (tomllib), ffmpeg for the flagship tests, bubblewrap (`bwrap`) for the test sandbox on Linux (fallback `unshare -rn`, network only). Optional: `.tools/opa` for the Rego test.
+Requires Python ≥ 3.11 (tomllib), ffmpeg for the flagship tests, bubblewrap (`bwrap`) for the test sandbox on Linux (fallback `unshare -rn`: network only, so no L2 / L3). Optional: `.tools/opa` for the Rego test.
 
 ## Layout
 ```

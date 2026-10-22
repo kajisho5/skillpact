@@ -100,6 +100,8 @@ def main(argv=None):
             level = "L1-declared"; t = core.run_tests(a.skill_dir, cp)
             if t["ok"] and not t.get("network_isolated"):
                 note = "tests passed but no case ran network-isolated (no sandbox, or every case has network: true): L2 not granted (spec 0.8 s10)"
+            elif t["ok"] and not t.get("fs_isolated"):   # 0.8.x erratum: the unshare fallback isolates the network only
+                note = f"tests passed but the runner could not isolate the file system (sandbox: {t.get('sandbox')}; install bubblewrap): L2 not granted (spec 0.8 s10, s16.1)"
             elif t["ok"]:
                 level = "L2-tested"; c, _ = core.load_contract(Path(a.skill_dir), cp)
                 unl = [f["message"] for f in v["findings"] if f["code"] in ("INTEGRITY_UNLISTED", "INTEGRITY_PATH")]

@@ -38,6 +38,15 @@ export function Layout({ lang, slug, title, description, children, csp, wide }: 
         <meta property="og:description" content={description} />
         <meta property="og:url" content={url(lang)} />
         <meta property="og:site_name" content="SkillPact" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content={`${SITE}og.png`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="SkillPact — Contracts for Agent Skills" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={full} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={`${SITE}og.png`} />
       </Head>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-background focus:px-3 focus:py-2 focus:shadow">{t.skip}</a>
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">

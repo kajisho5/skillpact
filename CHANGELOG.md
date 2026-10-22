@@ -3,7 +3,7 @@ All notable changes to the SkillPact spec and implementations. Drafts until 1.0.
 
 
 ## 0.8.x errata (public review, 2026-10-22; no version tag)
-From the second adversarial self-review (review/self_review_v0.8.md in the workspace). Spec text marked "erratum 0.8.x".
+From the second adversarial self-review (the editor's working notes, not published in this repository). Spec text marked "erratum 0.8.x".
 - Integrity: `__pycache__/` and `*.pyc` are no longer default excludes (unchecked-hash bytecode could run instead of signed source); code and bytecode files are protected and cannot be excluded; `hash` refuses bytecode; coverage is checked even with an external `--contract`.
 - Signatures: contracts before 0.8 (role not signed) get `SIGNATURE_ROLE_UNSIGNED` and never L3 / `require_signature` (breaking for signed 0.4–0.7 contracts).
 - Test sandbox (bwrap): home, `/tmp`, `/var/tmp`, `/run`, `/dev/shm` hidden; new session, IPC/UTS namespaces, stdin closed (blocks host-socket access, home reads and TIOCSTI). Seatbelt profile denies reads in home. Host variables for `skip_unless_env` only with `test --pass-env NAME`.
@@ -18,6 +18,7 @@ From the second adversarial self-review (review/self_review_v0.8.md in the works
 - Signing: samples can be signed keylessly by this repository's CI (`.github/workflows/sigstore-sign.yml` on main, Sigstore production; dispatch with a target branch, it signs, pushes and starts CI). Trust entry in `keys/public/README.txt`; CI and tests trust it next to the SEVENTHWELL key. A Sigstore signature that cannot be verified (sigstore not installed, trust root unreachable) is now `SIGSTORE_UNVERIFIED` (warning, not trusted) instead of `SIGNATURE_INVALID`.
 - Composition (additive, optional; §13.3): union of effects over a skill set and dangerous combinations `exfiltration`, `persistence`, `spend_untrusted` with contributing skills and fix hints; policy `compositions` (schema `policy-v0.8-r2.json`); `skillpact compose`, multi-skill `policy-check` / `policy-compile` (contributing effects compiled as ask, reported as lossy). Vectors `conformance/vectors/compose.json` (Python; the TypeScript verifier has no policy logic). Single-contract levels and results are unchanged. New page /composition/.
 - Docs: why / README / OWASP mapping no longer overstate tamper protection and isolation; guides mention bytecode and `--pass-env`.
+- Docs (review day 1, no normative change): spec Status states the review dates and that "erratum 0.8.x" text was added after the review opened; §13.2 marked unassigned; §15 and Status list the policy schema revisions r1 / r2; `SIGSTORE_UNVERIFIED` points to §11 (was the non-existent §16.4). README layout and test count corrected; showcase updated to 0.8 output (331 files, Codex `on-request`, worst-case compile) and translated to English (`spec/showcase.en.md`); `review/token_measure.py` added and the Why token table re-measured with it.
 
 ## Unreleased (0.8 follow-up)
 - Patent non-assertion covenant (EN/JA) in IPR.md and spec Status.

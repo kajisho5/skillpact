@@ -43,6 +43,6 @@ Audit of SkillPact 0.8 against the material usually expected of W3C / IETF speci
 | 37 | Translations and which text is normative | done (EN normative) | spec Status | `/spec/` · `/ja/spec/` |
 | 38 | Licence for text and code | done | `LICENSE*`, README | footer of every page |
 | 39 | Independent implementations | done (Python reference, TypeScript) | `ref/`, `ts/` | — |
-| 40 | Public review / feedback channel | prepared; dates and issue/Discussions creation need approval | `REVIEW.md`, `.github/ISSUE_TEMPLATE/` | banner hidden until dates set |
+| 40 | Public review / feedback channel | done (open 2026-10-22 – 2026-11-21 JST; tracking issue #1) | `REVIEW.md`, `.github/ISSUE_TEMPLATE/`, `review/tracking-issue.md` | review banner on every page (en / ja) |
 
-Open items (need a decision by the editor): public review dates.
+Open items (need a decision by the editor): none.

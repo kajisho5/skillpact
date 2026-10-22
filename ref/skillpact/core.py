@@ -15,7 +15,7 @@ KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8"]
 PATH_VARS = {"$INPUT", "$INPUT_DIR", "$OUTPUT", "$WORKDIR", "$SKILL_DIR", "$TMPDIR"}
 JCS_FROM = (0, 4)
 SCOPE_TOKENS = {"network": ("@local",)}  # @local = loopback + private networks (spec 0.7)
-# @local expanded to host patterns with label semantics (spec 0.8 s6.2): '*' never crosses a dot.
+# @local expanded to host patterns with label semantics (spec 0.8 s6, Appendix C): '*' never crosses a dot.
 LOCAL_HOSTS = ["localhost", "127.*.*.*", "::1", "10.*.*.*"] + [f"172.{n}.*.*" for n in range(16, 32)] + ["192.168.*.*", "169.254.*.*"]
 _V4 = re.compile(r"(0|[1-9][0-9]{0,2})(\.(0|[1-9][0-9]{0,2})){3}")
 
@@ -557,7 +557,7 @@ def _subst(tok, env): return tok.replace("$SKILL_DIR", env["SKILL_DIR"]).replace
 
 
 def _snapshot(d: Path, cap=20000):
-    """Content hashes (not size/mtime) of every file under d (spec 0.8 s10.2)."""
+    """Content hashes (not size/mtime) of every file under d (spec 0.8 s10)."""
     out = {}
     if not d.exists(): return out
     for p in d.rglob("*"):
@@ -767,7 +767,7 @@ def match_policy(contract, policy, skill_dir=None, contract_path=None) -> dict:
     mv = policy.get("min_contract_version")
     if mv and _vt(contract.get("contract_version", "0.1")) < _vt(mv): return out("deny", f"contract_version {contract.get('contract_version')} is below the policy minimum {mv}")
     if policy.get("require_signature"):
-        # spec 0.8 s13.1: the files must match integrity (full coverage) and the trusted signature must be an author signature
+        # spec 0.8 s13: the files must match integrity (full coverage) and the trusted signature must be an author signature
         if skill_dir is None: return out("deny", "require_signature: the skill directory is needed to verify integrity")
         v = validate(skill_dir, contract_path)
         bad = [f["code"] for f in v["findings"] if f["level"] == "error" or f["code"] in ("INTEGRITY_UNLISTED", "INTEGRITY_PATH")]
@@ -809,7 +809,7 @@ def match_policy(contract, policy, skill_dir=None, contract_path=None) -> dict:
     return res
 
 
-# ---------------- compile to native harness configs (spec 0.8 s13.2) ----------------
+# ---------------- compile to native harness configs (spec 0.8 s13.1) ----------------
 def _native_path(sc, style):
     """Map a SkillPact path scope to a harness path rule, or None if it cannot be expressed statically."""
     if sc.startswith("$WORKDIR"):
@@ -821,7 +821,7 @@ def _native_path(sc, style):
 
 def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, contract_path=None) -> dict:
     """Translate the allow/ask/deny result for one skill into a harness's native config fragment.
-    Returns {"config": <native config>, "lossy": [what could not be expressed]} (s13.2: lossy MUST be reported)."""
+    Returns {"config": <native config>, "lossy": [what could not be expressed]} (s13.1: lossy MUST be reported)."""
     m = match_policy(contract, policy, skill_dir, contract_path)
     perms, lossy = contract["permissions"], []
     lvl = lambda e: perms[e]["level"]

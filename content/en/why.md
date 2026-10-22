@@ -24,12 +24,12 @@ The contract is read mainly by **tools**, not by the model. Still, when a model 
 
 | Skill | `SKILL.md` | Effects summary from the contract | Full contract |
 |---|---|---|---|
-| ffmpeg-skill | 8,459 | 109 | 158,308 |
-| subtitle-skill | 2,522 | 63 | 4,150 |
-| thumbnail-skill | 642 | 41 | 3,527 |
-| video-editing-skill | 885 | 51 | 3,627 |
+| ffmpeg-skill | 8,459 | 92 | 158,308 |
+| subtitle-skill | 2,522 | 46 | 4,150 |
+| thumbnail-skill | 642 | 24 | 3,527 |
+| video-editing-skill | 885 | 32 | 3,627 |
 
-The summary is one line per non-`none` effect with its scopes (script: `review/token_measure.py`). It answers only "what may this skill touch"; it does not replace `SKILL.md`. The full contract is larger than `SKILL.md` (it includes hashes and tests) and is not meant to be put in a prompt.
+The summary is one line per non-`none` effect with its scopes (script: `review/token_measure.py`; re-measured 2026-10-22, because the script first cited was not in the repository and its summary format could not be reproduced). It answers only "what may this skill touch"; it does not replace `SKILL.md`. The full contract is larger than `SKILL.md` (it includes hashes and tests) and is not meant to be put in a prompt.
 
 ## Who benefits
 - **Users**: know what a skill can do before installing; fewer prompts.

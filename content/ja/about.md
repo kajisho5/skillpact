@@ -16,7 +16,7 @@ kajiyama@seventh-well.com か、GitHub の非公開の脆弱性報告で知ら�
 - SEVENTHWELL と Shogo Kajiyama は、仕様の実装に対して防御的終了つきの無償の特許不主張を誓約しています（Microsoft Open Specification Promise と OWFa 1.0 を参考）。[IPR.md](https://github.com/kajisho5/skillpact/blob/main/IPR.md)。
 
 ## 商標とバッジ
-「SEVENTHWELL」は発行者の名前です。「SkillPact」は、仕様に従う実装や契約を説明するために使えます。L1/L2/L3 のバッジは、CI か `skillpact conformance` が実際に出したレベルだけを表示し、SEVENTHWELL の推薦を受けたように見せないでください。[TRADEMARKS.md](https://github.com/kajisho5/skillpact/blob/main/TRADEMARKS.md)。
+「SEVENTHWELL」は発行者の名前です。「SkillPact」は仕様に従う実装や契約を説明するために使えます。L1/L2/L3 のバッジは、CI か `skillpact conformance` が実際に出したレベルだけを表示し、SEVENTHWELL の推薦を受けたように見せないでください。[TRADEMARKS.md](https://github.com/kajisho5/skillpact/blob/main/TRADEMARKS.md)。
 
 ## 引用
 [CITATION.cff](https://github.com/kajisho5/skillpact/blob/main/CITATION.cff) を使ってください：「SkillPact Specification, draft 0.8, SEVENTHWELL, 2026.」

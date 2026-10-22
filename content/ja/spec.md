@@ -1,7 +1,7 @@
 # SkillPact 0.8 仕様（日本語訳）
 
 ## 要約
-SkillPact は、Agent Skills の `SKILL.md`（変更しない）の隣に置く機械可読の契約 `skill.contract.json` を定めます。契約には、スキルが何をするか（capabilities）、どんな副作用がありうるか（範囲つきの 6 区分）、何が必要か（requirements）、実行できる適合テスト、ファイルのハッシュと署名を書きます。ツールはスキルを**インストールする前に**契約を確かめ、ハーネスのポリシーに照らして allow / ask / deny を決め、その結果を各ハーネスの設定に変換できます。
+SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機械可読の契約 `skill.contract.json` を定めます。契約には、スキルが何をするか（capabilities）、どんな副作用がありうるか（範囲つきの 6 区分）、何が必要か（requirements）、実行できる適合テスト、ファイルのハッシュと署名を書きます。ツールはスキルを**インストールする前に**契約を確かめ、ハーネスのポリシーに照らして allow / ask / deny を決め、その結果を各ハーネスの設定に変換できます。
 
 ## この文書の位置づけ
 - **ドラフト 0.8（2026-10-22）。** SEVENTHWELL（shogo kajiyama）が編集するドラフトです。差分ではなく完全版です。
@@ -95,7 +95,7 @@ SkillPact は、Agent Skills の `SKILL.md`（変更しない）の隣に置く�
 | send | 人に届く（メッセージ、投稿、メール） | 宛先の種類・サービス名 |
 
 - パス変数：`$INPUT` `$INPUT_DIR` `$OUTPUT` `$WORKDIR` `$SKILL_DIR` `$TMPDIR`。それ以外の `$` 変数には `UNKNOWN_VARIABLE` を出すべきです（SHOULD）。
-- `scoped` の効果は scope を 1 つ以上持たなければなりません（MUST、`SCOPE_EMPTY`）。スキル全体の scope は、条件付きを含むすべての場合を含まなければなりません（MUST）。
+- `scoped` の効果は scope を 1 つ以上持たなければなりません（MUST、`SCOPE_EMPTY`）。スキル全体の scope は条件付きを含むすべての場合を含まなければなりません（MUST）。
 - spend・send が `any` なら `HIGH_RISK` を出さなければなりません（MUST）。
 - `@` で始まる scope は予約トークンです。0.8 で定めるのは network の `@local`（ループバック、プライベートネットワーク、`*.local`。付録 C）だけです。未知のトークンには `UNKNOWN_SCOPE_TOKEN` を出すべきです（SHOULD）。ハーネスや実行時ポリシーに書き出すときは `@local` をホストのパターンに展開しなければならず（MUST）、表せないもの（IPv6 のユニークローカル）は lossy として報告しなければなりません（MUST）。
 
@@ -151,7 +151,7 @@ SkillPact は、Agent Skills の `SKILL.md`（変更しない）の隣に置く�
 - テストベクトル：`conformance/vectors/jcs-ed25519.json`（シードを公開したテスト用の鍵。本物の署名に使ってはなりません。MUST NOT）。
 
 ### 11.2 ファイルの網羅（0.8 から）
-- `integrity.files` には、スキルディレクトリ内のすべての通常ファイルを載せなければなりません（MUST）。除外できるのは `skill.contract.json`、既定の除外（`.git/**`、`**/__pycache__/**`、`**/*.pyc`、`**/.DS_Store`）、任意の `integrity.exclude` のパターンだけです。
+- `integrity.files` にはスキルディレクトリ内のすべての通常ファイルを載せなければなりません（MUST）。除外できるのは `skill.contract.json`、既定の除外（`.git/**`、`**/__pycache__/**`、`**/*.pyc`、`**/.DS_Store`）、任意の `integrity.exclude` のパターンだけです。
 - 次の保護ファイルは必ず載せ、除外できません：`SKILL.md`、`**/SKILL.md`、`**/CLAUDE.md`、`**/AGENTS.md`、`**/GEMINI.md`、`**/.mcp.json`、`.claude-plugin/**`、`.claude/**`、`.cursor/**`、`.codex/**`、`.gemini/**`、`.agents/**`、`hooks/**`、`package.json`、`pyproject.toml`、および entry・テスト・setup に `$SKILL_DIR/...` として出てくるファイル。
 - 載っていないファイル：`INTEGRITY_UNLISTED`（0.8 からエラー、それより前は警告）。`files` に `SKILL.md` がない：`INTEGRITY_EMPTY`（0.8）。
 - パスは相対の POSIX パスで、`.`・`..`・空のセグメント、バックスラッシュ、制御文字を含まず、1024 バイト・32 セグメント以内、全体で 10 000 件以内。スキルディレクトリ内や載っているパスの途中にあるシンボリックリンクは拒否します（`INTEGRITY_PATH`、全版）。
@@ -232,7 +232,7 @@ L1 は整合性しか示しません。ハーネスは L1 だけを根拠に、�
 ### 18.5 パース
 §4.1 がパーサー間の違い（重複キー、大きな整数、サロゲート、深さ）をなくします。
 ### 18.6 テストの実行
-テストの実行はスキルのコードを動かすことです。`setup` と `run` は信頼できない入力として扱い、§10 に従います。利用者の認証情報は、`skip_unless_env` に書かれた変数を除いて渡してはなりません（MUST NOT）。
+テストの実行はスキルのコードを動かすことです。`setup` と `run` は信頼できない入力として扱い、§10 に従います。利用者の認証情報は `skip_unless_env` に書かれた変数を除いて渡してはなりません（MUST NOT）。
 ### 18.7 旧版
 0.8 より前の契約は role を署名せず、全ファイルの網羅も求めません（載っていないファイルは警告ですが、L3 にはなりません）。ポリシーには `min_contract_version: "0.8"` を設定するべきです（SHOULD）。
 

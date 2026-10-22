@@ -7,6 +7,7 @@ SkillPact builds on the work of others:
 - OWASP Agentic Skills Top 10 for a shared vocabulary of skill risks;
 - HushSpec, the Agent Policy Specification and Microsoft's Agent Control Specification for runtime policy;
 - MDA Open Spec, AutoVault and the SkillSeal projects, whose ideas (local network scope, reviewer attestations, common tool names) shaped this draft;
-- bubblewrap for the test sandbox.
+- bubblewrap for the test sandbox;
+- yomiyasu by nanaism (https://github.com/nanaism/yomiyasu, MIT License, Copyright (c) nanaism), whose Japanese editing guidelines were used to polish the Japanese pages. No yomiyasu code is included in this repository.
 
 Thanks to everyone who will comment during the public review. Contributors are listed in the git history.

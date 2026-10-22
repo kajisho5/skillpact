@@ -12,8 +12,8 @@
 1. `python3 -m skillpact.cli init <skill_dir> -o skill.contract.json` で下書きを作ります。すべての項目を確かめ、`TODO(...)` と `x.init.uncertain` を消します（残すと `UNCONFIRMED_DRAFT`）。
 2. 範囲を狭くします（`/**` ではなく `$WORKDIR/**`）。spend と send は正直に宣言します。
 3. ネットなしで動くテストを足し、`skillpact test <skill_dir>` で実行します。Linux は bubblewrap を入れると完全なサンドボックスになります。macOS は標準の Seatbelt（`sandbox-exec`）を自動で使います（試験的）。Windows は WSL2 か Linux コンテナの中で実行してください。
-4. `skillpact hash <skill_dir>`（全ファイルを載せる）、続いて `skillpact sign <skill_dir> key.pem`、CI なら `sign-sigstore`。公開鍵を公開します。
-5. GitHub Action をコミット SHA で固定し、`pull_request`（`pull_request_target` ではなく）で動かします：
+4. `skillpact hash <skill_dir>` で全ファイルのハッシュを載せ、`skillpact sign <skill_dir> key.pem`（CI なら `sign-sigstore`）で署名します。公開鍵を公開します。
+5. GitHub Action をコミット SHA で固定し、`pull_request_target` ではなく `pull_request` で動かします。書き方は次のとおりです。
 ```yaml
 - uses: kajisho5/skillpact@<commit-sha>
   with: { path: ., min-level: L2 }
@@ -28,7 +28,7 @@
 5. 自社の検証者に適合スイートをかけます：`python3 conformance/run.py --cmd '<検証者> {dir}'`。
 
 ## 企業と CI
-1. ポリシーを 1 つ書きます：効果ごとの既定、ルール、`trusted_keys`、`require_signature: true`、`min_contract_version: "0.8"`。
+1. ポリシーを 1 つ書き、効果ごとの既定、ルール、`trusted_keys`、`require_signature: true`、`min_contract_version: "0.8"` を決めます。
 2. CI ですべてのスキルに `conformance` をかけ、必要なレベルに届かなければ失敗させます。
 3. そのポリシーから変換したハーネス設定を配ります。ハーネスごとの `lossy` の一覧を確認してください。
 4. 実行中の強制には実行時ポリシー（HushSpec、APS / ACS 向けの Rego）を使います。

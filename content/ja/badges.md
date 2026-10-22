@@ -1,6 +1,6 @@
 # バッジ
 
-スキルの SkillPact レベルを README に表示できます。このサイトから配信する SVG です。`skillpact conformance`（または GitHub Action）で実際に出たレベルのバッジだけを使ってください。バッジは申告で、証明ではありません。読む人は[チェッカー](../check/)や Action で確かめ直せます。使い方の決まり：[TRADEMARKS.md](https://github.com/kajisho5/skillpact/blob/main/TRADEMARKS.md)。
+スキルの SkillPact レベルを README に表示できます。このサイトから配信する SVG です。`skillpact conformance`（または GitHub Action）で実際に出たレベルのバッジだけを使ってください。バッジは申告で、証明ではありません。読む人は[チェッカー](../check/)や Action で確かめ直せます。使い方の決まりは [TRADEMARKS.md](https://github.com/kajisho5/skillpact/blob/main/TRADEMARKS.md) にあります。
 
 [![SkillPact L1](../../badges/skillpact-L1.svg)](../) [![SkillPact L2](../../badges/skillpact-L2.svg)](../) [![SkillPact L3](../../badges/skillpact-L3.svg)](../)
 

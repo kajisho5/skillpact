@@ -26,9 +26,14 @@ MAX_PATH_LEN = 1024
 MAX_PATH_SEGMENTS = 32
 MAX_FILES = 10000
 # integrity coverage (spec 0.8 s11.2): files excluded by default, and files that can never be excluded
-DEFAULT_EXCLUDE = (".git/**", "**/__pycache__/**", "**/*.pyc", "**/.DS_Store")
+DEFAULT_EXCLUDE = (".git/**", "**/.DS_Store")   # 0.8 errata: bytecode (__pycache__, *.pyc) is no longer excluded (it can shadow signed sources)
 PROTECTED = ("SKILL.md", "**/SKILL.md", "**/CLAUDE.md", "**/AGENTS.md", "**/GEMINI.md", "**/.mcp.json", ".claude-plugin/**",
              ".claude/**", ".cursor/**", ".codex/**", ".gemini/**", ".agents/**", "hooks/**", "package.json", "pyproject.toml")
+# 0.8 errata: code and bytecode can never be excluded either (an excluded module could be imported or sourced by a listed entry)
+CODE_PROTECTED = tuple(f"**/*.{e}" for e in ("py", "pyc", "pyo", "pyd", "sh", "bash", "zsh", "fish", "js", "mjs", "cjs", "ts", "mts", "cts", "rb", "pl", "pm",
+                       "php", "lua", "ps1", "psm1", "bat", "cmd", "exe", "so", "dylib", "dll", "jar", "class", "wasm"))
+PROTECTED = PROTECTED + CODE_PROTECTED
+BYTECODE = ("**/__pycache__/**", "**/*.pyc", "**/*.pyo")
 PATH_EFFECTS = ("read", "write")
 
 
@@ -216,14 +221,14 @@ def validate(skill_dir, contract_path=None) -> dict:
             if link: r.err("INTEGRITY_PATH", f"{rel!r}: {link} is a symbolic link", "/integrity/files")
             elif not f.is_file(): r.err("INTEGRITY_MISSING", f"{rel} missing")
             elif sha256(f) != h: r.err("INTEGRITY_MISMATCH", f"{rel} hash differs")
-        if not contract_path:
-            for kind, rel in unlisted_files(skill_dir, c, limit=200):
-                if kind == "symlink": (r.err if v08 else r.warn)("INTEGRITY_PATH", f"{rel!r} is a symbolic link (not allowed in a skill directory)")
-                else: (r.err if v08 else r.warn)("INTEGRITY_UNLISTED", f"{rel} is not covered by integrity.files")
+        for kind, rel in unlisted_files(skill_dir, c, limit=200):   # 0.8 errata: also with an external contract (--contract)
+            if kind == "symlink": (r.err if v08 else r.warn)("INTEGRITY_PATH", f"{rel!r} is a symbolic link (not allowed in a skill directory)")
+            else: (r.err if v08 else r.warn)("INTEGRITY_UNLISTED", f"{rel} is not covered by integrity.files" + ("; it is Python bytecode: delete it (or set PYTHONDONTWRITEBYTECODE=1)" if _excluded(rel, BYTECODE) else ""))
         if c["integrity"].get("signatures"):
             for k in duplicate_signers(c): r.err("DUP_SIGNATURE", f"more than one signature by {k}", "/integrity/signatures")
             res = verify_signatures(c)
             if not all(res.values()): r.err("SIGNATURE_INVALID", f"signature check failed: {res}")
+            if not v08: r.warn("SIGNATURE_ROLE_UNSIGNED", "before 0.8 the signer role is not signed, so it can be changed: such signatures never give L3 (0.8 errata); migrate and re-sign")
     return r.to_dict()
 
 
@@ -361,6 +366,7 @@ def hash_files(skill_dir, contract_path=None):
     files = {}
     for kind, rel in unlisted_files(skill_dir, c):
         if kind == "symlink": raise SystemExit(f"refusing to hash: {rel} is a symbolic link")
+        if _excluded(rel, BYTECODE): raise SystemExit(f"refusing to hash: {rel} is Python bytecode; delete __pycache__ and *.pyc before hashing (bytecode can shadow the signed sources)")
         files[rel] = sha256(skill_dir / rel)
     if len(files) > MAX_FILES: raise SystemExit(f"too many files ({len(files)} > {MAX_FILES})")
     c["integrity"] = {"algorithm": "sha256", "files": dict(sorted(files.items())), **({"exclude": exclude} if exclude else {}), "signatures": []}
@@ -556,28 +562,62 @@ def _sandbox():
 SEATBELT = "/usr/bin/sandbox-exec"   # macOS Seatbelt; deprecated by Apple but functional (also used by Codex / Claude Code sandboxes)
 
 
-def _seatbelt_profile(work, rw_skill, net):
+def _masked_roots():
+    """Locations hidden from tests (0.8 errata, s10 item 4): the user's home, temporary and runtime directories,
+    which hold credentials and Unix sockets (D-Bus, Docker, agents)."""
+    home = os.path.realpath(os.environ.get("HOME") or str(Path.home()))
+    roots = [r for r in ("/tmp", "/var/tmp", "/run", "/dev/shm") if os.path.isdir(r)]
+    if home not in ("/", "") and os.path.isdir(home): roots.append(home)
+    return roots
+
+
+def _keep_paths(extra=()):
+    """Paths re-exposed read-only under a masked root: PATH entries (and the directory above each, for venvs and tool
+    caches), located dependency skills, and SKILLPACT_SANDBOX_KEEP (colon separated)."""
+    masked = _masked_roots(); out = []
+    def under(p_): return any(p_ == m or p_.startswith(m.rstrip("/") + "/") for m in masked)
+    cands = [e for e in os.environ.get("PATH", "").split(":") if e] + [e for e in os.environ.get("SKILLPACT_SANDBOX_KEEP", "").split(":") if e] + list(extra)
+    for e in cands:
+        r_ = os.path.realpath(e)
+        if not os.path.isdir(r_) or not under(r_): continue
+        parent = os.path.dirname(r_)
+        for q_ in ([parent] if parent not in masked and under(parent) else []) + [r_]:
+            if q_ not in out: out.append(q_)
+    for r_ in ("/run/systemd/resolve",):   # DNS for network: true cases
+        if os.path.isdir(r_) and r_ not in out: out.append(r_)
+    return out
+
+
+def _seatbelt_profile(work, rw_skill, net, keep=()):
     """SBPL profile: everything allowed except file writes outside $WORKDIR (+ $SKILL_DIR if allowed) and, unless net, all network."""
     q = lambda p_: '"' + os.path.realpath(p_).replace("\\", "\\\\").replace('"', '\\"') + '"'
     roots = " ".join(f"(subpath {q(r)})" for r in [work] + ([rw_skill] if rw_skill else []))
+    home = os.path.realpath(os.environ.get("HOME") or str(Path.home()))
+    reads = " ".join(f"(subpath {q(r)})" for r in [work] + ([rw_skill] if rw_skill else []) + list(keep))
     prof = ["(version 1)", "(allow default)", "(deny file-write*)",
             f'(allow file-write* {roots} (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/fd/"))']
+    if home not in ("/", ""): prof += [f"(deny file-read* (subpath {q(home)}))", f"(allow file-read* {reads})"]
     if not net: prof.append("(deny network*)")
     return "\n".join(prof)
 
 
-def _wrap(cmd, mode, net, work, rw_skill):
+def _wrap(cmd, mode, net, work, rw_skill, ro=()):
+    """ro: paths to re-expose read-only under the masked roots (the skill directory, dependency skills)."""
     if mode == "bwrap":
-        w = ["bwrap", "--die-with-parent", "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--unshare-pid", "--bind", str(work), str(work)]
+        w = ["bwrap", "--die-with-parent", "--new-session", "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--unshare-cgroup-try",
+             "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc"]
+        for m in _masked_roots(): w += ["--tmpfs", m]
+        for k in _keep_paths(ro): w += ["--ro-bind", k, k]
+        w += ["--bind", str(work), str(work)]
         if rw_skill: w += ["--bind", rw_skill, rw_skill]
         if not net: w += ["--unshare-net"]
         return w + ["--chdir", str(work), "--"] + cmd
     if mode == "unshare" and not net: return ["unshare", "-rn"] + cmd
-    if mode == "seatbelt": return [SEATBELT, "-p", _seatbelt_profile(work, rw_skill, net), "--"] + cmd
+    if mode == "seatbelt": return [SEATBELT, "-p", _seatbelt_profile(work, rw_skill, net, _keep_paths(ro)), "--"] + cmd
     return cmd
 
 
-def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, skills_path=()) -> dict:
+def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, skills_path=(), pass_env=()) -> dict:
     """Run the declared tests (spec 0.8 s10): setup and cases in a sandbox, allowlisted environment only,
     writes outside $WORKDIR prevented (bwrap) or detected by content hash (fallback)."""
     skill_dir = Path(skill_dir).resolve(); c, _ = load_contract(skill_dir, contract_path)
@@ -593,24 +633,27 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
     env = {k: os.environ[k] for k in ENV_ALLOW if k in os.environ}
     env.update({**skill_env, "SKILL_DIR": str(skill_dir), "WORKDIR": str(work), "HOME": str(work / ".home"), "TMPDIR": str(work / ".tmp"),
                 "PYTHONDONTWRITEBYTECODE": "1", "LANG": env.get("LANG", "C.UTF-8")})
-    wrap = lambda cmd, net=False: _wrap(cmd, mode, net, work, str(skill_dir) if skill_dir_writes_allowed else None)
+    ro = [str(skill_dir)] + list(skill_env.values()) + ([str(Path(contract_path).resolve().parent)] if contract_path else [])
+    wrap = lambda cmd, net=False: _wrap(cmd, mode, net, work, str(skill_dir) if skill_dir_writes_allowed else None, ro)
     results = []
     watch = [skill_dir] + ([] if mode in ("bwrap", "seatbelt") else [skill_dir.parent])
     before = {str(d): _snapshot(d) for d in watch}
     setup_error = None
     try:
         for cmd in c.get("tests", {}).get("setup", []):
-            p = subprocess.run(wrap([_subst(t, env) for t in cmd]), cwd=work, env=env, capture_output=True, text=True, timeout=300)
+            p = subprocess.run(wrap([_subst(t, env) for t in cmd]), cwd=work, env=env, capture_output=True, text=True, timeout=300, stdin=subprocess.DEVNULL, start_new_session=True)
             if p.returncode != 0: setup_error = f"setup failed: {p.stderr[-500:]}"; break
         for t in ([] if setup_error else c.get("tests", {}).get("cases", [])):
             if only and t["id"] not in only: continue
-            if any(not os.environ.get(v) for v in t.get("skip_unless_env", [])):
-                results.append({"id": t["id"], "capability": t.get("capability"), "ok": True, "skipped": True, "failures": [], "seconds": 0, "network_sandboxed": False, "stderr_tail": ""}); continue
+            # 0.8 errata: a case only receives skip_unless_env variables the person running the tests allowed (--pass-env)
+            if any(not os.environ.get(v) or v not in pass_env for v in t.get("skip_unless_env", [])):
+                why = "not allowed (use --pass-env)" if all(os.environ.get(v) for v in t.get("skip_unless_env", [])) else "not set"
+                results.append({"id": t["id"], "capability": t.get("capability"), "ok": True, "skipped": True, "skip_reason": f"skip_unless_env {why}", "failures": [], "seconds": 0, "network_sandboxed": False, "stderr_tail": ""}); continue
             cenv = {**env, **{v: os.environ[v] for v in t.get("skip_unless_env", [])}, **{k: _subst(v, env) for k, v in t.get("env", {}).items()}}
             cmd = wrap([_subst(x, env) for x in t["run"]], bool(t.get("network")))
             t0 = time.time(); fails = []
             try:
-                p = subprocess.run(cmd, cwd=work, env=cenv, capture_output=True, text=True, timeout=t.get("timeout_s", 120) * float(os.environ.get("SKILLPACT_TIMEOUT_SCALE", "1")))
+                p = subprocess.run(cmd, cwd=work, env=cenv, capture_output=True, text=True, stdin=subprocess.DEVNULL, start_new_session=True, timeout=t.get("timeout_s", 120) * float(os.environ.get("SKILLPACT_TIMEOUT_SCALE", "1")))
                 code, out, errout = p.returncode, p.stdout, p.stderr
             except subprocess.TimeoutExpired:
                 code, out, errout = None, "", "timeout"; fails.append("timeout")
@@ -701,8 +744,8 @@ def match_policy(contract, policy, skill_dir=None, contract_path=None) -> dict:
                 per.append({"effect": eff, "decision": "deny", "why": "scope escapes its base (SCOPE_TRAVERSAL)"}); continue
             for rule in policy.get("rules", []):          # first matching rule wins
                 if rule["effect"] != eff: continue
-                pats = rule.get("scope", ["*"])
-                if (pe["level"] == "scoped" and _covered(pe.get("scope", []), pats, effect_kind(eff))) or (pe["level"] == "any" and pats == ["*"]):
+                pats = rule.get("scope")   # 0.8 errata: a rule without scope matches every scope of the effect
+                if pats is None or (pe["level"] == "scoped" and _covered(pe.get("scope", []), pats, effect_kind(eff))) or (pe["level"] == "any" and pats in (["*"], ["**"])):
                     d, why = rule["decision"], f"rule {rule.get('id', eff)}"; break
             if pe["level"] == "any" and d == "allow" and eff in policy.get("never_auto_allow_any", ["spend", "send"]):
                 d, why = "ask", f"{eff} with level 'any' is never auto-allowed"
@@ -743,10 +786,10 @@ def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, co
     lvl = lambda e: perms[e]["level"]
     scope = lambda e: perms[e].get("scope", []) if lvl(e) == "scoped" else []
     cmds, hosts = scope("exec"), expand_scope(scope("network"))
-    if "@local" in scope("network"): lossy.append(f"network @local: {LOCAL_LOSSY}")
+    if "@local" in scope("network"): lossy.append(f"network @local: {LOCAL_LOSSY}; IPv4 patterns such as 10.*.*.* also match DNS names like 10.0.0.example.com in harness host rules")
     worst = {}
     for c_ in m["capabilities"]:
-        for e in c_["effects"]: worst[e["effect"]] = max(worst.get(e["effect"], "allow"), e["decision"], key=ORDER.get)
+        for e in c_["effects"] + c_.get("conditional", []): worst[e["effect"]] = max(worst.get(e["effect"], "allow"), e["decision"], key=ORDER.get)  # 0.8 errata: conditional too
     skill_denied = m["decision"] == "deny" and not m["capabilities"]
     bucket = lambda eff: "deny" if skill_denied else worst.get(eff, "allow")
     used = lambda eff: lvl(eff) != "none"
@@ -890,6 +933,7 @@ def migrate(c: dict, to: str = None) -> tuple[dict, list]:
     integ = n.get("integrity")
     if integ:
         if old != to and (tuple(map(int, str(old).split("."))) < JCS_FROM <= tuple(map(int, to.split(".")))): integ["canonicalization"] = "jcs"
+        if old != to and _vt(old) < V08 <= _vt(to): ch.append("integrity.files: 0.8 requires every skill file to be listed; re-run `skillpact hash` before signing")
         if integ.get("signatures") and ch:
             integ["signatures"] = []; ch.append("integrity.signatures removed: contract changed (and canonicalization is JCS from 0.4); re-sign")
     return n, ch
@@ -904,6 +948,7 @@ def signature_roles(c) -> dict:
 
 def trusted_author(c, trusted) -> bool:
     """True if a valid signature with role author was made by a trusted key/identity."""
+    if _vt(c.get("contract_version", "0.1")) < V08: return False   # 0.8 errata: role is unsigned before 0.8 (relabel attack)
     res, roles = verify_signatures(c), signature_roles(c)
     return any(ok and k in trusted and roles.get(k, "author") == "author" for k, ok in res.items())
 

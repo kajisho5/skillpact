@@ -12,7 +12,7 @@ Agent skills run with your permissions, but `SKILL.md` is prose: nothing in it c
 - **side effects**: read / write / network / exec / spend / send, with scopes, conditional effects and per-capability narrowing
 - **requirements**: binaries, versions, binary features (e.g. ffmpeg filters), packages, other skills
 - **conformance tests**: they run network-isolated, so any agent can verify the skill works
-- **integrity over every file + ed25519 / Sigstore signature** (the signer role is signed too)
+- **integrity over every file (except `.git/` and `.DS_Store`) + ed25519 / Sigstore signature** (the signer role is signed too, from 0.8). Detection only: a harness must re-verify before each run
 
 A small **harness policy** file then decides allow / ask / deny for each capability. The same decision is compiled to Claude Code, Cursor, Codex and Gemini CLI configs (each validated against that harness's schema) and exported to HushSpec / Rego for runtime enforcement.
 

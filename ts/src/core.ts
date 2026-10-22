@@ -8,9 +8,12 @@ export const SCHEMA: any = SCHEMA_JSON;
 export const EFFECTS = ["read", "write", "network", "exec", "spend", "send"] as const;
 export const KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8"];
 export const MAX_PATH_LEN = 1024, MAX_PATH_SEGMENTS = 32, MAX_FILES = 10000;
-export const DEFAULT_EXCLUDE = [".git/**", "**/__pycache__/**", "**/*.pyc", "**/.DS_Store"];
+export const DEFAULT_EXCLUDE = [".git/**", "**/.DS_Store"];  // 0.8 errata: bytecode is no longer excluded
 export const PROTECTED = ["SKILL.md", "**/SKILL.md", "**/CLAUDE.md", "**/AGENTS.md", "**/GEMINI.md", "**/.mcp.json", ".claude-plugin/**",
-  ".claude/**", ".cursor/**", ".codex/**", ".gemini/**", ".agents/**", "hooks/**", "package.json", "pyproject.toml"];
+  ".claude/**", ".cursor/**", ".codex/**", ".gemini/**", ".agents/**", "hooks/**", "package.json", "pyproject.toml",
+  // 0.8 errata: code and bytecode can never be excluded
+  ...["py", "pyc", "pyo", "pyd", "sh", "bash", "zsh", "fish", "js", "mjs", "cjs", "ts", "mts", "cts", "rb", "pl", "pm",
+      "php", "lua", "ps1", "psm1", "bat", "cmd", "exe", "so", "dylib", "dll", "jar", "class", "wasm"].map(e => `**/*.${e}`)];
 export const PATH_EFFECTS = ["read", "write"];
 export const SCOPE_TOKENS: Record<string, string[]> = { network: ["@local"] };
 export const vt = (v: string) => String(v).split(".").map(Number);
@@ -190,6 +193,7 @@ export function checkContract(cIn: any, env: Env, F: Finding[]): any | null {
       else (v08 ? err : warn)("INTEGRITY_UNLISTED", `${rel} is not covered by integrity.files`);
     }
     for (const k of duplicateSigners(c)) err("DUP_SIGNATURE", `more than one signature by ${k}`, "/integrity/signatures");
+    if (!v08 && c.integrity.signatures?.length) warn("SIGNATURE_ROLE_UNSIGNED", "before 0.8 the signer role is not signed, so it can be changed: such signatures never give L3 (0.8 errata); migrate and re-sign");
   }
   return c;
 }

@@ -464,6 +464,39 @@
       }
     },
     {
+      "id": "v08r-bytecode-unlisted",
+      "description": "N1: bytecode is not excluded by default (an unchecked .pyc can shadow a signed .py)",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "INTEGRITY_UNLISTED"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08r-exclude-code",
+      "description": "N2: code files cannot be excluded",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "INTEGRITY_UNLISTED"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08r-legacy-role-unsigned",
+      "description": "N3: before 0.8 the role is not signed; valid, but warned and never L3",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [
+          "SIGNATURE_ROLE_UNSIGNED"
+        ]
+      }
+    },
+    {
       "id": "v08-json-bigint",
       "description": "M2: integer outside +-(2^53-1) is not I-JSON",
       "expect": {

@@ -2,6 +2,16 @@
 All notable changes to the SkillPact spec and implementations. Drafts until 1.0.
 
 
+## 0.8.x errata (public review, 2026-10-22; no version tag)
+From the second adversarial self-review (review/self_review_v0.8.md in the workspace). Spec text marked "erratum 0.8.x".
+- Integrity: `__pycache__/` and `*.pyc` are no longer default excludes (unchecked-hash bytecode could run instead of signed source); code and bytecode files are protected and cannot be excluded; `hash` refuses bytecode; coverage is checked even with an external `--contract`.
+- Signatures: contracts before 0.8 (role not signed) get `SIGNATURE_ROLE_UNSIGNED` and never L3 / `require_signature` (breaking for signed 0.4–0.7 contracts).
+- Test sandbox (bwrap): home, `/tmp`, `/var/tmp`, `/run`, `/dev/shm` hidden; new session, IPC/UTS namespaces, stdin closed (blocks host-socket access, home reads and TIOCSTI). Seatbelt profile denies reads in home. Host variables for `skip_unless_env` only with `test --pass-env NAME`.
+- Policy: a rule without `scope` matches every scope; `policy-compile` follows the worst case including conditional effects (e.g. Codex `on-request` instead of `never`).
+- `migrate` across 0.8 tells you to re-run `skillpact hash`; `@local` lossy note documents the DNS-name caveat.
+- Conformance: 48 cases (+ bytecode-unlisted, exclude-code, legacy-role-unsigned); Python and TypeScript pass all.
+- Docs: why / README / OWASP mapping no longer overstate tamper protection and isolation; guides mention bytecode and `--pass-env`.
+
 ## Unreleased (0.8 follow-up)
 - Patent non-assertion covenant (EN/JA) in IPR.md and spec Status.
 - IANA media type: to be considered after 1.0.

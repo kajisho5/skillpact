@@ -4,7 +4,7 @@ import { createHash, createPublicKey, verify as edVerify } from "node:crypto";
 import { join, resolve, basename } from "node:path";
 import YAML from "yaml";
 import { parseStrict } from "./strictjson.js";
-import { checkContract, signingInputString, signatureRoles, sigKey, NAME_RE, excluded, requiredPaths, DEFAULT_EXCLUDE, PROTECTED, type Finding, type Report } from "./core.js";
+import { checkContract, isV08, signingInputString, signatureRoles, sigKey, NAME_RE, excluded, requiredPaths, DEFAULT_EXCLUDE, PROTECTED, type Finding, type Report } from "./core.js";
 export * from "./core.js";
 
 export function signingInput(c: any, role?: string): Buffer { return Buffer.from(signingInputString(c, role), "utf8"); }
@@ -85,7 +85,7 @@ export function validate(skillDir: string, contractPath?: string): Report {
   let c: any;
   try { c = parseStrict(new TextDecoder("utf-8", { fatal: true }).decode(readFileSync(cp))); } catch (e: any) { err("CONTRACT_JSON", String(e.message)); return done(); }
   const c2 = checkContract(c, { nameDirMismatch, fileExists: rel => existsSync(join(dir, rel)), fileSha256: rel => sha256(join(dir, rel)), skillName: fm ? fm.name : undefined,
-    isFile: rel => isFile(join(dir, rel)), symlinkIn: rel => symlinkIn(dir, rel), unlisted: contractPath ? undefined : (cc: any) => unlistedFiles(dir, cc) }, F);
+    isFile: rel => isFile(join(dir, rel)), symlinkIn: rel => symlinkIn(dir, rel), unlisted: (cc: any) => unlistedFiles(dir, cc) }, F);
   if (!c2) return done(); c = c2;
   if (c.integrity) {
     if (c.integrity.signatures?.length) {
@@ -104,7 +104,7 @@ export function verifyLevel(skillDir: string, trustedKeys: string[], contractPat
   const sig = verifySignatures(c);
   const roles = signatureRoles(c);
   const coverage = !v.findings.some(f => f.code === "INTEGRITY_UNLISTED" || f.code === "INTEGRITY_PATH");
-  const trustedValid = coverage && Object.entries(sig).some(([k, ok]) => ok === true && trustedKeys.includes(k) && roles[k] === "author");
+  const trustedValid = coverage && isV08(c) && Object.entries(sig).some(([k, ok]) => ok === true && trustedKeys.includes(k) && roles[k] === "author");
   const attestations = Object.entries(sig).filter(([k, ok]) => ok === true && roles[k] !== "author").map(([k]) => ({ key: k, role: roles[k], trusted: trustedKeys.includes(k) }));
   const note = coverage ? "tests are not run by the verify-only implementation; L2/L3 need a runner" : "integrity does not cover every skill file: L3 not possible (spec 0.8 s11.2)";
   return { level: "L1-declared", signature_trusted: trustedValid, attestations, signatures: sig, note, validate: v };

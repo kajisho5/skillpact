@@ -1,5 +1,6 @@
 import hashlib
-import copy, json, shutil, subprocess, sys
+import copy, json, os, shutil, subprocess, sys
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"   # 0.8 errata: bytecode in a sample would be INTEGRITY_UNLISTED
 from pathlib import Path
 import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -118,11 +119,12 @@ def test_policy_skill_denylist_and_invalid_policy():
 
 def test_compile_targets():
     c, p = C(SAMPLE), POL("solo-dev")
-    cc = core.compile_native(c, p, "claude-code")["config"]; assert "Bash(ffmpeg *)" in cc["permissions"]["allow"]
-    assert "Shell(ffprobe)" in core.compile_native(c, p, "cursor")["config"]["permissions"]["allow"]
-    cx = core.compile_native(c, p, "codex")["config"]; assert cx["sandbox_mode"] == "workspace-write" and cx["approval_policy"] == "never"
+    # 0.8 errata: conditional effects (ffmpeg-skill's model downloads ask) make the static config follow decision_worst_case
+    cc = core.compile_native(c, p, "claude-code")["config"]; assert "Bash(ffmpeg *)" in cc["permissions"]["ask"]
+    assert "Shell(ffprobe)" not in core.compile_native(c, p, "cursor")["config"]["permissions"]["allow"]   # Cursor prompts for anything not allowed
+    cx = core.compile_native(c, p, "codex")["config"]; assert cx["sandbox_mode"] == "workspace-write" and cx["approval_policy"] == "on-request"
     assert core.compile_native(c, POL("strict-ci"), "gemini-cli")["config"]["rule"][0]["decision"] == "deny"  # unsigned -> deny
-    assert core.compile_native(c, p, "gemini-cli")["config"]["rule"][0]["decision"] == "allow"
+    assert core.compile_native(c, p, "gemini-cli")["config"]["rule"][0]["decision"] == "ask_user"
 
 def test_cli_exit_codes(capsys):
     assert cli.main(["validate", str(SAMPLE)]) == 0

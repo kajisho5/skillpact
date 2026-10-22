@@ -64,6 +64,13 @@ mk("v08-m7-unconfirmed-draft", base("v08-m7-unconfirmed-draft"), integ=None, pos
    desc="M7: init draft cannot pass L1", expect=ERR("UNCONFIRMED_DRAFT"))
 mk("v08-legacy-unlisted-warn", base("v08-legacy-unlisted-warn", "0.7"), files={"lib/x.sh": "echo\n"}, integ=["SKILL.md", "scripts/run.sh"],
    desc="0.7: unlisted file is a warning (L3 still refused by conformance)", expect={"warnings_include": ["INTEGRITY_UNLISTED"]})
+# 0.8 errata (self-review r2, public review)
+mk("v08r-bytecode-unlisted", base("v08r-bytecode-unlisted"), files={"scripts/helper.pyc": "not really bytecode\n"}, integ=["SKILL.md", "scripts/run.sh"], sign=["author"],
+   desc="N1: bytecode is not excluded by default (an unchecked .pyc can shadow a signed .py)", expect=ERR("INTEGRITY_UNLISTED"))
+mk("v08r-exclude-code", base("v08r-exclude-code"), files={"lib/x.sh": "go(){ echo hi; }\n"}, integ=["SKILL.md", "scripts/run.sh"],
+   post=lambda c, d: c["integrity"].update(exclude=["lib/**"]), sign=["author"], desc="N2: code files cannot be excluded", expect=ERR("INTEGRITY_UNLISTED"))
+mk("v08r-legacy-role-unsigned", base("v08r-legacy-role-unsigned", "0.7"), sign=["author"],
+   desc="N3: before 0.8 the role is not signed; valid, but warned and never L3", expect={"warnings_include": ["SIGNATURE_ROLE_UNSIGNED"]})
 (HERE / "cases" / "v08-json-bigint").mkdir(exist_ok=True)
 (HERE / "cases/v08-json-bigint/SKILL.md").write_text("---\nname: v08-json-bigint\ndescription: c\n---\nb\n")
 (HERE / "cases/v08-json-bigint/skill.contract.json").write_text('{"contract_version":"0.8","x":{"n":9007199254740993}}\n')

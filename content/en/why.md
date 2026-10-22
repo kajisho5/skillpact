@@ -14,7 +14,7 @@ A file `skill.contract.json` next to the unchanged `SKILL.md`. The author **decl
 - **See before you install.** A short, structured list of what the skill may touch, instead of reading the whole `SKILL.md` and its scripts.
 - **Automatic allow / ask / deny.** A policy (yours or your organisation's) decides per capability. Users do not have to judge each skill by hand.
 - **Fewer permission prompts.** Declared, policy-approved effects can be pre-approved in the harness; prompts are left for what is undeclared or risky.
-- **Tamper detection.** Hashes cover every file in the skill; any change breaks verification.
+- **Tamper detection.** Hashes cover every file in the skill (except `.git/` and `.DS_Store`), so a changed file fails verification. It detects changes; it does not stop a harness that skips verification.
 - **Write the policy once.** The same decision compiles to Claude Code, Cursor, Codex and Gemini CLI settings (with a list of what each cannot express) and exports to HushSpec / Rego.
 - **Trust badges for authors.** L1 / L2 / L3 show how far a skill has been declared, tested and signed.
 - **An audit artifact for organisations.** A signed, versioned contract is something a security review can approve and a CI job can re-check.

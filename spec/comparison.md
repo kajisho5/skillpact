@@ -7,7 +7,7 @@
 | テスト | オフラインの適合テスト（L2） | なし | 仕様の適合フィクスチャ（V/C レベル）はあるが、スキル自体のテストはない | 宣言と本文の照合（静的） | skillseal/skillseal は実行証拠に署名 |
 | 署名 | ed25519 / Sigstore、JCS（RFC 8785） | なし | Sigstore 系の署名（任意） | Ed25519 のマニフェスト（ボルト側の鍵） | ed25519（getskillseal）、GPG・SSH・複数鍵・レビュアー証明（mcyork） |
 | ハーネス設定への変換 | Claude Code / Cursor / Codex / Gemini CLI、HushSpec / Rego | なし | ベンダー名前空間 `metadata.<vendor>.*` | エージェントごとの tool 名変換（transformations） | Claude Code 用フック（mcyork） |
-| 仕様の成熟度 | 0.8 ドラフト、BCP 14（英語が規範）、適合スイート 45 ケース、2 実装 | 安定、参照バリデータあり | 1.0 Stable、BCP 14、適合マニフェスト、REGISTRY.md | 製品仕様（単一実装） | 製品・ツール |
+| 仕様の成熟度 | 0.8 ドラフト、BCP 14（英語が規範）、適合スイート 48 ケース、2 実装 | 安定、参照バリデータあり | 1.0 Stable、BCP 14、適合マニフェスト、REGISTRY.md | 製品仕様（単一実装） | 製品・ツール |
 
 ## 取り込むべき点（v1.0 前の検討項目）
 1. **network: local**（MDA）: ループバック・社内網だけを表す区分が SkillPact にはない。`scope` に `localhost` などを書けば表せるが、標準の書き方を決めると変換が無損失になる。

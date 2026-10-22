@@ -129,7 +129,9 @@ All implementations MUST match globs exactly as follows; `fnmatch` or shell glob
 - A runner MUST run `setup` and every case in a sandbox that:
   1. has no network, except cases with `network: true`;
   2. makes the file system read-only except `$WORKDIR` (and `$SKILL_DIR` only when the write scope includes it);
-  3. passes only an allowlist of environment variables: `PATH`, `LANG`, `LC_ALL`, `TZ`, `TERM`, the SkillPact variables, located dependency skills, variables named in `skip_unless_env`, and the case `env`. `HOME` and `TMPDIR` point inside `$WORKDIR`.
+  3. passes only an allowlist of environment variables: `PATH`, `LANG`, `LC_ALL`, `TZ`, `TERM`, the SkillPact variables, located dependency skills, and the case `env`. `HOME` and `TMPDIR` point inside `$WORKDIR`. Host variables named in `skip_unless_env` are passed only when the person running the tests allows them (reference CLI: `--pass-env NAME`); otherwise the case is skipped (erratum 0.8.x);
+  4. hides the user's home and the host's temporary and runtime directories (`/tmp`, `/var/tmp`, `/run`, `/dev/shm`), so a case cannot read user files or connect to host Unix sockets; directories needed to run programs (`PATH` entries) may be re-exposed read-only (erratum 0.8.x);
+  5. runs in a new session without the controlling terminal and with stdin closed (erratum 0.8.x).
 - A runner MUST detect changes to the skill directory by content hash (not by size or time) and fail the case unless the write scope includes `$SKILL_DIR`. When it cannot isolate the file system, it MUST also watch the parent directory and report writes outside the skill.
 - A runner that cannot provide network isolation MUST NOT report L2. L2 also needs at least one passing isolated case that is not `network: true`.
 - Skipped cases are not failures but MUST be counted and reported.
@@ -145,14 +147,14 @@ All implementations MUST match globs exactly as follows; `fnmatch` or shell glob
 
 ### 11.1 Signing input
 - `contract_version` ≥ 0.8: the UTF-8 bytes of JCS (RFC 8785) of `{"contract": C, "role": R}`, where C is the contract without `integrity.signatures` and R is the entry's role (`"author"` if absent). The role is therefore signed; relabelling a signature breaks it.
-- 0.4–0.7: JCS(C). The role is not signed (legacy; see §18.7).
+- 0.4–0.7: JCS(C). The role is not signed (legacy; see §18.7). Validators MUST warn `SIGNATURE_ROLE_UNSIGNED` and MUST NOT treat such a signature as a trusted author signature: contracts before 0.8 cannot reach L3 or satisfy `require_signature` (erratum 0.8.x).
 - 0.1–0.3: legacy sorted form (keys sorted by code point, separators `,` `:`, no whitespace, non-ASCII as UTF-8). Only integers within ±(2^53−1) are supported; other numbers make the contract unverifiable and it MUST be migrated and re-signed.
 - The form is chosen by `contract_version`; `integrity.canonicalization` is informative only.
 - Test vectors: `conformance/vectors/jcs-ed25519.json` (test key with a published seed; it MUST NOT be used for real signatures).
 
 ### 11.2 File coverage (from 0.8)
-- `integrity.files` MUST list every regular file in the skill directory except `skill.contract.json`, the default excludes (`.git/**`, `**/__pycache__/**`, `**/*.pyc`, `**/.DS_Store`) and patterns in the optional `integrity.exclude`.
-- Protected files MUST always be listed and cannot be excluded: `SKILL.md`, `**/SKILL.md`, `**/CLAUDE.md`, `**/AGENTS.md`, `**/GEMINI.md`, `**/.mcp.json`, `.claude-plugin/**`, `.claude/**`, `.cursor/**`, `.codex/**`, `.gemini/**`, `.agents/**`, `hooks/**`, `package.json`, `pyproject.toml`, and every file named as `$SKILL_DIR/...` in entries, tests or setup.
+- `integrity.files` MUST list every regular file in the skill directory except `skill.contract.json`, the default excludes (`.git/**`, `**/.DS_Store`) and patterns in the optional `integrity.exclude`. Erratum 0.8.x: `__pycache__` and `*.pyc` are no longer excluded, because Python can run unchecked-hash bytecode instead of the signed source; delete bytecode before hashing.
+- Protected files MUST always be listed and cannot be excluded: `SKILL.md`, `**/SKILL.md`, `**/CLAUDE.md`, `**/AGENTS.md`, `**/GEMINI.md`, `**/.mcp.json`, `.claude-plugin/**`, `.claude/**`, `.cursor/**`, `.codex/**`, `.gemini/**`, `.agents/**`, `hooks/**`, `package.json`, `pyproject.toml`, every file named as `$SKILL_DIR/...` in entries, tests or setup, and (erratum 0.8.x) every code or bytecode file (e.g. `*.py`, `*.pyc`, `*.sh`, `*.js`, `*.ts`, `*.so`, `*.dll`, `*.jar`, `*.wasm`; full list in the reference implementation). Coverage is checked even when the contract is kept outside the skill directory.
 - An unlisted file: `INTEGRITY_UNLISTED` (error from 0.8, warning before). `files` without `SKILL.md`: `INTEGRITY_EMPTY` (0.8).
 - Paths MUST be relative POSIX paths without `.`/`..`/empty segments, backslashes or control characters; at most 1024 bytes and 32 segments; at most 10 000 entries. Symbolic links anywhere in the skill directory or in a listed path are rejected (`INTEGRITY_PATH`, all versions).
 - For any version, L3 MUST NOT be granted while any `INTEGRITY_UNLISTED` or `INTEGRITY_PATH` finding exists.
@@ -168,11 +170,12 @@ All implementations MUST match globs exactly as follows; `fnmatch` or shell glob
 ## 13. Harness policy and compilation
 - Policies follow `policy-v0.8.json`. For each capability a matcher MUST output `decision` and `decision_worst_case` (including conditional effects).
 - A path scope with traversal MUST be denied.
+- A policy rule without `scope` matches every scope of its effect, including `level: any` (erratum 0.8.x).
 - `min_contract_version`: contracts older than this MUST be denied.
 - `require_signature`: the matcher MUST verify the files (integrity with full coverage, §11.2) and require a trusted **author** signature; otherwise deny.
 ### 13.1 Compilation
 - `policy-compile` emits native settings for Claude Code, Cursor, Codex and Gemini CLI, validated against each harness's public schema (or a schema derived from its documentation), and MUST list what the target cannot express in `lossy`.
-- When a target cannot express a deny or ask, the output MUST be at least as strict as the decision (e.g. Codex `approval_policy: on-request`, never `never`).
+- When a target cannot express a deny or ask, the output MUST be at least as strict as the decision (e.g. Codex `approval_policy: on-request`, never `never`). Compiled settings follow `decision_worst_case`, including conditional effects (erratum 0.8.x).
 - `export --format hushspec|rego` emits runtime policy documents.
 
 ## 14. Conversion and drafts
@@ -201,7 +204,7 @@ L3 means "these exact files were signed by someone you trust, and the declared t
 | Harness | SHOULD follow `decision_worst_case` and re-verify integrity before running |
 
 ### 16.3 Conformance suite
-`conformance/manifest.json` and `conformance/cases/<id>/` (45 cases in 0.8). A validator claiming conformance MUST pass all of them: `python3 conformance/run.py --cmd '<validator> {dir}'`. Cases for 0.8 are generated by `conformance/gen_v08.py`. Both the Python reference implementation and the TypeScript implementation pass all cases.
+`conformance/manifest.json` and `conformance/cases/<id>/` (48 cases in 0.8 with the 0.8.x errata). A validator claiming conformance MUST pass all of them: `python3 conformance/run.py --cmd '<validator> {dir}'`. Cases for 0.8 are generated by `conformance/gen_v08.py`. Both the Python reference implementation and the TypeScript implementation pass all cases.
 
 ## 17. Versioning, stability and deprecation
 - Validators MUST accept every version they know and MUST reject unknown major versions (`CONTRACT_VERSION_UNSUPPORTED`). During 0.x an unknown minor version is treated as unknown major.
@@ -289,6 +292,7 @@ Severity is fixed per code and version; new codes are added only through the pro
 | `INTEGRITY_UNLISTED` | error ≥0.8, warn before | §11.2 | file not covered by integrity.files |
 | `INTEGRITY_EMPTY` | error (0.8+) | §11.2 | integrity.files lacks SKILL.md |
 | `SIGNATURE_INVALID` | error | §11 | a signature does not verify |
+| `SIGNATURE_ROLE_UNSIGNED` | warning | §11.1 | signature on a contract before 0.8; role not signed, no L3 (0.8.x) |
 | `DUP_SIGNATURE` | error | §11 | same key/identity signs twice |
 | `SIGSTORE_UNVERIFIED` | warn | §16.4 | implementation cannot verify Sigstore |
 | `HIGH_RISK` | warn | §6 | spend/send with level any |
@@ -324,7 +328,7 @@ A tool with a test:
 Full signed examples: `samples/` (four skills at L3). Test vectors: `conformance/vectors/`. Conformance cases: `conformance/cases/`.
 
 ## Appendix C. `@local` expansion
-`localhost`, `127.*.*.*`, `::1`, `10.*.*.*`, `172.16.*.*` … `172.31.*.*`, `192.168.*.*`, `*.local`. IPv6 unique-local (`fc00::/7`) is reported as lossy.
+`localhost`, `127.*.*.*`, `::1`, `10.*.*.*`, `172.16.*.*` … `172.31.*.*`, `192.168.*.*`, `*.local`. IPv6 unique-local (`fc00::/7`) is reported as lossy. The patterns are host globs, so they also match DNS names such as `10.0.0.com`; harnesses SHOULD apply them to IP literals only (open question in public review).
 
 ## Appendix D. Media type and file naming (registration note)
 - File name: `skill.contract.json`, fixed, next to `SKILL.md`.

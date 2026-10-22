@@ -129,7 +129,9 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - ランナーは `setup` と各ケースを次のサンドボックスで実行しなければなりません（MUST）。
   1. ネットワークなし（`network: true` のケースを除く）
   2. ファイルシステムは `$WORKDIR` 以外読み取り専用（write の scope に `$SKILL_DIR` がある場合だけ `$SKILL_DIR` も書き込み可）
-  3. 環境変数は許可リストのものだけ：`PATH`、`LANG`、`LC_ALL`、`TZ`、`TERM`、SkillPact の変数、見つけた依存スキル、`skip_unless_env` に書かれた変数、ケースの `env`。`HOME` と `TMPDIR` は `$WORKDIR` の中を指す。
+  3. 環境変数は許可リストのものだけ：`PATH`、`LANG`、`LC_ALL`、`TZ`、`TERM`、SkillPact の変数、見つけた依存スキル、ケースの `env`。`HOME` と `TMPDIR` は `$WORKDIR` の中を指す。`skip_unless_env` に書かれたホストの変数は、テストを実行する人が許した場合だけ渡す（参照 CLI では `--pass-env NAME`）。許可がなければそのケースはスキップ（0.8.x 正誤）
+  4. 利用者のホームと、ホストの一時・実行時ディレクトリ（`/tmp`、`/var/tmp`、`/run`、`/dev/shm`）を隠し、ユーザーのファイルを読んだりホストの Unix ソケットに接続したりできないようにする。プログラムの実行に要るディレクトリ（`PATH` の各要素）は読み取り専用で見せてよい（0.8.x 正誤）
+  5. 制御端末から切り離した新しいセッションで、標準入力を閉じて実行する（0.8.x 正誤）
 - ランナーはスキルディレクトリの変更を（大きさや時刻ではなく）内容のハッシュで検出し、write の scope に `$SKILL_DIR` がなければそのケースを失敗にしなければなりません（MUST）。ファイルシステムを隔離できない場合は親ディレクトリも監視し、スキルの外への書き込みを報告しなければなりません（MUST）。
 - ネットワークを隔離できないランナーは L2 を出してはなりません（MUST NOT）。L2 には、`network: true` ではない隔離ケースが 1 つ以上通っていることも必要です。
 - スキップしたケースは失敗ではありませんが、件数を報告しなければなりません（MUST）。
@@ -145,14 +147,14 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 
 ### 11.1 署名対象
 - `contract_version` が 0.8 以上：`{"contract": C, "role": R}` を JCS（RFC 8785）で直列化した UTF-8 バイト列。C は `integrity.signatures` を除いた契約、R はその署名の role（なければ `"author"`）。role も署名されるので、付け替えると署名が壊れます。
-- 0.4〜0.7：JCS(C)。role は署名されません（旧方式。§18.7）。
+- 0.4〜0.7：JCS(C)。role は署名されません（旧方式。§18.7）。検証者は `SIGNATURE_ROLE_UNSIGNED` を警告し、その署名を信頼済みの author 署名として扱ってはなりません（MUST NOT）。0.8 より前の契約は L3 にならず、`require_signature` も満たしません（0.8.x 正誤）。
 - 0.1〜0.3：旧方式（キーをコードポイント順に並べ、区切りは `,` `:`、空白なし、非 ASCII はそのまま UTF-8）。数値は ±(2^53−1) の整数だけ扱えます。それ以外の数値を含む契約は検証できないので、移行して署名し直さなければなりません（MUST）。
 - 方式は `contract_version` で決まります。`integrity.canonicalization` は参考情報です。
 - テストベクトル：`conformance/vectors/jcs-ed25519.json`（シードを公開したテスト用の鍵。本物の署名に使ってはなりません。MUST NOT）。
 
 ### 11.2 ファイルの網羅（0.8 から）
-- `integrity.files` にはスキルディレクトリ内のすべての通常ファイルを載せなければなりません（MUST）。除外できるのは `skill.contract.json`、既定の除外（`.git/**`、`**/__pycache__/**`、`**/*.pyc`、`**/.DS_Store`）、任意の `integrity.exclude` のパターンだけです。
-- 次の保護ファイルは必ず載せ、除外できません：`SKILL.md`、`**/SKILL.md`、`**/CLAUDE.md`、`**/AGENTS.md`、`**/GEMINI.md`、`**/.mcp.json`、`.claude-plugin/**`、`.claude/**`、`.cursor/**`、`.codex/**`、`.gemini/**`、`.agents/**`、`hooks/**`、`package.json`、`pyproject.toml`、および entry・テスト・setup に `$SKILL_DIR/...` として出てくるファイル。
+- `integrity.files` にはスキルディレクトリ内のすべての通常ファイルを載せなければなりません（MUST）。除外できるのは `skill.contract.json`、既定の除外（`.git/**`、`**/.DS_Store`）、任意の `integrity.exclude` のパターンだけです。0.8.x 正誤：Python は署名されたソースではなく未検証のバイトコードを実行しうるため、`__pycache__` と `*.pyc` は除外しなくなりました。ハッシュを取る前にバイトコードを消してください。
+- 次の保護ファイルは必ず載せ、除外できません：`SKILL.md`、`**/SKILL.md`、`**/CLAUDE.md`、`**/AGENTS.md`、`**/GEMINI.md`、`**/.mcp.json`、`.claude-plugin/**`、`.claude/**`、`.cursor/**`、`.codex/**`、`.gemini/**`、`.agents/**`、`hooks/**`、`package.json`、`pyproject.toml`、entry・テスト・setup に `$SKILL_DIR/...` として出てくるファイル、および（0.8.x 正誤）コードとバイトコードのファイル（`*.py`、`*.pyc`、`*.sh`、`*.js`、`*.ts`、`*.so`、`*.dll`、`*.jar`、`*.wasm` など。一覧は参照実装）。契約をスキルディレクトリの外に置いた場合も網羅を確かめます。
 - 載っていないファイル：`INTEGRITY_UNLISTED`（0.8 からエラー、それより前は警告）。`files` に `SKILL.md` がない：`INTEGRITY_EMPTY`（0.8）。
 - パスは相対の POSIX パスで、`.`・`..`・空のセグメント、バックスラッシュ、制御文字を含まず、1024 バイト・32 セグメント以内、全体で 10 000 件以内。スキルディレクトリ内や載っているパスの途中にあるシンボリックリンクは拒否します（`INTEGRITY_PATH`、全版）。
 - どの版でも、`INTEGRITY_UNLISTED` か `INTEGRITY_PATH` の指摘が 1 つでもあれば L3 にしてはなりません（MUST NOT）。
@@ -168,11 +170,12 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 ## 13. ハーネスポリシーと変換
 - ポリシーは `policy-v0.8.json` に従います。照合器は capability ごとに `decision` と `decision_worst_case`（条件付きの効果を含む）を出さなければなりません（MUST）。
 - `..` などを含むパスの scope は拒否しなければなりません（MUST）。
+- `scope` のないポリシーのルールは、その効果のすべての scope（`level: any` を含む）に当てはまります（0.8.x 正誤）。
 - `min_contract_version`：これより古い契約は拒否しなければなりません（MUST）。
 - `require_signature`：照合器はファイル（§11.2 の網羅を含む integrity）を確かめ、信頼済みの **author** 署名を求めなければなりません（MUST）。満たさなければ拒否します。
 ### 13.1 変換
 - `policy-compile` は Claude Code・Cursor・Codex・Gemini CLI の設定を出力し、各ハーネスの公開スキーマ（なければ文書から起こしたスキーマ）で検証します。変換先が表せないものは `lossy` に挙げなければなりません（MUST）。
-- 変換先が deny や ask を表せない場合、出力は判定と同じかそれより厳しくなければなりません（MUST）（例：Codex は `approval_policy: on-request`。`never` にはしない）。
+- 変換先が deny や ask を表せない場合、出力は判定と同じかそれより厳しくなければなりません（MUST）（例：Codex は `approval_policy: on-request`。`never` にはしない）。変換した設定は条件付きの効果を含む `decision_worst_case` に従います（0.8.x 正誤）。
 - `export --format hushspec|rego` は実行時ポリシーの文書を出力します。
 
 ## 14. 変換と下書き
@@ -201,7 +204,7 @@ L3 の意味は「このファイル一式は、あなたが信頼する人が�
 | ハーネス | `decision_worst_case` に従い、実行前に integrity を確かめ直すべき（SHOULD） |
 
 ### 16.3 適合スイート
-`conformance/manifest.json` と `conformance/cases/<id>/`（0.8 で 45 ケース）。適合を名乗る検証者は全ケースに合格しなければなりません（MUST）：`python3 conformance/run.py --cmd '<validator> {dir}'`。0.8 のケースは `conformance/gen_v08.py` が作ります。Python の参照実装と TypeScript 実装の両方が全ケースに合格しています。
+`conformance/manifest.json` と `conformance/cases/<id>/`（0.8 と 0.8.x 正誤で 48 ケース）。適合を名乗る検証者は全ケースに合格しなければなりません（MUST）：`python3 conformance/run.py --cmd '<validator> {dir}'`。0.8 のケースは `conformance/gen_v08.py` が作ります。Python の参照実装と TypeScript 実装の両方が全ケースに合格しています。
 
 ## 17. バージョン・安定性・非推奨
 - 検証者は知っているすべての版を受け付け、知らない major 版を拒否しなければなりません（MUST、`CONTRACT_VERSION_UNSUPPORTED`）。0.x の間は、知らない minor 版も知らない major 版として扱います。
@@ -289,6 +292,7 @@ L1 は整合性しか示しません。ハーネスは L1 だけを根拠に、�
 | `INTEGRITY_UNLISTED` | エラー ≥0.8, それより前は警告 | §11.2 | integrity に載っていないファイル |
 | `INTEGRITY_EMPTY` | エラー (0.8+) | §11.2 | files に SKILL.md がない |
 | `SIGNATURE_INVALID` | エラー | §11 | 署名が検証できない |
+| `SIGNATURE_ROLE_UNSIGNED` | 警告 | §11.1 | 0.8 より前の契約の署名。role が署名されず L3 にならない（0.8.x） |
 | `DUP_SIGNATURE` | エラー | §11 | 同じ鍵が 2 回以上署名 |
 | `SIGSTORE_UNVERIFIED` | 警告 | §16.4 | Sigstore を検証できない実装 |
 | `HIGH_RISK` | 警告 | §6 | spend/send が any |
@@ -324,7 +328,7 @@ L1 は整合性しか示しません。ハーネスは L1 だけを根拠に、�
 署名済みの完全な例：`samples/`（L3 の 4 スキル）。テストベクトル：`conformance/vectors/`。適合ケース：`conformance/cases/`。
 
 ## 付録 C. `@local` の展開
-`localhost`、`127.*.*.*`、`::1`、`10.*.*.*`、`172.16.*.*`〜`172.31.*.*`、`192.168.*.*`、`*.local`。IPv6 のユニークローカル（`fc00::/7`）は lossy として報告します。
+`localhost`、`127.*.*.*`、`::1`、`10.*.*.*`、`172.16.*.*`〜`172.31.*.*`、`192.168.*.*`、`*.local`。IPv6 のユニークローカル（`fc00::/7`）は lossy として報告します。これらはホストの glob なので `10.0.0.com` のような DNS 名にも当てはまります。ハーネスは IP アドレスの表記にだけ使うべきです（SHOULD。公開レビュー中の未決事項）。
 
 ## 付録 D. メディアタイプとファイル名（登録についての注記）
 - ファイル名：`skill.contract.json`（固定、`SKILL.md` の隣）。

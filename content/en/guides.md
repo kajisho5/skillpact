@@ -11,8 +11,8 @@ How to start, by role. Packages are not published yet; install from the reposito
 ## Skill authors
 1. `python3 -m skillpact.cli init <skill_dir> -o skill.contract.json` creates a draft. Confirm every item and remove `TODO(...)` markers and `x.init.uncertain` (otherwise `UNCONFIRMED_DRAFT`).
 2. Narrow scopes (`$WORKDIR/**` rather than `/**`). Declare spend and send honestly.
-3. Add tests that run without network. Run `skillpact test <skill_dir>`. Linux: install bubblewrap for the full sandbox. macOS: the built-in Seatbelt (`sandbox-exec`) is used automatically (experimental). Windows: run inside WSL2 or a Linux container.
-4. `skillpact hash <skill_dir>` (lists every file), then `skillpact sign <skill_dir> key.pem` or `sign-sigstore` in CI. Publish your public key.
+3. Add tests that run without network. Run `skillpact test <skill_dir>`. Linux: install bubblewrap for the full sandbox. macOS: the built-in Seatbelt (`sandbox-exec`) is used automatically (experimental). Windows: run inside WSL2 or a Linux container. Tests cannot see your home directory, `/tmp` or host environment variables; to give a `skip_unless_env` case a variable, pass `--pass-env NAME`.
+4. Delete `__pycache__/` and `*.pyc`, then `skillpact hash <skill_dir>` (lists every file; re-run it after `migrate`), then `skillpact sign <skill_dir> key.pem` or `sign-sigstore` in CI. Publish your public key.
 5. Add the GitHub Action, pinned to a commit SHA, on `pull_request` (not `pull_request_target`):
 ```yaml
 - uses: kajisho5/skillpact@<commit-sha>

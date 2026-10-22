@@ -11,7 +11,7 @@ Audit of SkillPact 0.8 against the material usually expected of W3C / IETF speci
 | 5 | Conformance language (BCP 14) | done | spec §1 | `/spec/` |
 | 6 | Conformance classes and requirements | done | spec §16.2 | `/spec/` · `/ja/spec/` |
 | 7 | Conformance levels | done | spec §16.1 | `/spec/` · `/why/` |
-| 8 | Conformance test suite | done (45 cases, both implementations pass) | `conformance/` | — |
+| 8 | Conformance test suite | done (48 cases, both implementations pass) | `conformance/` | — |
 | 9 | Test vectors | done | `conformance/vectors/jcs-ed25519.json` | — |
 | 10 | Examples, minimal to full | done | spec Appendix B; `samples/`; `examples/` | `/spec/#appendix-b-examples` |
 | 11 | Design rationale / decision records | done (DR-1…DR-10) | `content/en/rationale.md` | `/rationale/` · `/ja/rationale/` |

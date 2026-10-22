@@ -1,5 +1,5 @@
 // Browser entry: everything runs locally in the page; nothing is sent anywhere.
-import { checkContract, signingInputString, signatureRoles, sigKey, EFFECTS, type Finding } from "./core.js";
+import { checkContract, isV08, signingInputString, signatureRoles, sigKey, EFFECTS, type Finding } from "./core.js";
 import { parseStrict } from "./strictjson.js";
 
 const b64 = (s: string) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -39,7 +39,7 @@ export async function check(text: string, trustedKeys: string[], opts: { lang?: 
     else if (["spend", "send", "exec", "network"].includes(e)) risky.push(`${e}: ${(p.scope ?? []).join(", ")}`);
   }
   const roles = c2 ? signatureRoles(c2) : {};
-  const trusted = Object.entries(sigs).some(([k, v]) => v === true && trustedKeys.includes(k) && roles[k] === "author");
+  const trusted = !!c2 && isV08(c2) && Object.entries(sigs).some(([k, v]) => v === true && trustedKeys.includes(k) && roles[k] === "author");
   const level = !ok ? "none" : trusted ? M.trusted : "L1-declared";
   return { ok, level, findings: F, risky, signatures: sigs, roles, contract_version: c?.contract_version, skill: c?.skill };
 }

@@ -180,7 +180,7 @@ All implementations MUST match globs exactly as follows; `fnmatch` or shell glob
 
 ## 14. Conversion and drafts
 - `convert` maps to and from MDA Open Spec `requires` and AutoVault `capabilities`; exports list `lossy` items and point back to the contract with its sha256.
-- Imports and `init` drafts list guesses in `x.import.uncertain` / `x.init.uncertain`, and may use `TODO(...)` strings. Such a contract is an unconfirmed draft: `UNCONFIRMED_DRAFT` (error from 0.8). A person must confirm and remove the markers.
+- Imports and `init` drafts list guesses in `x.import.uncertain` / `x.init.uncertain`, and may use `TODO(...)` strings. Such a contract is an unconfirmed draft: `UNCONFIRMED_DRAFT` (error from 0.8). A person must confirm and remove the markers. Erratum 0.8.x (informative, reference `init`): one capability per CLI subcommand (argparse `add_parser` in console-script modules and `scripts/`), per MCP tool (`@*.tool` functions, `Tool(name=...)`), or per non-generic `##` heading of an instructions-only `SKILL.md`; read-only verbs such as `doctor`/`validate`/`plan` get only `read`/`exec`; network scope is taken from URLs found, else `TODO(init)`.
 
 ## 15. Schemas
 - Contract: `schema/v0.8.json` (`$id` `https://kajisho5.github.io/skillpact/schema/v0.8.json`). Policy: `schema/policy-v0.8.json`. Published schema files are never edited in place.

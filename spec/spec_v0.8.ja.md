@@ -180,7 +180,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 
 ## 14. 変換と下書き
 - `convert` は MDA Open Spec の `requires`、AutoVault の `capabilities` と相互に変換します。書き出しは `lossy` と、元の契約とその sha256 を示します。
-- 取り込みや `init` の下書きは、推測した箇所を `x.import.uncertain` / `x.init.uncertain` に挙げ、`TODO(...)` を使うことがあります。こうした契約は未確認の下書きで、`UNCONFIRMED_DRAFT`（0.8 からエラー）になります。人が確認して印を消す必要があります。
+- 取り込みや `init` の下書きは、推測した箇所を `x.import.uncertain` / `x.init.uncertain` に挙げ、`TODO(...)` を使うことがあります。こうした契約は未確認の下書きで、`UNCONFIRMED_DRAFT`（0.8 からエラー）になります。人が確認して印を消す必要があります。0.8.x 正誤（参考、参照実装の `init`）：capability は CLI のサブコマンドごと（console script のモジュールと `scripts/` の argparse の `add_parser`）、MCP のツールごと（`@*.tool` の関数、`Tool(name=...)`）、指示だけのスキルなら `SKILL.md` の一般的でない `##` 見出しごとに作ります。`doctor`・`validate`・`plan` などの読むだけの動詞は `read`・`exec` だけにし、network の scope は見つかった URL から、なければ `TODO(init)` にします。
 
 ## 15. スキーマ
 - 契約：`schema/v0.8.json`（`$id` `https://kajisho5.github.io/skillpact/schema/v0.8.json`）。ポリシー：`schema/policy-v0.8.json`。公開したスキーマファイルは書き換えません。

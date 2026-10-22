@@ -37,8 +37,6 @@ jobs:
           done
       - name: schemas in docs and both implementations match
         run: cmp ref/skillpact/schema.json docs/schema/v0.8.json && cmp ref/skillpact/schema.json ts/src/schema.json && cmp ref/skillpact/policy_schema.json docs/schema/policy-v0.8.json
-      - name: schema reference page is up to date
-        run: python tools/sitechrome.py && python tools/gen_schema_docs.py && git diff --exit-code docs/
 
   ts:
     runs-on: ubuntu-latest

@@ -13,7 +13,7 @@ export const PROTECTED = ["SKILL.md", "**/SKILL.md", "**/CLAUDE.md", "**/AGENTS.
   ".claude/**", ".cursor/**", ".codex/**", ".gemini/**", ".agents/**", "hooks/**", "package.json", "pyproject.toml",
   // 0.8 errata: code and bytecode can never be excluded
   ...["py", "pyc", "pyo", "pyd", "sh", "bash", "zsh", "fish", "js", "mjs", "cjs", "ts", "mts", "cts", "rb", "pl", "pm",
-      "php", "lua", "ps1", "psm1", "bat", "cmd", "exe", "so", "dylib", "dll", "jar", "class", "wasm"].map(e => `**/*.${e}`)];
+      "php", "lua", "ps1", "psm1", "bat", "cmd", "exe", "so", "dylib", "dll", "jar", "class", "wasm", "pth"].map(e => `**/*.${e}`)];
 export const PATH_EFFECTS = ["read", "write"];
 export const SCOPE_TOKENS: Record<string, string[]> = { network: ["@local"] };
 export const vt = (v: string) => String(v).split(".").map(Number);

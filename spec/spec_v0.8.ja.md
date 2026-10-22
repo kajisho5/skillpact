@@ -117,7 +117,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 
 ## 8. requirements
 - `binaries[]` / `runtimes[]`：`name`、`version`（例 `>=4.4`）、`check`、`version_regex`、`optional`、`when`、`alternatives`、`features_check`。
-- `packages[]`：`ecosystem`、`name`、`import`。`skills[]`：`name`、`version`、`env`、`optional`。
+- `packages[]`：`ecosystem`、`name`、`version`、`import`、`optional`。0.8.x 正誤：`version` があれば、ランナーはテストの前にインストール済みの版を確かめ、合わなければ要件未達として扱わなければなりません（MUST）。任意（optional）のパッケージでも、入っていれば同じです。解釈できない版指定は不合格です。条件はカンマ区切りで、`==`・`!=`・`>=`・`<=`・`>`・`<`・`~=` を使います（演算子なしは `==`）。侵害されると利用者に害が及ぶパッケージは、作者が版を `==` で固定するべきです（SHOULD）。侵害されたリリースはたいてい新しい版として届くためです（例：PyPI の litellm 1.107.0、2026-10-21）。宣言したパッケージが起動フック（`*.pth`、`sitecustomize.py`、`usercustomize.py`）を入れる場合、ランナーはそれを報告するべきです（SHOULD）。Python は import しなくてもこれらを実行します。参照ランナーが確かめるのは `pypi` のパッケージだけで、自身のインタープリタで確認します。`skills[]`：`name`、`version`、`env`、`optional`。
 - `env[]`：`name`、`required`、`secret`、`description`。秘密の値を契約に書いてはなりません（MUST NOT）。
 
 ## 9. compat
@@ -154,7 +154,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 
 ### 11.2 ファイルの網羅（0.8 から）
 - `integrity.files` にはスキルディレクトリ内のすべての通常ファイルを載せなければなりません（MUST）。除外できるのは `skill.contract.json`、既定の除外（`.git/**`、`**/.DS_Store`）、任意の `integrity.exclude` のパターンだけです。0.8.x 正誤：Python は署名されたソースではなく未検証のバイトコードを実行しうるため、`__pycache__` と `*.pyc` は除外しなくなりました。ハッシュを取る前にバイトコードを消してください。
-- 次の保護ファイルは必ず載せ、除外できません：`SKILL.md`、`**/SKILL.md`、`**/CLAUDE.md`、`**/AGENTS.md`、`**/GEMINI.md`、`**/.mcp.json`、`.claude-plugin/**`、`.claude/**`、`.cursor/**`、`.codex/**`、`.gemini/**`、`.agents/**`、`hooks/**`、`package.json`、`pyproject.toml`、entry・テスト・setup に `$SKILL_DIR/...` として出てくるファイル、および（0.8.x 正誤）コードとバイトコードのファイル（`*.py`、`*.pyc`、`*.sh`、`*.js`、`*.ts`、`*.so`、`*.dll`、`*.jar`、`*.wasm` など。一覧は参照実装）。契約をスキルディレクトリの外に置いた場合も網羅を確かめます。
+- 次の保護ファイルは必ず載せ、除外できません：`SKILL.md`、`**/SKILL.md`、`**/CLAUDE.md`、`**/AGENTS.md`、`**/GEMINI.md`、`**/.mcp.json`、`.claude-plugin/**`、`.claude/**`、`.cursor/**`、`.codex/**`、`.gemini/**`、`.agents/**`、`hooks/**`、`package.json`、`pyproject.toml`、entry・テスト・setup に `$SKILL_DIR/...` として出てくるファイル、および（0.8.x 正誤）コードとバイトコードのファイル（`*.py`、`*.pyc`、`*.pth`、`*.sh`、`*.js`、`*.ts`、`*.so`、`*.dll`、`*.jar`、`*.wasm` など。一覧は参照実装）。契約をスキルディレクトリの外に置いた場合も網羅を確かめます。
 - 載っていないファイル：`INTEGRITY_UNLISTED`（0.8 からエラー、それより前は警告）。`files` に `SKILL.md` がない：`INTEGRITY_EMPTY`（0.8）。
 - パスは相対の POSIX パスで、`.`・`..`・空のセグメント、バックスラッシュ、制御文字を含まず、1024 バイト・32 セグメント以内、全体で 10 000 件以内。スキルディレクトリ内や載っているパスの途中にあるシンボリックリンクは拒否します（`INTEGRITY_PATH`、全版）。
 - どの版でも、`INTEGRITY_UNLISTED` か `INTEGRITY_PATH` の指摘が 1 つでもあれば L3 にしてはなりません（MUST NOT）。

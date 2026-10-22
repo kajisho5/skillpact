@@ -24,14 +24,14 @@ Without changing a single byte of `SKILL.md`, a `skill.contract.json` next to it
 ## What a harness sees (`policy-check`, solo developer policy `ref/policies/solo-dev.json`)
 - Normal use: **allow**. No prompt at install.
 - Worst case: **ask**, because `--transcribe` in caption and silence may download a model (network) and run a speech CLI such as whisper (exec). To make it allow, the policy has to allow both the hosts (huggingface.co, ...) and the speech CLIs.
-- `policy-compile` output for all four harnesses passes their schemas. Settings follow the worst case (including conditional effects), so exec and network become ask in the harness.
+- `policy-compile` output for all four harnesses passes their schemas. Settings follow the worst case (including conditional effects): network becomes ask; exec is decided per program (proposal #12), so ffmpeg, ffprobe and python3 stay allowed and only the speech engines ask.
 
 ```
-.claude/settings.json      permissions.allow: Edit(./**), mcp__ffmpeg-skill__cut, ... (42 MCP tools)
-                           permissions.ask:   Bash(ffmpeg *), Bash(ffprobe *), Bash(python3 *), Bash(whisper *), WebFetch(domain:huggingface.co), ...
+.claude/settings.json      permissions.allow: Edit(./**), Bash(ffmpeg *), Bash(ffprobe *), Bash(python3 *), mcp__ffmpeg-skill__cut, ... (42 MCP tools)
+                           permissions.ask:   Bash(whisper *), Bash(whisper-cli *), WebFetch(domain:huggingface.co), ...   (per program, proposal #12)
 .codex/config.toml         approval_policy = "on-request" / sandbox_mode = "workspace-write"
 .gemini/policies/*.toml    [[rule]] toolName="cut" mcpName="ffmpeg-skill" decision="allow"
-                           [[rule]] toolName="run_shell_command" commandPrefix="ffmpeg " decision="ask_user"
+                           [[rule]] toolName="run_shell_command" commandPrefix="whisper " decision="ask_user"   (ffmpeg: allow)
 .cursor/cli.json           allow: Write(**), Mcp(ffmpeg-skill:cut), ... (Shell is not allowed, so it prompts)
 ```
 

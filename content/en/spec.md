@@ -175,6 +175,7 @@ All implementations MUST match globs exactly as follows; `fnmatch` or shell glob
 - `require_signature`: the matcher MUST verify the files (integrity with full coverage, §11.2) and require a trusted **author** signature; otherwise deny.
 ### 13.1 Compilation
 - `policy-compile` emits native settings for Claude Code, Cursor, Codex and Gemini CLI, validated against each harness's public schema (or a schema derived from its documentation), and MUST list what the target cannot express in `lossy`.
+- Proposal #12 (0.8.x): for targets with per-command rules (Claude Code `Bash(...)`, Cursor `Shell(...)`, Gemini CLI `commandPrefix`), a compiler SHOULD give each program of the exec scope the decision of an exec effect scoped to that program alone (policy rules, defaults and the skill's `confirm`), instead of one worst case for the whole effect; a program that only a conditional effect runs gets its own decision.
 - When a target cannot express a deny or ask, the output MUST be at least as strict as the decision (e.g. Codex `approval_policy: on-request`, never `never`). Compiled settings follow `decision_worst_case`, including conditional effects (erratum 0.8.x).
 - `export --format hushspec|rego` emits runtime policy documents.
 

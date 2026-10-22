@@ -175,6 +175,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - `require_signature`：照合器はファイル（§11.2 の網羅を含む integrity）を確かめ、信頼済みの **author** 署名を求めなければなりません（MUST）。満たさなければ拒否します。
 ### 13.1 変換
 - `policy-compile` は Claude Code・Cursor・Codex・Gemini CLI の設定を出力し、各ハーネスの公開スキーマ（なければ文書から起こしたスキーマ）で検証します。変換先が表せないものは `lossy` に挙げなければなりません（MUST）。
+- 提案 #12（0.8.x）：コマンド単位の規則を持つ変換先（Claude Code の `Bash(...)`、Cursor の `Shell(...)`、Gemini CLI の `commandPrefix`）では、変換器は exec の範囲にある各プログラムに、そのプログラムだけを範囲とする exec 効果の判定（ポリシーの規則、既定値、skill の `confirm`）を与えるべきです（SHOULD）。効果全体で 1 つの最悪ケースにまとめません。条件付きの効果だけが実行するプログラムには、そのプログラム自身の判定を与えます。
 - 変換先が deny や ask を表せない場合、出力は判定と同じかそれより厳しくなければなりません（MUST）（例：Codex は `approval_policy: on-request`。`never` にはしない）。変換した設定は条件付きの効果を含む `decision_worst_case` に従います（0.8.x 正誤）。
 - `export --format hushspec|rego` は実行時ポリシーの文書を出力します。
 

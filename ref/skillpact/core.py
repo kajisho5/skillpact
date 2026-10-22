@@ -819,6 +819,16 @@ def _native_path(sc, style):
     return None
 
 
+def program_decision(contract, policy, prog) -> str:
+    """Decision for one program of the exec scope: the policy rules and defaults applied to an exec effect scoped to that
+    program alone, with the skill's own exec settings (confirm, level). A program that only a conditional effect may run
+    gets its own decision too, so it no longer drags the declared programs down to its worst case."""
+    pe = contract["permissions"]["exec"]
+    sub = {"skill": contract["skill"], "permissions": {**contract["permissions"], "exec": {**pe, "level": "scoped", "scope": [prog]}},
+           "capabilities": [{"id": "exec", "summary": "", "effects": ["exec"]}]}
+    return match_policy(sub, {**policy, "skills": {}, "require_signature": False})["capabilities"][0]["decision"]
+
+
 def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, contract_path=None) -> dict:
     """Translate the allow/ask/deny result for one skill into a harness's native config fragment.
     Returns {"config": <native config>, "lossy": [what could not be expressed]} (s13.1: lossy MUST be reported)."""
@@ -833,6 +843,7 @@ def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, co
         for e in c_["effects"] + c_.get("conditional", []): worst[e["effect"]] = max(worst.get(e["effect"], "allow"), e["decision"], key=ORDER.get)  # 0.8 errata: conditional too
     skill_denied = m["decision"] == "deny" and not m["capabilities"]
     bucket = lambda eff: "deny" if skill_denied else worst.get(eff, "allow")
+    prog_bucket = lambda c_: "deny" if skill_denied else program_decision(contract, policy, c_)   # 0.8.x proposal #12
     used = lambda eff: lvl(eff) != "none"
     by = {x_["capability"]: x_["decision"] for x_ in m["capabilities"]}
     if skill_denied: lossy.append(f"skill is denied ({m['reason']}): do not install it; the fragment below only restricts what it could do")
@@ -841,7 +852,7 @@ def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, co
     sb = policy.get("sandbox", {})
     if target == "claude-code":
         out = {"allow": [], "ask": [], "deny": []}
-        for c_ in cmds: out[bucket("exec")].append(f"Bash({c_} *)")
+        for c_ in cmds: out[prog_bucket(c_)].append(f"Bash({c_} *)")
         if used("exec") and lvl("exec") == "any": out[bucket("exec")].append("Bash")
         for h in hosts: out[bucket("network")].append(f"WebFetch(domain:{h})")
         if used("network"):
@@ -864,7 +875,7 @@ def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, co
     if target == "cursor":
         out = {"allow": [], "deny": []}   # Cursor has no ask list: anything not allowed prompts
         put = lambda d, rule: out[d].append(rule) if d in out else None
-        for c_ in cmds: put(bucket("exec"), f"Shell({c_})")
+        for c_ in cmds: put(prog_bucket(c_), f"Shell({c_})")
         for h in hosts: put(bucket("network"), f"WebFetch({h})")
         if used("network") and lvl("network") == "any": put(bucket("network"), "WebFetch(*)")
         for eff, tool in (("write", "Write"), ("read", "Read")):
@@ -891,7 +902,7 @@ def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, co
         return {"config": cfg, "lossy": lossy}
     if target == "gemini-cli":
         g = {"allow": "allow", "ask": "ask_user", "deny": "deny"}
-        rules = [{"toolName": "run_shell_command", "commandPrefix": f"{c_} ", "decision": g[bucket("exec")], "priority": 100} for c_ in cmds]
+        rules = [{"toolName": "run_shell_command", "commandPrefix": f"{c_} ", "decision": g[prog_bucket(c_)], "priority": 100} for c_ in cmds]
         if cmds: lossy.append("exec: commandPrefix 'cmd ' does not match the bare command without arguments (falls back to the default)")
         if not used("write"): pass
         elif lvl("write") == "any" or bucket("write") != "allow": rules.append({"toolName": ["write_file", "replace"], "decision": g[bucket("write")], "priority": 100})

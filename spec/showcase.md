@@ -24,14 +24,14 @@ SKILL.md は 1 バイトも変えずに、隣に `skill.contract.json` を置く
 ## ハーネスから見た結果（`policy-check`、個人開発向けポリシー `ref/policies/solo-dev.json`）
 - 通常利用は **allow**。インストール時に確認は出ない。
 - 最悪の場合は **ask**。caption と silence の `--transcribe` が、モデルのダウンロード（network）と音声認識 CLI の実行（whisper など、exec）を起こしうるため。allow にするには、ポリシーで両方（huggingface.co などのホストと音声認識 CLI）を許可する必要がある。
-- `policy-compile` で 4 ハーネスの設定を生成すると、どれもスキーマ検証を通る。設定は最悪ケース（条件付きの効果を含む）に合わせて出るため、exec と network はハーネス側で ask になる。
+- `policy-compile` で 4 ハーネスの設定を生成すると、どれもスキーマ検証を通る。設定は最悪ケース（条件付きの効果を含む）に合わせて出るため、network は ask になる。exec はプログラムごとに判定するので（提案 #12）、ffmpeg・ffprobe・python3 は allow のまま、音声認識エンジンだけが ask になる。
 
 ```
-.claude/settings.json      permissions.allow: Edit(./**), mcp__ffmpeg-skill__cut, ... (MCP 42)
-                           permissions.ask:   Bash(ffmpeg *), Bash(ffprobe *), Bash(python3 *), Bash(whisper *), WebFetch(domain:huggingface.co), ...
+.claude/settings.json      permissions.allow: Edit(./**), Bash(ffmpeg *), Bash(ffprobe *), Bash(python3 *), mcp__ffmpeg-skill__cut, ... (MCP 42)
+                           permissions.ask:   Bash(whisper *), Bash(whisper-cli *), WebFetch(domain:huggingface.co), ...   (per program, proposal #12)
 .codex/config.toml         approval_policy = "on-request" / sandbox_mode = "workspace-write"
 .gemini/policies/*.toml    [[rule]] toolName="cut" mcpName="ffmpeg-skill" decision="allow"
-                           [[rule]] toolName="run_shell_command" commandPrefix="ffmpeg " decision="ask_user"
+                           [[rule]] toolName="run_shell_command" commandPrefix="whisper " decision="ask_user"   (ffmpeg: allow)
 .cursor/cli.json           allow: Write(**), Mcp(ffmpeg-skill:cut), ...（Shell は allow に入らず、確認が出る）
 ```
 

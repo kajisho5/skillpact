@@ -120,12 +120,16 @@ def test_policy_skill_denylist_and_invalid_policy():
 
 def test_compile_targets():
     c, p = C(SAMPLE), POL("solo-dev")
-    # 0.8 errata: conditional effects (ffmpeg-skill's model downloads ask) make the static config follow decision_worst_case
-    cc = core.compile_native(c, p, "claude-code")["config"]; assert "Bash(ffmpeg *)" in cc["permissions"]["ask"]
-    assert "Shell(ffprobe)" not in core.compile_native(c, p, "cursor")["config"]["permissions"]["allow"]   # Cursor prompts for anything not allowed
+    # 0.8 errata: conditional effects (ffmpeg-skill's model downloads ask) make the static config follow decision_worst_case;
+    # proposal #12: per program, so only the conditional speech engines are ask and the declared tools keep their allow
+    cc = core.compile_native(c, p, "claude-code")["config"]
+    assert "Bash(ffmpeg *)" in cc["permissions"]["allow"] and "Bash(whisper *)" in cc["permissions"]["ask"]
+    assert "WebFetch(domain:huggingface.co)" in cc["permissions"]["ask"]   # network still follows the worst case
+    assert "Shell(whisper)" not in core.compile_native(c, p, "cursor")["config"]["permissions"]["allow"]   # Cursor prompts for anything not allowed
     cx = core.compile_native(c, p, "codex")["config"]; assert cx["sandbox_mode"] == "workspace-write" and cx["approval_policy"] == "on-request"
     assert core.compile_native(c, POL("strict-ci"), "gemini-cli")["config"]["rule"][0]["decision"] == "deny"  # unsigned -> deny
-    assert core.compile_native(c, p, "gemini-cli")["config"]["rule"][0]["decision"] == "ask_user"
+    g = {r.get("commandPrefix"): r["decision"] for r in core.compile_native(c, p, "gemini-cli")["config"]["rule"]}
+    assert g["whisper "] == "ask_user" and g["ffmpeg "] == "allow"
 
 def test_cli_exit_codes(capsys):
     assert cli.main(["validate", str(SAMPLE)]) == 0

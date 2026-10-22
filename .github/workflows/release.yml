@@ -1,0 +1,101 @@
+# Release: build the Python reference implementation (PyPI "skillpact") and the TypeScript verifier (npm "skillpact"),
+# attest their provenance, attach them to a GitHub release and, once the editor has enabled it, publish them.
+# Trigger: push a tag vX.Y.Z (or vX.Y.ZbN / vX.Y.Z-beta.N for pre-releases), or run manually for a dry run (build only).
+# Publishing is off until the repository variables PUBLISH_PYPI / PUBLISH_NPM are "true"; both registries use trusted
+# publishing (OIDC), so no token is stored. One-time setup is described in GOVERNANCE.md ("Release").
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write       # build provenance attestations
+      attestations: write
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: versions agree (tag, pyproject.toml, package.json)
+        id: ver
+        env: { REF_TYPE: "${{ github.ref_type }}", REF_NAME: "${{ github.ref_name }}" }
+        run: |
+          pip install -q packaging
+          python - <<'PY'
+          import json, os, tomllib
+          from packaging.version import Version
+          py = tomllib.load(open("ref/pyproject.toml", "rb"))["project"]["version"]
+          js = json.load(open("ts/package.json"))["version"]
+          assert Version(py) == Version(js), f"pyproject {py} != package.json {js}"
+          if os.environ["REF_TYPE"] == "tag":
+              tag = os.environ["REF_NAME"].removeprefix("v")
+              assert Version(tag) == Version(py), f"tag {tag} != version {py}"
+          open(os.environ["GITHUB_OUTPUT"], "a").write(f"version={py}\n")
+          print("version", py)
+          PY
+      - name: build Python sdist and wheel
+        run: pip install -q build twine && python -m build ref -o dist && twine check dist/*
+      - name: build npm package
+        run: cd ts && npm ci && npm test && npm pack --pack-destination ../dist
+      - name: sha256 of every artifact
+        run: cd dist && sha256sum * | tee SHA256SUMS
+      - uses: actions/attest-build-provenance@v2
+        if: github.ref_type == 'tag'
+        with: { subject-path: "dist/skillpact*" }
+      - uses: actions/upload-artifact@v4
+        with: { name: dist, path: dist/ }
+
+  github-release:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: dist }
+      - name: create the release with the artifacts
+        env: { GH_TOKEN: "${{ github.token }}", TAG: "${{ github.ref_name }}", REPO: "${{ github.repository }}" }
+        run: |
+          pre=""; case "$TAG" in *a*|*b*|*rc*|*-*) pre="--prerelease";; esac
+          gh release create "$TAG" dist/* --repo "$REPO" --verify-tag $pre --title "SkillPact $TAG" \
+            --notes "See CHANGELOG.md. Artifacts carry GitHub build provenance (gh attestation verify <file> --repo $REPO)."
+
+  publish-pypi:
+    if: github.ref_type == 'tag' && vars.PUBLISH_PYPI == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions: { id-token: write }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: dist }
+      - run: mkdir pypi && mv dist/*.whl dist/*.tar.gz pypi/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with: { packages-dir: pypi/ }
+
+  publish-npm:
+    if: github.ref_type == 'tag' && vars.PUBLISH_NPM == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions: { id-token: write }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: dist }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", registry-url: "https://registry.npmjs.org" }
+      - name: publish with provenance (trusted publishing)
+        env: { VERSION: "${{ needs.build.outputs.version }}" }
+        run: |
+          npm install -g npm@latest   # trusted publishing needs a recent npm CLI
+          tag=latest; case "$VERSION" in *a*|*b*|*rc*|*-*) tag=next;; esac
+          npm publish dist/skillpact-*.tgz --access public --provenance --tag "$tag"

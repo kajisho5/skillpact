@@ -1,4 +1,4 @@
-"""skillpact CLI (SkillPact 0.3): validate | test | hash | keygen | sign | sign-sigstore | verify | policy-check | policy-compile | init | mcp-* | export | convert | owasp | conformance"""
+"""skillpact CLI (SkillPact 0.8): validate | test | hash | keygen | sign | sign-sigstore | verify | policy-check | policy-compile | init | mcp-* | export | convert | owasp | conformance"""
 import argparse, json, sys
 from pathlib import Path
 from . import core
@@ -33,12 +33,12 @@ def main(argv=None):
         c, _ = core.load_contract(Path(a.skill_dir), cp); res = core.verify_signatures(c); v = core.validate(a.skill_dir, cp)
         r = {"ok": bool(res) and all(res.values()) and v["ok"], "signatures": res, "integrity_ok": v["ok"]}
     elif a.cmd == "policy-check":
-        c, _ = core.load_contract(Path(a.skill_dir), cp); r = core.match_policy(c, json.loads(Path(a.policy).read_text())); r["ok"] = r["decision"] != "deny"
+        c, _ = core.load_contract(Path(a.skill_dir), cp); r = core.match_policy(c, json.loads(Path(a.policy).read_text()), a.skill_dir, cp); r["ok"] = r["decision"] != "deny"
     elif a.cmd == "policy-compile":
-        c, _ = core.load_contract(Path(a.skill_dir), cp); cfg = core.compile_native(c, json.loads(Path(a.policy).read_text()), a.target, a.mcp_server)
+        c, _ = core.load_contract(Path(a.skill_dir), cp); comp = core.compile_native(c, json.loads(Path(a.policy).read_text()), a.target, a.mcp_server, a.skill_dir, cp); cfg = comp["config"]
         from . import harness as _h
         fn, text = _h.render(a.target, cfg); errs = _h.validate_native(a.target, text)
-        r = {"ok": not errs, "target": a.target, "file": fn, "schema_errors": errs, "config": cfg}
+        r = {"ok": not errs, "target": a.target, "file": fn, "schema_errors": errs, "config": cfg, "lossy": comp["lossy"]}
         if a.render: print(text, end=""); return 0 if not errs else 1
     elif a.cmd == "init":
         from . import init as _init
@@ -53,7 +53,7 @@ def main(argv=None):
         c, _ = core.load_contract(Path(a.skill_dir), cp); r = {"ok": True, "tools": {x.get("entry", {}).get("mcp_tool", x["id"]): core.mcp_annotations(x) for x in c["capabilities"]}}
     elif a.cmd == "export":
         from . import export as _ex
-        c, _ = core.load_contract(Path(a.skill_dir), cp); r = {"ok": True, "format": a.format, "document": _ex.export(c, json.loads(Path(a.policy).read_text()), a.format)}
+        c, _ = core.load_contract(Path(a.skill_dir), cp); r = {"ok": True, "format": a.format, "document": _ex.export(c, json.loads(Path(a.policy).read_text()), a.format, a.skill_dir)}
     elif a.cmd == "sign-sigstore":
         from . import sigstore_sig
         r = {"ok": True, **sigstore_sig.sign(a.skill_dir, a.identity_token, cp, staging=a.staging)}
@@ -71,7 +71,8 @@ def main(argv=None):
     elif a.cmd == "owasp":
         from . import owasp
         c, _ = core.load_contract(Path(a.skill_dir), cp); t = None if a.no_tests else core.run_tests(a.skill_dir, cp)
-        rows = owasp.assess(c, t, core.verify_signatures(c)); r = {"ok": True, "items": rows, "addressed": sum(x["status"] == "addressed" for x in rows)}
+        v_ = core.validate(a.skill_dir, cp); cov = v_["ok"] and not any(f["code"] in ("INTEGRITY_UNLISTED", "INTEGRITY_PATH") for f in v_["findings"])
+        rows = owasp.assess(c, t, core.verify_signatures(c), cov); r = {"ok": True, "items": rows, "addressed": sum(x["status"] == "addressed" for x in rows)}
     elif a.cmd == "migrate":
         c, cpath = core.load_contract(Path(a.skill_dir), cp)
         try: n, ch = core.migrate(c, a.to)
@@ -81,25 +82,28 @@ def main(argv=None):
             r = {"ok": True, "from": c.get("contract_version"), "to": n["contract_version"], "changes": ch, "written": bool(a.write and ch),
                  "needs_resign": any("re-sign" in x for x in ch)}
     elif a.cmd == "conformance":
-        v = core.validate(a.skill_dir, cp); level = "none"; t = None; note = None
+        # spec 0.8 s16.1: L1 = no validator errors; L2 = all cases pass in the sandbox with >= 1 network-isolated case;
+        # L3 = L2 + every skill file covered by integrity + a valid author signature by a trusted key
+        v = core.validate(a.skill_dir, cp); level = "none"; t = None; note = None; r_extra = {}
         if v["ok"]:
             level = "L1-declared"; t = core.run_tests(a.skill_dir, cp)
-            if t["ok"] and not t.get("network_isolated", True):
-                level = "L1-declared"; note = "tests passed but network isolation was unavailable: L2 not granted (spec 0.4 s10)"
+            if t["ok"] and not t.get("network_isolated"):
+                note = "tests passed but no case ran network-isolated (no sandbox, or every case has network: true): L2 not granted (spec 0.8 s10)"
             elif t["ok"]:
-                level = "L2-tested"; c, _ = core.load_contract(Path(a.skill_dir), cp); sig = core.verify_signatures(c)
-                if sig and all(sig.values()) and "integrity" in c:
-                    roles = core.signature_roles(c); r_ok = [k for k, ok in sig.items() if ok and k in a.trusted_key]
-                    attest = sorted({roles.get(k, "author") for k in r_ok} - {"author"})
-                    if any(roles.get(k, "author") == "author" for k in r_ok): level = "L3-signed"
-                    elif r_ok: note = "only reviewer/scanner signatures are trusted: L3 needs a trusted author signature (spec 0.7 s11)"
-                    else: note = "signature is valid but no --trusted-key matched: L3 not granted (spec 0.4 s11)"
+                level = "L2-tested"; c, _ = core.load_contract(Path(a.skill_dir), cp)
+                unl = [f["message"] for f in v["findings"] if f["code"] in ("INTEGRITY_UNLISTED", "INTEGRITY_PATH")]
+                sig = core.verify_signatures(c); roles = core.signature_roles(c)
+                if "integrity" not in c: pass
+                elif unl: note = f"integrity does not cover every skill file ({len(unl)} problem(s), e.g. {unl[0]}): L3 not granted (spec 0.8 s11.2)"
+                elif sig and all(sig.values()):
+                    r_ok = [k for k, ok in sig.items() if ok and k in a.trusted_key]
+                    if core.trusted_author(c, set(a.trusted_key)): level = "L3-signed"
+                    elif r_ok: note = "only reviewer/scanner signatures are trusted: L3 needs a trusted author signature (spec 0.8 s11)"
+                    else: note = "signature is valid but no --trusted-key matched: L3 not granted (spec 0.8 s11)"
+                r_extra["attestations"] = [{"key": k, "role": roles.get(k, "author"), "trusted": k in a.trusted_key} for k, ok in sig.items() if ok and roles.get(k, "author") != "author"]
         r = {"ok": level != "none", "level": level, "validate_errors": v["errors"], "warnings": v["warnings"],
-             "tests": {"passed": t.get("passed", 0), "total": t.get("total", 0), "skipped": t.get("skipped", 0), **({"error": t["error"]} if t.get("error") else {})} if t else None}
+             "tests": {k: t.get(k) for k in ("passed", "total", "skipped", "network_cases", "sandbox", "fs_isolated", "error") if t.get(k) is not None} if t else None, **r_extra}
         if note: r["note"] = note
-        if t and t.get("ok") and level.startswith(("L2", "L3")):
-            c_, _ = core.load_contract(Path(a.skill_dir), cp); sig_ = core.verify_signatures(c_); roles_ = core.signature_roles(c_)
-            r["attestations"] = [{"key": k, "role": roles_.get(k, "author"), "trusted": k in a.trusted_key} for k, ok in sig_.items() if ok and roles_.get(k, "author") != "author"]
     print(json.dumps(r, ensure_ascii=False, indent=2))
     return 0 if r.get("ok") else 1
 

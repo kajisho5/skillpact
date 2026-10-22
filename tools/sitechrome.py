@@ -3,12 +3,14 @@
 - unified header (Home / Schema / Checker / Badges / GitHub + EN/日本語 switch) on every page
 - latest contract / policy schema cards on the top pages
 - Japanese pages under docs/ja/ (top, schema intro, checker)"""
-import pathlib, re, json
+import pathlib, re, json, sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 GH = "https://github.com/kajisho5/skillpact"
-LINKS = [("home", "", "Home", "ホーム"), ("schema", "schema/", "Schema", "スキーマ"), ("check", "check/", "Checker", "チェッカー"), ("badges", "badges/", "Badges", "バッジ")]
-HAS_JA = {"home", "schema", "check"}
+LINKS = [("home", "", "Home", "ホーム"), ("why", "why/", "Why", "なぜ"), ("spec", "spec/", "Spec", "仕様"), ("guides", "guides/", "Guides", "導入"),
+         ("schema", "schema/", "Schema", "スキーマ"), ("check", "check/", "Checker", "チェッカー"), ("badges", "badges/", "Badges", "バッジ"), ("about", "about/", "About", "概要")]
+HAS_JA = {"home", "schema", "check", "why", "spec", "guides", "about", "rationale"}
 
 
 def _v(p): return tuple(map(int, p.split(".")))
@@ -18,7 +20,7 @@ def latest(prefix):
 VER, PVER = latest("v"), latest("policy-v")
 
 
-def header(rel: str, lang: str, active: str) -> str:
+def header(rel: str, lang: str, active: str, here_override: str = "") -> str:
     """rel = path prefix from the page to the site root for this language ('' / '../' ...)."""
     root = rel if lang == "en" else rel + "../"   # site root (EN)
     base = rel                                   # language root
@@ -27,12 +29,13 @@ def header(rel: str, lang: str, active: str) -> str:
         return (pre + href) or "./"
     nav = "".join(f'<a href="{link(k, href)}"' + (' aria-current="page"' if k == active else "") + f'>{en if lang == "en" else ja}</a>' for k, href, en, ja in LINKS)
     nav += f'<a href="{GH}">GitHub</a>'
-    here = dict((k, h) for k, h, *_ in LINKS).get(active, "")
+    here = dict((k, h) for k, h, *_ in LINKS).get(active, "") if not here_override else here_override
     if lang == "en":
         sw = f'<a class="lang" href="{root}ja/{here if active in HAS_JA else ""}" lang="ja" hreflang="ja">日本語</a>'
     else:
         sw = f'<a class="lang" href="{root}{here}" lang="en" hreflang="en">EN</a>'
-    return (f'<header class="top"><div class="wrap nav"><a class="brand" href="{base or "./"}"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a>'
+    return (f'<a class="skip" href="#main">{"Skip to content" if lang == "en" else "本文へ移動"}</a>'
+            f'<header class="top"><div class="wrap nav"><a class="brand" href="{base or "./"}"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a>'
             f'<nav aria-label="Main">{nav}{sw}</nav></div></header>')
 
 
@@ -40,7 +43,7 @@ def page_kind(p: pathlib.Path):
     rel = p.relative_to(DOCS).parts
     lang = "ja" if rel[0] == "ja" else "en"
     parts = rel[1:] if lang == "ja" else rel
-    active = {"schema": "schema", "check": "check", "badges": "badges"}.get(parts[0] if len(parts) > 1 else "", "home")
+    active = {"schema": "schema", "check": "check", "badges": "badges", "why": "why", "spec": "spec", "guides": "guides", "about": "about", "rationale": "spec"}.get(parts[0] if len(parts) > 1 else "", "home")
     return lang, "../" * (len(parts) - 1), active
 
 
@@ -51,15 +54,16 @@ def banner(lang: str) -> str:
     if REVIEW["start"] == "TBD": return ""  # hidden until a start date exists
     url = f"{GH}/blob/main/REVIEW.md"
     if lang == "ja":
-        t = f'<b>公開レビュー中（v0.7）</b> 期間：{REVIEW["start"]} 〜 {REVIEW["end"]}（30日間）。ご意見は <a href="{url}">REVIEW.md</a> の手順でお寄せください。'
+        t = f'<b>公開レビュー中（v0.8）</b> 期間：{REVIEW["start"]} 〜 {REVIEW["end"]}（30日間）。ご意見は <a href="{url}">REVIEW.md</a> の手順でお寄せください。'
     else:
-        t = f'<b>Public review of v0.7</b> · {REVIEW["start"]} – {REVIEW["end"]} (30 days). Feedback welcome: see <a href="{url}">REVIEW.md</a>.'
+        t = f'<b>Public review of v0.8</b> · {REVIEW["start"]} – {REVIEW["end"]} (30 days). Feedback welcome: see <a href="{url}">REVIEW.md</a>.'
     return f'<div class="review-banner"><div class="wrap">{t}</div></div>'
 
 
-def apply_header(html: str, lang: str, rel: str, active: str) -> str:
+def apply_header(html: str, lang: str, rel: str, active: str, here: str = "") -> str:
     html = re.sub(r'\n?<div class="review-banner">.*?</div></div>', "", html, flags=re.S)
-    return re.sub(r'<header class="top">.*?</header>', lambda m: header(rel, lang, active) + ("\n" + banner(lang) if banner(lang) else ""), html, count=1, flags=re.S)
+    html = re.sub(r'<a class="skip" href="#main">[^<]*</a>', "", html)
+    return re.sub(r'<header class="top">.*?</header>', lambda m: header(rel, lang, active, here) + ("\n" + banner(lang) if banner(lang) else ""), html, count=1, flags=re.S)
 
 
 CARDS_EN = f'''<a class="card" href="schema/"><h3>Schema reference</h3><span>Every field, type and allowed value, with real examples.</span></a>
@@ -69,8 +73,14 @@ CARDS_EN = f'''<a class="card" href="schema/"><h3>Schema reference</h3><span>Eve
 <a class="card" href="badges/"><h3>Badges</h3><span>L1 / L2 / L3 badges for your README.</span></a>'''
 
 
+WHY_EN = '''<section class="why" id="why"><h2>Why</h2><p>Agent skills run with your permissions, but <code>SKILL.md</code> is prose: nothing in it can be checked by a machine before you install. SkillPact adds a contract that tools can check first, so you see what a skill may touch, your policy decides allow / ask / deny, and changed files are detected. It does not prove a skill is safe. <a href="why/">Why SkillPact →</a></p></section>'''
+WHY_JA = '''<section class="why" id="why"><h2>なぜ必要か</h2><p>エージェントのスキルはあなたの権限で動きますが、<code>SKILL.md</code> は文章で、入れる前に機械で確かめられるものがありません。SkillPact はツールが先に確かめられる契約を加えます。スキルが何に触れうるかが分かり、ポリシーが allow / ask / deny を決め、ファイルの変更も検出できます。スキルが安全だと証明するものではありません。<a href="why/">なぜ SkillPact か →</a></p></section>'''
+
+
 def top_en():
     p = DOCS / "index.html"; h = p.read_text()
+    h = re.sub(r'\n?<section class="why" id="why">.*?</section>', "", h, flags=re.S)
+    h = re.sub(r'(<section class="hero">.*?</section>)', lambda m: m.group(1) + "\n" + WHY_EN, h, count=1, flags=re.S)
     h = re.sub(r'draft v[\d.]+</p>', f'draft v{VER}</p>', h)
     h = re.sub(r'(<section><h2>Specs &amp; schemas</h2><div class="grid3">).*?(</div></section>)', lambda m: m.group(1) + "\n" + CARDS_EN + m.group(2), h, flags=re.S)
     p.write_text(h)
@@ -87,10 +97,11 @@ FOOT = '<footer class="wrap foot">仕様 CC BY 4.0 · コード Apache-2.0 · ©
 def ja_pages():
     (DOCS / "ja" / "schema").mkdir(parents=True, exist_ok=True); (DOCS / "ja" / "check").mkdir(parents=True, exist_ok=True)
     top = HEAD("SkillPact — Agent Skills のための契約 · SEVENTHWELL", "Agent Skill が何をするかを宣言・テスト・署名し、インストール前に確かめる。", "", "ja/") + f'''
-<main class="wrap">
+<main id="main" class="wrap">
 <section class="hero"><p class="eyebrow">オープンな規格 · ドラフト v{VER}</p><h1>Agent Skills のための<br>機械が読める契約</h1>
 <p class="lead">変更しない <code>SKILL.md</code> の隣に <code>skill.contract.json</code> を置きます。作者はすべての副作用を<b>宣言</b>し、ネットを切って動く<b>テスト</b>を付け、<b>署名</b>します。ハーネスはそれを<em>インストール前に</em>確かめます。</p>
 <p><a class="btn" href="schema/">スキーマの説明 →</a> <a class="btn ghost" href="check/">ブラウザで確認</a></p></section>
+{WHY_JA}
 <section><h2>6 種類の副作用</h2><div class="effs">
 <div class="eff e-read"><b>read</b><span>ファイルやデータを読む</span></div><div class="eff e-write"><b>write</b><span>ファイルを作る・変える</span></div>
 <div class="eff e-network"><b>network</b><span>外部と通信する（<code>@local</code> は手元・社内網だけ）</span></div><div class="eff e-exec"><b>exec</b><span>他のプログラムを動かす</span></div>
@@ -112,7 +123,7 @@ skillpact convert ./my-skill --to mda</code></pre></section>
 </main>''' + FOOT
     (DOCS / "ja" / "index.html").write_text(top)
     sch = HEAD(f"スキーマの説明 v{VER} — SkillPact", "skill.contract.json とハーネスポリシーの構成。", "../", "ja/schema/") + f'''
-<main class="wrap"><section class="hero sm"><p class="eyebrow">スキーマ · ドラフト v{VER}</p><h1>skill.contract.json とハーネスポリシー</h1>
+<main id="main" class="wrap"><section class="hero sm"><p class="eyebrow">スキーマ · ドラフト v{VER}</p><h1>skill.contract.json とハーネスポリシー</h1>
 <p class="lead">契約ファイルは <code>SKILL.md</code> と同じフォルダに置く JSON です。全項目の型・必須・取りうる値は<a href="../../schema/">英語版の項目別リファレンス</a>にあります。ここでは全体の形だけを説明します。</p>
 <div class="pills"><a class="pill" href="../../schema/v{VER}.json">v{VER}.json <small>契約</small></a><a class="pill" href="../../schema/policy-v{PVER}.json">policy-v{PVER}.json <small>ポリシー</small></a></div></section>
 <section><h2>契約の主な項目</h2><table class="ft"><thead><tr><th>項目</th><th>内容</th></tr></thead><tbody>
@@ -142,10 +153,16 @@ skillpact convert ./my-skill --to mda</code></pre></section>
 
 
 def main():
+    import mdpages
+    mdpages.build()
+    for lang, name in (("en", "spec_v0.8.md"), ("ja", "spec_v0.8.ja.md")):
+        (ROOT / "spec" / name).write_text((ROOT / "content" / lang / "spec.md").read_text())
     top_en(); ja_pages()
     for p in sorted(DOCS.rglob("*.html")):
         lang, rel, active = page_kind(p); h = p.read_text()
-        p.write_text(apply_header(h, lang, rel, active))
+        parts = p.relative_to(DOCS).parts; parts = parts[1:] if lang == "ja" else parts
+        here = "rationale/" if parts[0] == "rationale" else ""
+        p.write_text(apply_header(h, lang, rel, active, here))
     print(f"site: header applied, latest v{VER} / policy-v{PVER}")
 
 

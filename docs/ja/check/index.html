@@ -3,8 +3,8 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:">
 <link rel="stylesheet" href="../../assets/site.css">
 </head><body>
-<header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav aria-label="Main"><a href="../">ホーム</a><a href="../schema/">スキーマ</a><a href="../check/" aria-current="page">チェッカー</a><a href="../../badges/">バッジ</a><a href="https://github.com/kajisho5/skillpact">GitHub</a><a class="lang" href="../../check/" lang="en" hreflang="en">EN</a></nav></div></header>
-<main class="wrap"><section class="hero sm"><p class="eyebrow">チェッカー · ブラウザの中だけで動きます</p><h1>skill.contract.json を確認する</h1>
+<a class="skip" href="#main">本文へ移動</a><header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav aria-label="Main"><a href="../">ホーム</a><a href="../why/">なぜ</a><a href="../spec/">仕様</a><a href="../guides/">導入</a><a href="../schema/">スキーマ</a><a href="../check/" aria-current="page">チェッカー</a><a href="../../badges/">バッジ</a><a href="../about/">概要</a><a href="https://github.com/kajisho5/skillpact">GitHub</a><a class="lang" href="../../check/" lang="en" hreflang="en">EN</a></nav></div></header>
+<main id="main" class="wrap"><section class="hero sm"><p class="eyebrow">チェッカー · ブラウザの中だけで動きます</p><h1>skill.contract.json を確認する</h1>
 <p class="lead">契約を貼り付けてください。スキーマの検証、相互チェック、注意が要る副作用、ed25519 署名を<b>このページの中だけ</b>で確かめます（TypeScript 実装をブラウザ用にしたもの）。入力はどこにも送られません。ページの設定で、このサイトのファイル（見本など）を読む以外の通信を禁じています。</p></section>
 <p><label>契約の JSON<br><textarea id="c" spellcheck="false" placeholder='{"contract_version": "0.7", ...}'></textarea></label></p>
 <p><label>信頼する鍵（1 行に 1 つ、任意）<br><textarea id="k" style="min-height:60px" placeholder="ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ="></textarea></label></p>

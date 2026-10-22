@@ -1,6 +1,6 @@
 {
   "name": "skillpact",
-  "version": "0.6.0-beta.1",
+  "version": "0.8.0-beta.1",
   "description": "SkillPact verify-only implementation (validate + integrity + ed25519/JCS). Second, independent implementation of the SkillPact spec.",
   "license": "Apache-2.0",
   "type": "module",

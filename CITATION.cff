@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you refer to SkillPact, please cite it as below."
+title: "SkillPact: machine-readable contracts for Agent Skills (Specification, draft 0.8)"
+authors:
+  - name: "SEVENTHWELL"
+  - family-names: "kajiyama"
+    given-names: "shogo"
+    email: "kajiyama@seventh-well.com"
+version: "0.8-draft"
+date-released: "2026-10-22"
+license: CC-BY-4.0
+url: "https://kajisho5.github.io/skillpact/"
+repository-code: "https://github.com/kajisho5/skillpact"
+keywords: ["agent skills", "AI agents", "permissions", "supply chain", "specification"]

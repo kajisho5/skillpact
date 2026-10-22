@@ -1,0 +1,34 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>この仕様について — SkillPact</title><meta name="description" content="位置づけ、運営、法的な事項、実務的な情報です。[仕様](../spec/)、[設計の理由](../rationale/)、[なぜ SkillPact か](../why/)もご覧ください。">
+<link rel="canonical" href="https://kajisho5.github.io/skillpact/ja/about/"><link rel="alternate" hreflang="en" href="https://kajisho5.github.io/skillpact/about/"><link rel="alternate" hreflang="ja" href="https://kajisho5.github.io/skillpact/ja/about/">
+<link rel="stylesheet" href="../../assets/site.css"></head><body>
+<a class="skip" href="#main">本文へ移動</a><header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav aria-label="Main"><a href="../">ホーム</a><a href="../why/">なぜ</a><a href="../spec/">仕様</a><a href="../guides/">導入</a><a href="../schema/">スキーマ</a><a href="../check/">チェッカー</a><a href="../../badges/">バッジ</a><a href="../about/" aria-current="page">概要</a><a href="https://github.com/kajisho5/skillpact">GitHub</a><a class="lang" href="../../about/" lang="en" hreflang="en">EN</a></nav></div></header>
+<main id="main" class="wrap doc">
+<nav class="toc" aria-label="このページの目次"><b>目次</b><ol><li><a href="#位置づけ">位置づけ</a></li><li><a href="#運営と決め方">運営と決め方</a></li><li><a href="#脆弱性の報告">脆弱性の報告</a></li><li><a href="#知的財産">知的財産</a></li><li><a href="#商標とバッジ">商標とバッジ</a></li><li><a href="#引用">引用</a></li><li><a href="#ロードマップ">ロードマップ</a></li><li><a href="#メディアタイプとファイル名">メディアタイプとファイル名</a></li><li><a href="#このサイトのアクセシビリティ">このサイトのアクセシビリティ</a></li><li><a href="#謝辞">謝辞</a></li><li><a href="#文書のチェックリスト">文書のチェックリスト</a></li></ol></nav>
+<article>
+<h1 id="この仕様について">この仕様について</h1>
+<p>位置づけ、運営、法的な事項、実務的な情報です。<a href="../spec/">仕様</a>、<a href="../rationale/">設計の理由</a>、<a href="../why/">なぜ SkillPact か</a>もご覧ください。</p>
+<h2 id="位置づけ">位置づけ</h2>
+<p>ドラフト 0.8（2026-10-22）。編集者によるドラフトで、安定版ではありません。英語の仕様が規範で、日本語は翻訳です。1.0 はまだありません。公開レビューの日程は未定です。</p>
+<h2 id="運営と決め方">運営と決め方</h2>
+<p>編集者は shogo kajiyama（SEVENTHWELL）です。変更は <a href="https://github.com/kajisho5/skillpact/blob/main/GOVERNANCE.md">GOVERNANCE.md</a> の手順に従います：issue を立て、7 日以上議論し、仕様・スキーマ・適合スイート・両実装をまとめて更新するプルリクエストを出し、理由を書いて決定します。参加の仕方は <a href="https://github.com/kajisho5/skillpact/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>、行動規範は <a href="https://github.com/kajisho5/skillpact/blob/main/CODE_OF_CONDUCT.md">CODE_OF_CONDUCT.md</a>。</p>
+<h2 id="脆弱性の報告">脆弱性の報告</h2>
+<p>kajiyama@seventh-well.com か、GitHub の非公開の脆弱性報告で知らせてください。<a href="https://github.com/kajisho5/skillpact/blob/main/SECURITY.md">SECURITY.md</a>。</p>
+<h2 id="知的財産">知的財産</h2>
+<ul><li>仕様の本文は CC BY 4.0。スキーマ、適合スイート、実装は Apache-2.0 で、貢献者それぞれの貢献に対する特許ライセンスを含みます。</li><li>SEVENTHWELL は、この仕様の実装に必須となる特許を把握していません。仕様の本文について正式な特許不主張の誓約を加えるかは、1.0 までに決めます。<a href="https://github.com/kajisho5/skillpact/blob/main/IPR.md">IPR.md</a>。</li></ul>
+<h2 id="商標とバッジ">商標とバッジ</h2>
+<p>「SEVENTHWELL」は発行者の名前です。「SkillPact」は、仕様に従う実装や契約を説明するために使えます。L1/L2/L3 のバッジは、CI か <code>skillpact conformance</code> が実際に出したレベルだけを表示し、SEVENTHWELL の推薦を受けたように見せないでください。<a href="https://github.com/kajisho5/skillpact/blob/main/TRADEMARKS.md">TRADEMARKS.md</a>。</p>
+<h2 id="引用">引用</h2>
+<p><a href="https://github.com/kajisho5/skillpact/blob/main/CITATION.cff">CITATION.cff</a> を使ってください：「SkillPact Specification, draft 0.8, SEVENTHWELL, 2026.」</p>
+<h2 id="ロードマップ">ロードマップ</h2>
+<p><a href="https://github.com/kajisho5/skillpact/blob/main/ROADMAP.md">ROADMAP.md</a>。次は公開レビュー、その後に安定したスキーマ URL とパッケージ公開を伴う 1.0 です。</p>
+<h2 id="メディアタイプとファイル名">メディアタイプとファイル名</h2>
+<p>ファイル名は常に <code>skill.contract.json</code> です。<code>application/json</code> で配信し、専用のメディアタイプは登録していません（仕様の付録 D）。</p>
+<h2 id="このサイトのアクセシビリティ">このサイトのアクセシビリティ</h2>
+<p>言語属性つきの意味のある HTML、ページごとに 1 つの見出し、表の見出し、見えるフォーカス、十分な色のコントラストを使っています。チェッカーはキーボードで操作できます。問題は GitHub issue で知らせてください。<a href="https://github.com/kajisho5/skillpact/blob/main/ACCESSIBILITY.md">ACCESSIBILITY.md</a>。</p>
+<h2 id="謝辞">謝辞</h2>
+<p><a href="https://github.com/kajisho5/skillpact/blob/main/ACKNOWLEDGEMENTS.md">ACKNOWLEDGEMENTS.md</a>。</p>
+<h2 id="文書のチェックリスト">文書のチェックリスト</h2>
+<p>仕様に期待される項目と、その置き場所：<a href="https://github.com/kajisho5/skillpact/blob/main/STANDARDS_CHECKLIST.md">STANDARDS_CHECKLIST.md</a>。</p>
+</article></main>
+<footer class="wrap foot">仕様 CC BY 4.0 · コード Apache-2.0 · © 2026 SEVENTHWELL · <a href="https://github.com/kajisho5/skillpact/blob/main/content/ja/about.md">原稿</a></footer></body></html>

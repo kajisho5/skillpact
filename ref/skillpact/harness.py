@@ -11,9 +11,9 @@ HS = Path(__file__).parent / "harness_schemas"
 DOC_DERIVED = {
     "gemini-cli-policy": {"$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Gemini CLI policy TOML (doc-derived: geminicli.com/docs/reference/policy-engine)",
         "type": "object", "additionalProperties": False, "properties": {"rule": {"type": "array", "items": {"type": "object", "additionalProperties": False,
-        "required": ["toolName", "decision"], "properties": {"toolName": {"type": "string"}, "mcpName": {"type": "string"}, "commandPrefix": {"type": "string"},
+        "required": ["toolName", "decision"], "properties": {"toolName": {"oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]}, "mcpName": {"type": "string"}, "commandPrefix": {"oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]},
         "commandRegex": {"type": "string"}, "argsPattern": {"type": "string"}, "decision": {"enum": ["allow", "deny", "ask_user"]},
-        "priority": {"type": "integer"}, "interactive": {"type": "boolean"}, "modes": {"type": "array"}}}}}},
+        "priority": {"type": "integer", "minimum": 0, "maximum": 999}, "denyMessage": {"type": "string"}, "allowRedirection": {"type": "boolean"}, "interactive": {"type": "boolean"}, "modes": {"type": "array"}}}}}},
     "cursor-cli-config": {"$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Cursor CLI permissions (doc-derived: cursor.com/docs/cli/reference/permissions)",
         "type": "object", "required": ["version", "permissions"], "properties": {"version": {"const": 1}, "permissions": {"type": "object", "additionalProperties": False,
         "required": ["allow", "deny"], "properties": {k: {"type": "array", "items": {"type": "string", "pattern": r"^(Shell|Read|Write|WebFetch|Mcp)\([^)]+\)$"}} for k in ("allow", "deny")}}}},

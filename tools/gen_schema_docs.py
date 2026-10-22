@@ -159,7 +159,7 @@ def main():
 </head><body>
 <header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a>
 <nav><a href="../">Home</a><a href="#contract" >Contract</a><a href="#policy">Policy</a><a href="https://github.com/kajisho5/skillpact">GitHub</a></nav></div></header>
-<main class="wrap">
+<main id="main" class="wrap">
 <section class="hero sm"><p class="eyebrow">Schema reference · draft v{VER}</p><h1>skill.contract.json &amp; harness policy</h1>
 <p class="lead">Every field, its type, whether it is required, and the allowed values — with real snippets from the signed <b>ffmpeg-skill</b> contract ({len(caps)} capabilities, {len(SAMPLE['tests']['cases'])} tests).</p>
 <div class="pills"><a class="pill" href="v{VER}.json">v{VER}.json <small>contract</small></a>{OLDER}<a class="pill" href="policy-v{sitechrome.PVER}.json">policy-v{sitechrome.PVER}.json <small>policy</small></a></div>

@@ -1,0 +1,78 @@
+{
+  "contract_version": "0.8",
+  "kind": "tool",
+  "skill": {
+    "name": "v08-e2-role-relabel",
+    "version": "1.0.0"
+  },
+  "permissions": {
+    "read": {
+      "level": "none"
+    },
+    "write": {
+      "level": "none"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "scoped",
+      "scope": [
+        "sh"
+      ]
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "hello",
+      "summary": "print",
+      "entry": {
+        "cli": [
+          "sh",
+          "$SKILL_DIR/scripts/run.sh"
+        ]
+      },
+      "effects": [
+        "exec"
+      ]
+    }
+  ],
+  "tests": {
+    "cases": [
+      {
+        "id": "t1",
+        "capability": "hello",
+        "run": [
+          "sh",
+          "$SKILL_DIR/scripts/run.sh"
+        ],
+        "expect": {
+          "exit_code": 0,
+          "stdout_contains": "hi"
+        }
+      }
+    ]
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "files": {
+      "SKILL.md": "5414def23f9d32b1977e886a94643364b624edc88b3c15bcf5776f2e34fec1dd",
+      "scripts/run.sh": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e"
+    },
+    "signatures": [
+      {
+        "type": "ed25519",
+        "key": "ed25519:h4z5ZqAU97RzV18w3J26PraX7BcDlTuQY+BUIXN99ag=",
+        "sig": "2UU9AEu7MdYDudmPBOBNUAtEbfdspcF5XXQV6AL6+koRWcoGJARIEHSJYkV7cWR7VouzxJwT7dwJrLkPNCfYAg==",
+        "signer": "test",
+        "role": "author"
+      }
+    ]
+  }
+}

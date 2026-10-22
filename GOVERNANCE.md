@@ -26,4 +26,4 @@
 - Vendor extensions: `x.<vendor>` — no registration needed; vendor names SHOULD be a domain or GitHub owner name.
 
 ## Security reports
-Report vulnerabilities privately via GitHub Security Advisories on kajisho5/skillpact. Do not open public issues for unpatched issues.
+Report vulnerabilities privately to kajiyama@seventh-well.com or via GitHub private vulnerability reporting on kajisho5/skillpact (see SECURITY.md). Do not open public issues for unpatched issues.

@@ -1,0 +1,32 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>設計の理由 — SkillPact</title><meta name="description" content="SkillPact の設計判断の記録です。それぞれ、決めたこと、理由、採らなかった案を書きます。参考情報です。">
+<link rel="canonical" href="https://kajisho5.github.io/skillpact/ja/rationale/"><link rel="alternate" hreflang="en" href="https://kajisho5.github.io/skillpact/rationale/"><link rel="alternate" hreflang="ja" href="https://kajisho5.github.io/skillpact/ja/rationale/">
+<link rel="stylesheet" href="../../assets/site.css"></head><body>
+<a class="skip" href="#main">本文へ移動</a><header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav aria-label="Main"><a href="../">ホーム</a><a href="../why/">なぜ</a><a href="../spec/" aria-current="page">仕様</a><a href="../guides/">導入</a><a href="../schema/">スキーマ</a><a href="../check/">チェッカー</a><a href="../../badges/">バッジ</a><a href="../about/">概要</a><a href="https://github.com/kajisho5/skillpact">GitHub</a><a class="lang" href="../../rationale/" lang="en" hreflang="en">EN</a></nav></div></header>
+<main id="main" class="wrap doc">
+<nav class="toc" aria-label="このページの目次"><b>目次</b><ol><li><a href="#dr-1-6-種類の効果">DR-1 6 種類の効果</a></li><li><a href="#dr-2-3-つのレベル">DR-2 3 つのレベル</a></li><li><a href="#dr-3-署名に-jcs-rfc-8785-role-も署名する">DR-3 署名に JCS（RFC 8785）、role も署名する</a></li><li><a href="#dr-4-ed25519-と-sigstore">DR-4 ed25519 と Sigstore</a></li><li><a href="#dr-5-ファイル名と置き場所">DR-5 ファイル名と置き場所</a></li><li><a href="#dr-6-yaml-ではなく-json">DR-6 YAML ではなく JSON</a></li><li><a href="#dr-7-テストはオフラインのサンドボックスで">DR-7 テストはオフラインのサンドボックスで</a></li><li><a href="#dr-8-全ファイルの網羅-0-8">DR-8 全ファイルの網羅（0.8）</a></li><li><a href="#dr-9-インストール前だけを担い-実行時へは書き出す">DR-9 インストール前だけを担い、実行時へは書き出す</a></li><li><a href="#dr-10-英語を規範-日本語は翻訳">DR-10 英語を規範、日本語は翻訳</a></li></ol></nav>
+<article>
+<h1 id="設計の理由">設計の理由</h1>
+<p>SkillPact の設計判断の記録です。それぞれ、決めたこと、理由、採らなかった案を書きます。参考情報です。</p>
+<h2 id="dr-1-6-種類の効果">DR-1 6 種類の効果</h2>
+<p><strong>決定</strong>：read、write、network、exec、spend、send。 <strong>理由</strong>：ツールに権限を与えるときに人が実際に判断する単位です。spend と send はコンピューターの外（お金、人）に届き、取り消せないので network と分けました。 <strong>採らなかった案</strong>：自由な権限の一覧（スキル同士を比べられない）、特定のハーネスのツール名をそのまま使う（1 社に縛られる）、もっと少ない区分（別々に判断すべきものが混ざる）。</p>
+<h2 id="dr-2-3-つのレベル">DR-2 3 つのレベル</h2>
+<p><strong>決定</strong>：L1 宣言済み、L2 テスト済み、L3 署名済み。 <strong>理由</strong>：レベルごとに 1 種類の根拠（整合性、観測した振る舞い、身元と完全性）が加わります。バッジにできるほど単純です。 <strong>採らなかった案</strong>：点数（持っていない精度があるように見える）、「安全」のレベル（証明できない）。</p>
+<h2 id="dr-3-署名に-jcs-rfc-8785-role-も署名する">DR-3 署名に JCS（RFC 8785）、role も署名する</h2>
+<p><strong>決定</strong>：0.8 から <code>{"contract", "role"}</code> を JCS にしたものに署名。 <strong>理由</strong>：JCS は公開された標準で、独立した実装があります。2 つの実装（Python、TypeScript）はファズのすべてのケースで一致します。role を含めることで、reviewer の署名を author に付け替えられなくなります。 <strong>採らなかった案</strong>：ファイルそのものに署名（空白の違いで壊れる）、独自の並べ方（0.1〜0.3 で使ったが、小数を確実に表せなかった）。</p>
+<h2 id="dr-4-ed25519-と-sigstore">DR-4 ed25519 と Sigstore</h2>
+<p><strong>決定</strong>：両方を使えるようにする。 <strong>理由</strong>：ed25519 は公開鍵があればオフラインで検証でき、署名も小さい。Sigstore は鍵を管理せずに CI やアカウントの身元と署名を結び付けられます。 <strong>採らなかった案</strong>：GPG（鍵の扱いが複雑）、Sigstore だけ（完全な検証にオンラインの基盤が要る）。</p>
+<h2 id="dr-5-ファイル名と置き場所">DR-5 ファイル名と置き場所</h2>
+<p><strong>決定</strong>：<code>SKILL.md</code> の隣に <code>skill.contract.json</code>。 <strong>理由</strong>：<code>SKILL.md</code> を変えないので、SkillPact を知らないハーネスに影響しません。名前が 1 つに決まっていれば見つけやすい。 <strong>採らなかった案</strong>：frontmatter の項目（<code>SKILL.md</code> が変わり、文章と機械用のデータが混ざる）、中央のレジストリ（対象外）。</p>
+<h2 id="dr-6-yaml-ではなく-json">DR-6 YAML ではなく JSON</h2>
+<p><strong>決定</strong>：I-JSON の制限つきの JSON。 <strong>理由</strong>：解釈が 1 つに決まる（YAML には複数の版と暗黙の型変換がある）、JSON Schema の道具がどこにでもある、署名用の標準の正規形（JCS）がある。 <strong>採らなかった案</strong>：YAML（型があいまいで正規化しにくい）、TOML（正規形がない）。</p>
+<h2 id="dr-7-テストはオフラインのサンドボックスで">DR-7 テストはオフラインのサンドボックスで</h2>
+<p><strong>決定</strong>：ネットワークの隔離、読み取り専用のファイルシステム、環境変数の許可リスト。 <strong>理由</strong>：結果が外の世界に左右されず、テストがデータを漏らしたり利用者のファイルを変えたりできません。 <strong>採らなかった案</strong>：全権限でテストを実行（危険）、テストなし（L2 がただの申告になる）。</p>
+<h2 id="dr-8-全ファイルの網羅-0-8">DR-8 全ファイルの網羅（0.8）</h2>
+<p><strong>決定</strong>：integrity には、短い既定の除外と許された除外を除くすべてのファイルを載せる。エージェントへの指示ファイルは除外できない。 <strong>理由</strong>：0.7 の自己レビューで、載っていない入口スクリプトや <code>CLAUDE.md</code> が署名を壊さずに振る舞いを変えられることが分かったためです。</p>
+<h2 id="dr-9-インストール前だけを担い-実行時へは書き出す">DR-9 インストール前だけを担い、実行時へは書き出す</h2>
+<p><strong>決定</strong>：SkillPact はインストール前に確かめ、APS / ACS / HushSpec / Rego へ書き出す。 <strong>理由</strong>：実行時ポリシーの規格はすでにあり、もう 1 つ作ると分断を招きます。</p>
+<h2 id="dr-10-英語を規範-日本語は翻訳">DR-10 英語を規範、日本語は翻訳</h2>
+<p><strong>決定</strong>：0.8 から英語版を規範とする。 <strong>理由</strong>：実装者の多くは英語を読みます。日本語訳は編集者が保守します。</p>
+</article></main>
+<footer class="wrap foot">仕様 CC BY 4.0 · コード Apache-2.0 · © 2026 SEVENTHWELL · <a href="https://github.com/kajisho5/skillpact/blob/main/content/ja/rationale.md">原稿</a></footer></body></html>

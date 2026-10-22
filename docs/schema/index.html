@@ -1,15 +1,15 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Schema reference v0.7 — SkillPact · SEVENTHWELL</title>
-<meta name="description" content="Field-by-field reference for skill.contract.json and harness policy (SkillPact v0.7).">
+<title>Schema reference v0.8 — SkillPact · SEVENTHWELL</title>
+<meta name="description" content="Field-by-field reference for skill.contract.json and harness policy (SkillPact v0.8).">
 <link rel="canonical" href="https://kajisho5.github.io/skillpact/schema/"><link rel="stylesheet" href="../assets/site.css">
 </head><body>
-<header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav aria-label="Main"><a href="../">Home</a><a href="../schema/" aria-current="page">Schema</a><a href="../check/">Checker</a><a href="../badges/">Badges</a><a href="https://github.com/kajisho5/skillpact">GitHub</a><a class="lang" href="../ja/schema/" lang="ja" hreflang="ja">日本語</a></nav></div></header>
-<main class="wrap">
-<section class="hero sm"><p class="eyebrow">Schema reference · draft v0.7</p><h1>skill.contract.json &amp; harness policy</h1>
+<a class="skip" href="#main">Skip to content</a><header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav aria-label="Main"><a href="../">Home</a><a href="../why/">Why</a><a href="../spec/">Spec</a><a href="../guides/">Guides</a><a href="../schema/" aria-current="page">Schema</a><a href="../check/">Checker</a><a href="../badges/">Badges</a><a href="../about/">About</a><a href="https://github.com/kajisho5/skillpact">GitHub</a><a class="lang" href="../ja/schema/" lang="ja" hreflang="ja">日本語</a></nav></div></header>
+<main id="main" class="wrap">
+<section class="hero sm"><p class="eyebrow">Schema reference · draft v0.8</p><h1>skill.contract.json &amp; harness policy</h1>
 <p class="lead">Every field, its type, whether it is required, and the allowed values — with real snippets from the signed <b>ffmpeg-skill</b> contract (42 capabilities, 78 tests).</p>
-<div class="pills"><a class="pill" href="v0.7.json">v0.7.json <small>contract</small></a><a class="pill" href="v0.6.json">v0.6.json <small>older</small></a><a class="pill" href="v0.5.json">v0.5.json <small>older</small></a><a class="pill" href="v0.4.json">v0.4.json <small>older</small></a><a class="pill" href="v0.3.json">v0.3.json <small>older</small></a><a class="pill" href="policy-v0.7.json">policy-v0.7.json <small>policy</small></a></div>
-<pre class="ids"><code>https://kajisho5.github.io/skillpact/schema/v0.7.json
-https://kajisho5.github.io/skillpact/schema/policy-v0.7.json</code></pre></section>
+<div class="pills"><a class="pill" href="v0.8.json">v0.8.json <small>contract</small></a><a class="pill" href="v0.7.json">v0.7.json <small>older</small></a><a class="pill" href="v0.6.json">v0.6.json <small>older</small></a><a class="pill" href="v0.5.json">v0.5.json <small>older</small></a><a class="pill" href="v0.4.json">v0.4.json <small>older</small></a><a class="pill" href="v0.3.json">v0.3.json <small>older</small></a><a class="pill" href="policy-v0.8.json">policy-v0.8.json <small>policy</small></a></div>
+<pre class="ids"><code>https://kajisho5.github.io/skillpact/schema/v0.8.json
+https://kajisho5.github.io/skillpact/schema/policy-v0.8.json</code></pre></section>
 
 <section><h2 id="effects">The six effects</h2><p>Every contract declares a level for each effect (<code>none</code> · <code>scoped</code> · <code>any</code>); every capability lists the effects it may cause.</p>
 <div class="effs"><div class="eff e-read"><b>read</b><span>Reads files or data</span><small>ffmpeg-skill: scoped</small></div><div class="eff e-write"><b>write</b><span>Creates or modifies files</span><small>ffmpeg-skill: scoped</small></div><div class="eff e-network"><b>network</b><span>Talks to hosts over the network</span><small>ffmpeg-skill: scoped</small></div><div class="eff e-exec"><b>exec</b><span>Runs other programs</span><small>ffmpeg-skill: scoped</small></div><div class="eff e-spend"><b>spend</b><span>Spends money / paid quota</span><small>ffmpeg-skill: none</small></div><div class="eff e-send"><b>send</b><span>Sends messages to people or services</span><small>ffmpeg-skill: none</small></div></div></section>
@@ -27,7 +27,7 @@ https://kajisho5.github.io/skillpact/schema/policy-v0.7.json</code></pre></secti
 <section><h2 id="contract">Contract fields <small>skill.contract.json</small></h2>
 <details open><summary>Field table</summary><div class="tw"><table class="ft"><thead><tr><th>Field</th><th>Type</th><th>Req.</th><th>Description / allowed values</th></tr></thead><tbody>
 <tr class="d0" id="c-$schema"><td><code class="f">$schema</code></td><td><span class=t>string</span></td><td><span class=opt>optional</span></td><td>URL of the schema this file conforms to.</td></tr>
-<tr class="d0" id="c-contract_version"><td><code class="f">contract_version</code></td><td><span class=t>enum</span></td><td><span class=req>required</span></td><td>SkillPact contract version. New contracts should use &quot;0.7&quot;.<div class=vals><code class=v>&quot;0.1&quot;</code> <code class=v>&quot;0.2&quot;</code> <code class=v>&quot;0.3&quot;</code> <code class=v>&quot;0.4&quot;</code> <code class=v>&quot;0.5&quot;</code> <code class=v>&quot;0.6&quot;</code> <code class=v>&quot;0.7&quot;</code></div></td></tr>
+<tr class="d0" id="c-contract_version"><td><code class="f">contract_version</code></td><td><span class=t>enum</span></td><td><span class=req>required</span></td><td>SkillPact contract version. New contracts should use &quot;0.8&quot;.<div class=vals><code class=v>&quot;0.1&quot;</code> <code class=v>&quot;0.2&quot;</code> <code class=v>&quot;0.3&quot;</code> <code class=v>&quot;0.4&quot;</code> <code class=v>&quot;0.5&quot;</code> <code class=v>&quot;0.6&quot;</code> <code class=v>&quot;0.7&quot;</code> <code class=v>&quot;0.8&quot;</code></div></td></tr>
 <tr class="d0" id="c-skill"><td><code class="f">skill</code></td><td><span class=t>object</span></td><td><span class=req>required</span></td><td>Identity of the skill described by the neighbouring SKILL.md.</td></tr>
 <tr class="d1" id="c-skill.name"><td><code class="f">skill.name</code></td><td><span class=t>string</span></td><td><span class=req>required</span></td><td>Kebab-case skill name (≤ 64 chars), same as SKILL.md.<div class=x>pattern <code>^[a-z0-9]+(-[a-z0-9]+)*$</code> · max 64 chars</div></td></tr>
 <tr class="d1" id="c-skill.version"><td><code class="f">skill.version</code></td><td><span class=t>string</span></td><td><span class=req>required</span></td><td>SemVer version of the skill.<div class=x>pattern <code>^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$</code></div></td></tr>
@@ -151,7 +151,7 @@ https://kajisho5.github.io/skillpact/schema/policy-v0.7.json</code></pre></secti
 <tr class="d2" id="c-tests.cases.tags"><td><code class="f">tests.cases[].tags</code></td><td><span class=t>array&lt;string&gt;</span></td><td><span class=opt>optional</span></td><td></td></tr>
 <tr class="d0" id="c-integrity"><td><code class="f">integrity</code></td><td><span class=t>object</span></td><td><span class=opt>optional</span></td><td>SHA-256 of every shipped file plus signatures. Hashes + a trusted signature = level L3.</td></tr>
 <tr class="d1" id="c-integrity.algorithm"><td><code class="f">integrity.algorithm</code></td><td><span class=t>const</span></td><td><span class=opt>optional</span></td><td><div class=vals><code class=v>&quot;sha256&quot;</code></div></td></tr>
-<tr class="d1" id="c-integrity.files"><td><code class="f">integrity.files</code></td><td><span class=t>object</span></td><td><span class=opt>optional</span></td><td></td></tr>
+<tr class="d1" id="c-integrity.files"><td><code class="f">integrity.files</code></td><td><span class=t>object</span></td><td><span class=opt>optional</span></td><td>0.8+: every regular file in the skill directory except skill.contract.json, the default excludes and integrity.exclude (spec s11.2). Keys are relative POSIX paths without &quot;.&quot;, &quot;..&quot; or empty segments.</td></tr>
 <tr class="d1" id="c-integrity.signatures"><td><code class="f">integrity.signatures</code></td><td><span class=t>array&lt;object&gt;</span></td><td><span class=opt>optional</span></td><td>ed25519 (key + sig) or Sigstore keyless (identity + issuer + bundle).</td></tr>
 <tr class="d2" id="c-integrity.signatures.type"><td><code class="f">integrity.signatures[].type</code></td><td><span class=t>enum</span></td><td><span class=req>required</span></td><td><div class=vals><code class=v>&quot;ed25519&quot;</code> <code class=v>&quot;sigstore&quot;</code></div></td></tr>
 <tr class="d2" id="c-integrity.signatures.key"><td><code class="f">integrity.signatures[].key</code></td><td><span class=t>string</span></td><td><span class=opt>optional</span></td><td></td></tr>
@@ -161,14 +161,15 @@ https://kajisho5.github.io/skillpact/schema/policy-v0.7.json</code></pre></secti
 <tr class="d2" id="c-integrity.signatures.issuer"><td><code class="f">integrity.signatures[].issuer</code></td><td><span class=t>string</span></td><td><span class=opt>optional</span></td><td></td></tr>
 <tr class="d2" id="c-integrity.signatures.bundle"><td><code class="f">integrity.signatures[].bundle</code></td><td><span class=t>object</span></td><td><span class=opt>optional</span></td><td></td></tr>
 <tr class="d2" id="c-integrity.signatures.instance"><td><code class="f">integrity.signatures[].instance</code></td><td><span class=t>enum</span></td><td><span class=opt>optional</span></td><td>Sigstore instance; staging signatures are for testing and never satisfy a production trust entry<div class=vals><code class=v>&quot;production&quot;</code> <code class=v>&quot;staging&quot;</code></div></td></tr>
-<tr class="d2" id="c-integrity.signatures.role"><td><code class="f">integrity.signatures[].role</code></td><td><span class=t>enum</span></td><td><span class=opt>optional</span></td><td>author (default) makes L3 possible; reviewer / scanner are attestations by others over the same signing input<div class=vals><code class=v>&quot;author&quot;</code> <code class=v>&quot;reviewer&quot;</code> <code class=v>&quot;scanner&quot;</code></div></td></tr>
+<tr class="d2" id="c-integrity.signatures.role"><td><code class="f">integrity.signatures[].role</code></td><td><span class=t>enum</span></td><td><span class=opt>optional</span></td><td>author (default) makes L3 possible; reviewer / scanner are attestations by others. From 0.8 the role is part of the signed bytes (spec s11.1).<div class=vals><code class=v>&quot;author&quot;</code> <code class=v>&quot;reviewer&quot;</code> <code class=v>&quot;scanner&quot;</code></div></td></tr>
 <tr class="d1" id="c-integrity.canonicalization"><td><code class="f">integrity.canonicalization</code></td><td><span class=t>enum</span></td><td><span class=opt>optional</span></td><td>informative; verifiers derive it from contract_version (&gt;=0.4: jcs, RFC 8785)<div class=vals><code class=v>&quot;jcs&quot;</code> <code class=v>&quot;legacy-sorted&quot;</code></div></td></tr>
+<tr class="d1" id="c-integrity.exclude"><td><code class="f">integrity.exclude</code></td><td><span class=t>array&lt;string&gt;</span></td><td><span class=opt>optional</span></td><td>0.8+: extra glob patterns (spec s6.1) of files that need no hash, e.g. caches. Default excludes: .git/**, **/__pycache__/**, **/*.pyc, **/.DS_Store. Protected files (SKILL.md, CLAUDE.md, AGENTS.md, GEMINI.md, .mcp.json, .claude-plugin/**, .claude/**, .cursor/**, .codex/**, .gemini/**, .agents/**, hooks/**, package.json, pyproject.toml, entry scripts) are never excluded.</td></tr>
 <tr class="d0" id="c-x"><td><code class="f">x</code></td><td><span class=t>object</span></td><td><span class=opt>optional</span></td><td>Vendor extensions, namespaced x.&lt;vendor&gt;.&lt;key&gt;.</td></tr>
 <tr class="d0" id="c-kind"><td><code class="f">kind</code></td><td><span class=t>enum</span></td><td><span class=opt>optional</span></td><td>tool = has executable entries; instructions = SKILL.md-only skill.<div class=vals><code class=v>&quot;tool&quot;</code> <code class=v>&quot;instructions&quot;</code></div></td></tr>
 </tbody></table></div></details>
 <h3>Examples from ffmpeg-skill</h3><figure class="code"><figcaption><span>Header &amp; identity</span><span class=src>samples/ffmpeg-skill/skill.contract.json</span><button class=cp type=button>Copy</button></figcaption><pre><code>{
-  &quot;$schema&quot;: &quot;https://kajisho5.github.io/skillpact/schema/v0.7.json&quot;,
-  &quot;contract_version&quot;: &quot;0.7&quot;,
+  &quot;$schema&quot;: &quot;https://kajisho5.github.io/skillpact/schema/v0.8.json&quot;,
+  &quot;contract_version&quot;: &quot;0.8&quot;,
   &quot;kind&quot;: &quot;tool&quot;,
   &quot;skill&quot;: {
     &quot;name&quot;: &quot;ffmpeg-skill&quot;,
@@ -396,16 +397,17 @@ https://kajisho5.github.io/skillpact/schema/policy-v0.7.json</code></pre></secti
 }</code></pre></figure><figure class="code"><figcaption><span>integrity — hashes + ed25519 signature</span><span class=src>samples/ffmpeg-skill/skill.contract.json</span><button class=cp type=button>Copy</button></figcaption><pre><code>{
   &quot;algorithm&quot;: &quot;sha256&quot;,
   &quot;files&quot;: {
-    &quot;SKILL.md&quot;: &quot;d6e50f4f7d5cd181bbb956303d5bb27371865eff17f273ac47e50536fe5a1477&quot;,
-    &quot;scripts/_ass_overlay.py&quot;: &quot;01d98d2a07d28f78ec695479173fae2e4ee9382a1739a3a3c2e4f83bba29432e&quot;,
-    &quot;…&quot;: &quot;78 more files&quot;
+    &quot;.claude-plugin/plugin.json&quot;: &quot;6c9f0be1d7f202984621d83a043d259b4381c08dd60655a9d84998463aaeb595&quot;,
+    &quot;.claude/skills/build-artifacts/SKILL.md&quot;: &quot;1892c6f51a8702264125509c9843de7b5b6aece4c2de84021ee33f61b54ad18d&quot;,
+    &quot;…&quot;: &quot;329 more files&quot;
   },
   &quot;signatures&quot;: [
     {
       &quot;type&quot;: &quot;ed25519&quot;,
       &quot;key&quot;: &quot;ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=&quot;,
-      &quot;sig&quot;: &quot;nVuJ2XatRm+rgNa5EwrFoBGLIxKZJlDJ1Tnr4rh7mHbBa/7RItdROSHlf/EayyDdWs98DEQTnMc6V9UMIkeUCQ==&quot;,
-      &quot;signer&quot;: &quot;SEVENTHWELL&quot;
+      &quot;sig&quot;: &quot;Mprt6hdBjai0nYzd9VyGA8Vi1rYsiBl0t9MjDdFmLuYuE36Ap31LAAAexfYhMfS3atT8bfuBpefsg3loOtXsDw==&quot;,
+      &quot;signer&quot;: &quot;SEVENTHWELL&quot;,
+      &quot;role&quot;: &quot;author&quot;
     }
   ]
 }</code></pre></figure></section>
@@ -450,6 +452,7 @@ https://kajisho5.github.io/skillpact/schema/policy-v0.7.json</code></pre></secti
 <tr class="d1" id="p-audit.otel_genai"><td><code class="f">audit.otel_genai</code></td><td><span class=t>boolean</span></td><td><span class=opt>optional</span></td><td></td></tr>
 <tr class="d1" id="p-audit.log_path"><td><code class="f">audit.log_path</code></td><td><span class=t>string</span></td><td><span class=opt>optional</span></td><td></td></tr>
 <tr class="d0" id="p-x"><td><code class="f">x</code></td><td><span class=t>object</span></td><td><span class=opt>optional</span></td><td>Vendor extensions, namespaced x.&lt;vendor&gt;.&lt;key&gt;.</td></tr>
+<tr class="d0" id="p-min_contract_version"><td><code class="f">min_contract_version</code></td><td><span class=t>string</span></td><td><span class=opt>optional</span></td><td>deny contracts older than this contract_version (spec 0.8 s13.1); e.g. &quot;0.8&quot; so that roles are signed and integrity covers every file<div class=x>pattern <code>^\d+\.\d+$</code></div></td></tr>
 </tbody></table></div></details>
 <h3>Example policies</h3><figure class="code"><figcaption><span>examples/policies/solo-dev.json</span><span class=src>example policy</span><button class=cp type=button>Copy</button></figcaption><pre><code>{
   &quot;policy_version&quot;: &quot;0.1&quot;,

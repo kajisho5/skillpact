@@ -1,6 +1,6 @@
 {
   "suite": "skillpact-conformance",
-  "spec_version": "0.7",
+  "spec_version": "0.8",
   "test_public_key": "ed25519:h4z5ZqAU97RzV18w3J26PraX7BcDlTuQY+BUIXN99ag=",
   "cases": [
     {
@@ -310,6 +310,168 @@
         "errors_any": [
           "SCHEMA"
         ]
+      }
+    },
+    {
+      "id": "v08-valid-signed",
+      "description": "0.8: every file listed, author signature over {contract, role}",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-e1-unlisted-entry",
+      "description": "E1: a file in the skill directory is not in integrity.files",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "INTEGRITY_UNLISTED"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-e1b-empty-files",
+      "description": "E1b: empty integrity.files",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "INTEGRITY_EMPTY"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-e1c-claude-md-excluded",
+      "description": "E1c: protected files cannot be excluded",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "INTEGRITY_UNLISTED"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-exclude-cache-ok",
+      "description": "integrity.exclude may skip non-protected files",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-e2-role-relabel",
+      "description": "E2: reviewer signature relabelled as author",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "SIGNATURE_INVALID"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-e3-path-traversal",
+      "description": "E3: '..' and absolute paths in integrity.files",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "INTEGRITY_PATH"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-e4-symlink",
+      "description": "E4: symbolic link inside the skill directory",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "INTEGRITY_PATH"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-e6-scope-traversal",
+      "description": "E6: '..' in a path scope",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "SCOPE_TRAVERSAL"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-glob-star-one-segment",
+      "description": "H3: '*' stays in one segment, so '**' is wider",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "SCOPE_WIDENED"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-e7-dup-signature",
+      "description": "E7: same key signs twice, one entry invalid",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "DUP_SIGNATURE",
+          "SIGNATURE_INVALID"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-e9-undeclared-network",
+      "description": "E9: network:true test without a network permission",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "TEST_UNDECLARED_NETWORK"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-m7-unconfirmed-draft",
+      "description": "M7: init draft cannot pass L1",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "UNCONFIRMED_DRAFT"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08-legacy-unlisted-warn",
+      "description": "0.7: unlisted file is a warning (L3 still refused by conformance)",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [
+          "INTEGRITY_UNLISTED"
+        ]
+      }
+    },
+    {
+      "id": "v08-json-bigint",
+      "description": "M2: integer outside +-(2^53-1) is not I-JSON",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "CONTRACT_JSON"
+        ],
+        "warnings_include": []
       }
     }
   ]

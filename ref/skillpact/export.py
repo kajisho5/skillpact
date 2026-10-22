@@ -20,8 +20,8 @@ def _tools(contract, m):
     return out
 
 
-def hushspec(contract, policy) -> dict:
-    m = match_policy(contract, policy); t = _tools(contract, m); p = contract["permissions"]
+def hushspec(contract, policy, skill_dir=None) -> dict:
+    m = match_policy(contract, policy, skill_dir); t = _tools(contract, m); p = contract["permissions"]
     allowed_hosts = [] if m["decision"] == "deny" else [h for h in expand_scope(p["network"].get("scope", [])) if p["network"]["level"] == "scoped" and any(
         e["effect"] == "network" and e["decision"] == "allow" for c in m["capabilities"] for e in c["effects"] + [{"effect": x["effect"], "decision": x["decision"]} for x in c.get("conditional", [])])]
     doc = {"hushspec": "1.0.0", "name": f"{contract['skill']['name']}-{contract['skill']['version']}",
@@ -37,8 +37,8 @@ def hushspec(contract, policy) -> dict:
     return doc
 
 
-def rego(contract, policy) -> str:
-    m = match_policy(contract, policy); t = _tools(contract, m)
+def rego(contract, policy, skill_dir=None) -> str:
+    m = match_policy(contract, policy, skill_dir); t = _tools(contract, m)
     pkg = re.sub(r"[^a-z0-9_]", "_", contract["skill"]["name"].lower())
     j = lambda xs: json.dumps(sorted(xs))
     return f"""package skillpact.{pkg}
@@ -59,7 +59,7 @@ decision := "ask" if input.tool_name in ask_tools
 """
 
 
-def export(contract, policy, fmt):
-    if fmt == "hushspec": return yaml.safe_dump(hushspec(contract, policy), sort_keys=False)
-    if fmt in ("aps", "acs", "rego"): return rego(contract, policy)
+def export(contract, policy, fmt, skill_dir=None):
+    if fmt == "hushspec": return yaml.safe_dump(hushspec(contract, policy, skill_dir), sort_keys=False)
+    if fmt in ("aps", "acs", "rego"): return rego(contract, policy, skill_dir)
     raise ValueError(fmt)

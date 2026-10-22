@@ -1,11 +1,11 @@
-# SkillPact v0.7 — Public review
+# SkillPact v0.8 — Public review
 
 **Status:** announced, open for comment · **Period:** START_DATE – END_DATE (30 days; the start date is the announcement date) · **Editor:** shogo kajiyama (SEVENTHWELL)
 
 SkillPact is a draft standard: a `skill.contract.json` next to `SKILL.md` that declares a skill's effects (read / write / network / exec / spend / send), ships offline tests, and is signed. This review is the last step before the editor decides on v1.0.
 
 ## What to review
-- Spec: [`spec/spec_v0.7.md`](spec/spec_v0.7.md) (Japanese, BCP 14) · schema: <https://kajisho5.github.io/skillpact/schema/v0.7.json> · [schema reference](https://kajisho5.github.io/skillpact/schema/) ([日本語](https://kajisho5.github.io/skillpact/ja/schema/))
+- Spec: [`spec/spec_v0.8.md`](spec/spec_v0.8.md) (English, normative; [Japanese translation](spec/spec_v0.8.ja.md); [web](https://kajisho5.github.io/skillpact/spec/)) · schema: <https://kajisho5.github.io/skillpact/schema/v0.8.json> · [Why SkillPact](https://kajisho5.github.io/skillpact/why/) · [schema reference](https://kajisho5.github.io/skillpact/schema/) ([日本語](https://kajisho5.github.io/skillpact/ja/schema/))
 - Try it: [browser checker](https://kajisho5.github.io/skillpact/check/) (nothing is uploaded), the GitHub Action (`action.yml`), the conformance suite (`conformance/`), the Python reference implementation (`ref/`) and the TypeScript verifier (`ts/`)
 
 ## Feedback we want most

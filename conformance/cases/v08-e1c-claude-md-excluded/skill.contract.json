@@ -1,0 +1,81 @@
+{
+  "contract_version": "0.8",
+  "kind": "tool",
+  "skill": {
+    "name": "v08-e1c-claude-md-excluded",
+    "version": "1.0.0"
+  },
+  "permissions": {
+    "read": {
+      "level": "none"
+    },
+    "write": {
+      "level": "none"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "scoped",
+      "scope": [
+        "sh"
+      ]
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "hello",
+      "summary": "print",
+      "entry": {
+        "cli": [
+          "sh",
+          "$SKILL_DIR/scripts/run.sh"
+        ]
+      },
+      "effects": [
+        "exec"
+      ]
+    }
+  ],
+  "tests": {
+    "cases": [
+      {
+        "id": "t1",
+        "capability": "hello",
+        "run": [
+          "sh",
+          "$SKILL_DIR/scripts/run.sh"
+        ],
+        "expect": {
+          "exit_code": 0,
+          "stdout_contains": "hi"
+        }
+      }
+    ]
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "files": {
+      "SKILL.md": "9b2d29d6a73a72ee399dbefa57577eadaa237da882c7911d88b076d58fbb4334",
+      "scripts/run.sh": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e"
+    },
+    "signatures": [
+      {
+        "type": "ed25519",
+        "key": "ed25519:h4z5ZqAU97RzV18w3J26PraX7BcDlTuQY+BUIXN99ag=",
+        "sig": "OIVioNHdj66qhEv+X+VVFj1NTSzDm0UklBb9DY5o/qRmBYOrZfvhh2ABuskz7t8DqkQEtq9tn8DOXvmuWVgCBw==",
+        "signer": "test",
+        "role": "author"
+      }
+    ],
+    "exclude": [
+      "**/CLAUDE.md"
+    ]
+  }
+}

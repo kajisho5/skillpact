@@ -3,7 +3,7 @@
 from __future__ import annotations
 import json, re, subprocess
 from pathlib import Path
-from .core import read_frontmatter
+from .core import read_frontmatter, LATEST
 
 BIN_HINTS = ["ffmpeg", "ffprobe", "magick", "gh", "git", "node", "npx", "docker", "curl", "sips", "exiftool", "yt-dlp", "whisper"]
 NET = re.compile(r"\b(https?://|api\b|REST|GraphQL|token|upload|download|fetch|webhook|cloud)", re.I)
@@ -79,7 +79,7 @@ def draft(skill_dir, from_native=None) -> dict:
     if not caps:
         caps = [{"id": "guide", "summary": (fm.get("description") or "instructions")[:300], "entry": {"doc": "SKILL.md"}, "effects": []}]
     unc.append("/capabilities")
-    c = {"contract_version": "0.7", "kind": kind,
+    c = {"contract_version": LATEST, "kind": kind,
          "skill": {"name": fm.get("name", d.name), "version": ver, **({"license": fm["license"]} if fm.get("license") else {})},
          "compat": {"agents": {a: {"status": "expected"} for a in ("claude-code", "cursor", "codex")}, "interfaces": ["skill-md"] + (["cli"] if kind == "tool" else [])},
          "requirements": {"binaries": [{"name": b, "check": [b, "--version"]} for b in bins if b not in ("python3",)],

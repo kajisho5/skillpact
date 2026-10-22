@@ -55,3 +55,11 @@ textarea:focus,input:focus{outline:2px solid var(--acc);outline-offset:1px;borde
 @media(max-width:640px){header .wrap.nav{padding-left:16px;padding-right:16px}}
 .badge-row,.badges td,.badges code,main code{overflow-wrap:anywhere}main table{max-width:100%}@media(max-width:640px){main table:has(img),main table:has(img) tbody,main table:has(img) tr,main table:has(img) td{display:block}}
 .review-banner{background:#eef2ff;border-bottom:1px solid #c7d2fe;color:#312e81;font-size:14px;padding:8px 0}.review-banner a{color:#4338ca;font-weight:600}
+.skip{position:absolute;left:-9999px;top:0;background:#111;color:#fff;padding:8px 12px;z-index:10}.skip:focus{left:8px;top:8px}
+a:focus-visible,button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid #4338ca;outline-offset:2px}
+.doc{display:grid;grid-template-columns:220px minmax(0,1fr);gap:32px;padding-top:24px;padding-bottom:40px}.doc article{min-width:0;line-height:1.7}
+.doc article h1{margin-top:0}.doc article h2{margin-top:2em;border-bottom:1px solid var(--line);padding-bottom:4px}.doc article pre{overflow:auto}
+.toc{position:sticky;top:12px;align-self:start;font-size:14px;max-height:90vh;overflow:auto}.toc ol{padding-left:18px;margin:6px 0}.toc li{margin:3px 0}
+.tw{overflow-x:auto}.doc blockquote{border-left:4px solid var(--line);margin:1em 0;padding:4px 14px;color:#374151}
+.why{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:6px 18px;margin:18px 0}
+@media(max-width:860px){.doc{grid-template-columns:1fr}.toc{position:static;max-height:none}}

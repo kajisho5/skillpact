@@ -1,5 +1,5 @@
 """Sigstore (keyless) signatures for SkillPact contracts, alongside ed25519.
-Signed bytes: the same canonical JSON as ed25519 (integrity.signatures removed, sorted keys).
+Signed bytes: the same signing input as ed25519 (spec 0.8 s11.1: JCS, with the role included from 0.8).
 Signature entry: {"type": "sigstore", "identity": <SAN>, "issuer": <OIDC issuer>, "bundle": <Sigstore bundle v0.3 JSON object>}.
 Keyless signing needs an OIDC identity token (ambient CI token such as GitHub Actions `id-token: write`, or an
 interactive browser flow). Verification needs the Sigstore trust root (TUF; network on first use, then cache).
@@ -14,10 +14,10 @@ def _bundle_cls():
     return Bundle
 
 
-def sign(skill_dir, identity_token=None, contract_path=None, signer=None, staging=False):
+def sign(skill_dir, identity_token=None, contract_path=None, signer=None, staging=False, role="author"):
     skill_dir = Path(skill_dir).resolve(); c, cpath = core.load_contract(skill_dir, contract_path)
     if "integrity" not in c: raise SystemExit("run `hash` first")
-    payload = core._canonical(c)
+    payload = core._canonical(c, role)
     if signer is None:
         from sigstore.oidc import IdentityToken, detect_credential, Issuer
         from sigstore.sign import SigningContext
@@ -33,6 +33,7 @@ def sign(skill_dir, identity_token=None, contract_path=None, signer=None, stagin
         identity, issuer, bjson = signer(payload)
     entry = {"type": "sigstore", "identity": identity, "issuer": issuer, "bundle": bjson}
     if staging: entry["instance"] = "staging"
+    if role != "author" or core._vt(c.get("contract_version", "0.1")) >= core.V08: entry["role"] = role
     c["integrity"].setdefault("signatures", []).append(entry)
     cpath.write_text(json.dumps(c, ensure_ascii=False, indent=2) + "\n")
     return {"identity": identity, "issuer": issuer}
@@ -55,7 +56,7 @@ def cert_identity(cert):
 def verify_entry(c, entry, verifier=None, offline=False):
     """True/False for one sigstore entry; the expected identity+issuer are the ones recorded in the entry,
     so callers must additionally check them against a trusted-identity list (see core.verify_signatures(trusted=...))."""
-    payload = core._canonical(c)
+    payload = core._canonical(c, entry.get("role"))
     if verifier is not None: return bool(verifier(payload, entry))
     try:
         verify_bytes(payload, entry["bundle"], entry["identity"], entry["issuer"], offline, staging=entry.get("instance") == "staging"); return True

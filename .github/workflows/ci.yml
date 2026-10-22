@@ -18,14 +18,16 @@ jobs:
           curl -sL https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz | tar xJ
           echo "$PWD/$(ls -d ffmpeg-n8.1-*)/bin" >> "$GITHUB_PATH"
       - run: ffmpeg -version | head -1
-      - name: allow unprivileged user namespaces (network-isolated tests use unshare -rn)
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: sandbox for conformance tests (bubblewrap; needs unprivileged user namespaces)
+        run: sudo apt-get install -y -q bubblewrap && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: cd ref && pip install -e .[test,sigstore]
       - run: cd ref && python -m pytest -q tests
       - name: flagship conformance (L3)
         run: cd ref && python -m skillpact.cli conformance ../samples/ffmpeg-skill --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ="
       - name: conformance suite (reference implementation)
         run: cd ref && python ../conformance/run.py --cmd "python -m skillpact.cli validate {dir}" > /dev/null
+      - name: v0.8 conformance cases are reproducible from gen_v08.py
+        run: python conformance/gen_v08.py && git diff --exit-code conformance/
       - name: example skills reach L3
         run: |
           pip install -q Pillow   # thumbnail-skill requirement (requirements.packages)
@@ -34,7 +36,7 @@ jobs:
             python -m skillpact.cli conformance ../samples/$s --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=" | python -c "import json,sys; r=json.load(sys.stdin); print('$s', r['level']); assert r['level']=='L3-signed'"
           done
       - name: schemas in docs and both implementations match
-        run: cmp ref/skillpact/schema.json docs/schema/v0.7.json && cmp ref/skillpact/schema.json ts/src/schema.json && cmp ref/skillpact/policy_schema.json docs/schema/policy-v0.7.json
+        run: cmp ref/skillpact/schema.json docs/schema/v0.8.json && cmp ref/skillpact/schema.json ts/src/schema.json && cmp ref/skillpact/policy_schema.json docs/schema/policy-v0.8.json
       - name: schema reference page is up to date
         run: python tools/sitechrome.py && python tools/gen_schema_docs.py && git diff --exit-code docs/
 
@@ -45,5 +47,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - run: cd ts && npm ci && npm test
+      - name: conformance suite (TypeScript implementation)
+        run: cd ts && python3 ../conformance/run.py --cmd "node dist/cli.js validate {dir}" > /dev/null
       - name: browser checker bundle is up to date
         run: cd ts && npx esbuild src/browser.ts --bundle --format=iife --minify --target=es2022 --outfile=../docs/check/skillpact-check.js && git diff --exit-code ../docs/check/skillpact-check.js

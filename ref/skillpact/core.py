@@ -1,6 +1,6 @@
-"""Skill contract 0.1 reference: validate, hash, sign/verify, run declared tests, match against a harness policy."""
+"""SkillPact reference implementation (spec 0.8): validate, hash, sign/verify, run declared tests, match against a harness policy."""
 from __future__ import annotations
-import base64, fnmatch, hashlib, json, os, re, shutil, subprocess, tempfile, time
+import base64, hashlib, json, math, os, re, shutil, subprocess, tempfile, time
 from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator
@@ -11,12 +11,25 @@ POLICY_SCHEMA = json.loads((HERE / "policy_schema.json").read_text())
 EFFECTS = ["read", "write", "network", "exec", "spend", "send"]
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 CONTRACT_FILE = "skill.contract.json"
-KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]
+KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8"]
 PATH_VARS = {"$INPUT", "$INPUT_DIR", "$OUTPUT", "$WORKDIR", "$SKILL_DIR", "$TMPDIR"}
 JCS_FROM = (0, 4)
 SCOPE_TOKENS = {"network": ("@local",)}  # @local = loopback + private networks (spec 0.7)
-LOCAL_HOSTS = ["localhost", "127.0.0.1", "::1", "10.*", "172.16.*", "172.17.*", "172.18.*", "172.19.*", "172.2?.*", "172.30.*", "172.31.*", "192.168.*", "*.local", "fc??:*", "fd??:*"]
+# @local expanded to host patterns with label semantics (spec 0.8 s6.2): '*' never crosses a dot.
+LOCAL_HOSTS = ["localhost", "127.*.*.*", "::1", "10.*.*.*"] + [f"172.{n}.*.*" for n in range(16, 32)] + ["192.168.*.*", "*.local"]
+LOCAL_LOSSY = "IPv6 unique-local addresses (fc00::/7) cannot be written as host patterns"
 SIGNATURE_ROLES = ("author", "reviewer", "scanner")
+V08 = (0, 8)
+SAFE_INT = 2 ** 53 - 1
+MAX_DEPTH = 64
+MAX_PATH_LEN = 1024
+MAX_PATH_SEGMENTS = 32
+MAX_FILES = 10000
+# integrity coverage (spec 0.8 s11.2): files excluded by default, and files that can never be excluded
+DEFAULT_EXCLUDE = (".git/**", "**/__pycache__/**", "**/*.pyc", "**/.DS_Store")
+PROTECTED = ("SKILL.md", "**/SKILL.md", "**/CLAUDE.md", "**/AGENTS.md", "**/GEMINI.md", "**/.mcp.json", ".claude-plugin/**",
+             ".claude/**", ".cursor/**", ".codex/**", ".gemini/**", ".agents/**", "hooks/**", "package.json", "pyproject.toml")
+PATH_EFFECTS = ("read", "write")
 
 
 def _vt(v):
@@ -49,15 +62,51 @@ def read_frontmatter(skill_md: Path):
     return yaml.safe_load(m.group(1)) or {}, m.group(2)
 
 
+class ContractJSONError(ValueError):
+    """Contract is not I-JSON (RFC 7493) within SkillPact limits (spec 0.8 s4.1)."""
+
+
+def parse_json_strict(text: str):
+    """I-JSON parse: no duplicate keys, integers within +-(2^53-1), finite numbers, well-formed Unicode, depth <= 64."""
+    def pint(s):
+        v = int(s)
+        if abs(v) > SAFE_INT: raise ContractJSONError(f"integer {s[:24]} outside +-(2^53-1)")
+        return v
+    def pfloat(s):
+        v = float(s)
+        if not math.isfinite(v): raise ContractJSONError(f"number {s[:24]} is not finite")
+        return v
+    def pconst(s): raise ContractJSONError(f"{s} is not JSON")
+    try: obj = json.loads(text, object_pairs_hook=_no_dup_keys, parse_int=pint, parse_float=pfloat, parse_constant=pconst)
+    except RecursionError: raise ContractJSONError(f"nesting deeper than {MAX_DEPTH}")
+    except json.JSONDecodeError as e: raise ContractJSONError(str(e))
+    stack = [(obj, 1)]
+    while stack:
+        v, d = stack.pop()
+        if isinstance(v, (dict, list)):
+            if d > MAX_DEPTH: raise ContractJSONError(f"nesting deeper than {MAX_DEPTH}")
+            items = list(v.items()) if isinstance(v, dict) else [(None, i) for i in v]
+            for k, i in items:
+                if k is not None: _wellformed(k)
+                stack.append((i, d + 1))
+        elif isinstance(v, str): _wellformed(v)
+    return obj
+
+
+def _wellformed(s):
+    try: s.encode("utf-8")
+    except UnicodeEncodeError: raise ContractJSONError("string contains a lone surrogate")
+
+
 def load_contract(skill_dir: Path, contract_path: Path | None = None):
-    p = contract_path or (skill_dir / CONTRACT_FILE)
-    return json.loads(Path(p).read_text(encoding="utf-8"), object_pairs_hook=_no_dup_keys), Path(p)
+    p = contract_path or (Path(skill_dir) / CONTRACT_FILE)
+    return parse_json_strict(Path(p).read_text(encoding="utf-8")), Path(p)
 
 
 def _no_dup_keys(pairs):
     d = {}
     for k, v in pairs:
-        if k in d: raise json.JSONDecodeError(f"duplicate key {k!r}", "", 0)
+        if k in d: raise ContractJSONError(f"duplicate key {k!r}")
         d[k] = v
     return d
 
@@ -81,7 +130,7 @@ def validate(skill_dir, contract_path=None) -> dict:
     try: c, cpath = load_contract(skill_dir, Path(contract_path) if contract_path else None)
     except FileNotFoundError:
         r.err("CONTRACT_MISSING", f"{CONTRACT_FILE} not found"); return r.to_dict()
-    except json.JSONDecodeError as e:
+    except (ContractJSONError, json.JSONDecodeError, UnicodeDecodeError) as e:
         r.err("CONTRACT_JSON", str(e)); return r.to_dict()
     vs = version_status(c.get("contract_version") if isinstance(c, dict) else None)
     if vs == "unknown_major":
@@ -105,6 +154,7 @@ def validate(skill_dir, contract_path=None) -> dict:
             if sc.startswith("@") and sc not in SCOPE_TOKENS.get(eff, ()): r.warn("UNKNOWN_SCOPE_TOKEN", f"permissions.{eff}.scope token {sc} is not defined", f"/permissions/{eff}")
             for var in re.findall(r"\$[A-Z_]+", sc):
                 if var not in PATH_VARS: r.warn("UNKNOWN_VARIABLE", f"permissions.{eff}.scope uses undefined variable {var}", f"/permissions/{eff}")
+            if eff in PATH_EFFECTS and scope_traversal(sc): r.err("SCOPE_TRAVERSAL", f"permissions.{eff}.scope {sc!r} contains '.', '..', an empty segment or a backslash", f"/permissions/{eff}")
     reqnames = {b["name"] for b in c.get("requirements", {}).get("binaries", []) + c.get("requirements", {}).get("runtimes", [])}
     ids = set()
     for i, cap in enumerate(c["capabilities"]):
@@ -131,8 +181,11 @@ def validate(skill_dir, contract_path=None) -> dict:
         for ce in cap.get("conditional_effects", []):
             if perms[ce["effect"]]["level"] == "none": r.err("UNDECLARED_EFFECT", f"{cap['id']}: conditional effect {ce['effect']!r} but permissions.{ce['effect']}.level is 'none'", f"/capabilities/{i}")
         for eff, sc in cap.get("effect_scopes", {}).items():
+            if eff in PATH_EFFECTS:
+                for s_ in sc:
+                    if scope_traversal(s_): r.err("SCOPE_TRAVERSAL", f"{cap['id']}: effect_scopes.{eff} {s_!r} escapes its base", f"/capabilities/{i}")
             outer = perms[eff].get("scope", [])
-            if perms[eff]["level"] == "scoped" and not _covered(sc, outer): r.err("SCOPE_WIDENED", f"{cap['id']}: effect_scopes.{eff} not within permissions.{eff}.scope", f"/capabilities/{i}")
+            if perms[eff]["level"] == "scoped" and not _covered(sc, outer, effect_kind(eff)): r.err("SCOPE_WIDENED", f"{cap['id']}: effect_scopes.{eff} not within permissions.{eff}.scope", f"/capabilities/{i}")
         for f in cap.get("requires_features", []):
             if f.split(":", 1)[0] not in feature_kinds: r.err("UNKNOWN_FEATURE_KIND", f"{cap['id']}: {f} has no features_check for its kind", f"/capabilities/{i}")
         if c.get("kind", "tool") == "tool" and not cap.get("entry", {}).get("cli") and not cap.get("entry", {}).get("mcp_tool") and cap["effects"]:
@@ -140,36 +193,177 @@ def validate(skill_dir, contract_path=None) -> dict:
     used = {eff for cap in c["capabilities"] for eff in cap["effects"] + [x["effect"] for x in cap.get("conditional_effects", [])]}
     for eff in EFFECTS:
         if perms[eff]["level"] != "none" and eff not in used: r.warn("UNUSED_PERMISSION", f"permissions.{eff} declared but no capability uses it", f"/permissions/{eff}")
+    v08 = _vt(c["contract_version"]) >= V08
     for t in c.get("tests", {}).get("cases", []):
         if t.get("capability") and t["capability"] not in ids: r.err("TEST_UNKNOWN_CAPABILITY", f"test {t['id']} refers to {t['capability']}")
+        if t.get("network") and perms["network"]["level"] == "none":
+            (r.err if v08 else r.warn)("TEST_UNDECLARED_NETWORK", f"test {t['id']} has network: true but permissions.network is 'none'")
+    drafts = draft_markers(c)
+    if drafts: (r.err if v08 else r.warn)("UNCONFIRMED_DRAFT", f"unconfirmed draft content: {', '.join(drafts[:5])}")
     if not c.get("tests", {}).get("cases") and c.get("kind", "tool") == "tool": r.warn("NO_TESTS", "no conformance tests declared")
     tested = {t.get("capability") for t in c.get("tests", {}).get("cases", [])}
     untested = [x for x in ids if x not in tested]
     if c.get("tests", {}).get("cases") and untested: r.warn("UNTESTED_CAPABILITY", f"{len(untested)} capabilities have no test: {', '.join(sorted(untested)[:8])}")
     if "integrity" in c:
-        for rel, h in c["integrity"].get("files", {}).items():
+        files = c["integrity"].get("files", {})
+        if v08 and "SKILL.md" not in files: r.err("INTEGRITY_EMPTY", "integrity.files must list SKILL.md and every other skill file (spec 0.8 s11.2)", "/integrity/files")
+        if len(files) > MAX_FILES: r.err("INTEGRITY_PATH", f"integrity.files has {len(files)} entries (max {MAX_FILES})", "/integrity/files")
+        for rel, h in files.items():
+            bad = integrity_path_problem(rel)
+            if bad: r.err("INTEGRITY_PATH", f"{rel!r}: {bad}", "/integrity/files"); continue
             f = skill_dir / rel
-            if not f.exists(): r.err("INTEGRITY_MISSING", f"{rel} missing")
+            link = _symlink_in(skill_dir, rel)
+            if link: r.err("INTEGRITY_PATH", f"{rel!r}: {link} is a symbolic link", "/integrity/files")
+            elif not f.is_file(): r.err("INTEGRITY_MISSING", f"{rel} missing")
             elif sha256(f) != h: r.err("INTEGRITY_MISMATCH", f"{rel} hash differs")
+        if not contract_path:
+            for kind, rel in unlisted_files(skill_dir, c, limit=200):
+                if kind == "symlink": (r.err if v08 else r.warn)("INTEGRITY_PATH", f"{rel!r} is a symbolic link (not allowed in a skill directory)")
+                else: (r.err if v08 else r.warn)("INTEGRITY_UNLISTED", f"{rel} is not covered by integrity.files")
         if c["integrity"].get("signatures"):
+            for k in duplicate_signers(c): r.err("DUP_SIGNATURE", f"more than one signature by {k}", "/integrity/signatures")
             res = verify_signatures(c)
             if not all(res.values()): r.err("SIGNATURE_INVALID", f"signature check failed: {res}")
     return r.to_dict()
+
+
+# ---------------- paths, globs and coverage (spec 0.8 s6.1, s11.2) ----------------
+def scope_traversal(sc: str) -> bool:
+    """True if a path scope contains '.', '..', an empty segment or a backslash (s6.1)."""
+    if "\\" in sc: return True
+    segs = sc.split("/")
+    if sc.startswith("/"): segs = segs[1:]
+    return any(s_ in ("", ".", "..") for s_ in segs)
+
+
+def integrity_path_problem(rel: str):
+    if not isinstance(rel, str) or not rel: return "empty path"
+    if len(rel.encode("utf-8", "replace")) > MAX_PATH_LEN: return f"longer than {MAX_PATH_LEN} bytes"
+    if rel.startswith("/") or re.match(r"^[A-Za-z]:", rel): return "absolute path"
+    if "\\" in rel or any(ord(ch) < 32 for ch in rel): return "backslash or control character"
+    segs = rel.split("/")
+    if len(segs) > MAX_PATH_SEGMENTS: return f"more than {MAX_PATH_SEGMENTS} segments"
+    if any(s_ in ("", ".", "..") for s_ in segs): return "'.', '..' or empty segment"
+    return None
+
+
+def _symlink_in(root: Path, rel: str):
+    cur = root
+    for part in rel.split("/"):
+        cur = cur / part
+        if cur.is_symlink(): return str(cur.relative_to(root))
+    return None
+
+
+def _glob_re(p: str) -> str:
+    parts, out, glue = p.split("/"), "", False
+    for i, seg in enumerate(parts):
+        sep = "" if i == 0 or glue else "/"; glue = False
+        if seg == "**":
+            if i == len(parts) - 1: out += "(?:/.*)?" if i else ".*"
+            else: out += sep + "(?:[^/]+/)*"; glue = True
+            continue
+        out += sep + "".join("[^/]*" if ch == "*" else "[^/]" if ch == "?" else re.escape(ch) for ch in re.sub(r"\*+", "*", seg))
+    return out
+
+
+def _host_match(h: str, p: str) -> bool:
+    h, p = h.lower().rstrip("."), p.lower().rstrip(".")
+    if p == "*": return True
+    hl, pl = h.split("."), p.split(".")
+    lab = lambda s_, q: re.fullmatch("".join("[^.]*" if ch == "*" else "." if ch == "?" else re.escape(ch) for ch in q), s_) is not None
+    if pl[0] in ("*", "**") and len(pl) > 1:
+        rest = pl[1:]; need = len(rest)
+        if len(hl) < need + (1 if pl[0] == "*" else 0): return False
+        return all(lab(a, b) for a, b in zip(hl[-need:], rest))
+    return len(hl) == len(pl) and all(lab(a, b) for a, b in zip(hl, pl))
+
+
+def glob_match(s: str, p: str, kind: str = "path") -> bool:
+    """Normative SkillPact glob (s6.1). path/generic: '*' and '?' stay within one '/'-segment, a whole '**' segment spans
+    zero or more segments. host: '*' stays within one DNS label; a leading '*.' spans one or more labels, '**.' zero or more."""
+    if kind == "host": return _host_match(s, p)
+    return re.fullmatch(_glob_re(p), s) is not None
+
+
+def effect_kind(eff): return "path" if eff in PATH_EFFECTS else "host" if eff == "network" else "generic"
+
+
+def _as_literal(s: str, kind: str) -> str:
+    """A scope entry used as the subject of coverage: its own wildcards must only be matched by equal or wider ones."""
+    if kind == "host": return s
+    return "/".join("\x00/\x00" if seg == "**" else seg.replace("*", "\x01*\x01") for seg in s.split("/"))
+
+
+def _covered(scope, patterns, kind="generic"):
+    if not scope: return False
+    if kind == "path" and any(scope_traversal(s_) for s_ in scope): return False
+    return all(any(s_ == p or glob_match(_as_literal(s_, kind), p, kind) for p in patterns) for s_ in scope)
+
+
+def _excluded(rel, pats): return any(glob_match(rel, p) for p in pats)
+
+
+def required_paths(c) -> set:
+    """Files that must be listed whatever integrity.exclude says: entries and test commands that name $SKILL_DIR/..."""
+    out = set()
+    toks = [t for cap in c.get("capabilities", []) for t in cap.get("entry", {}).get("cli", []) or []]
+    toks += [t for case in c.get("tests", {}).get("cases", []) for t in case.get("run", [])]
+    toks += [t for cmd in c.get("tests", {}).get("setup", []) for t in cmd]
+    for t in toks:
+        for m in re.findall(r"\$SKILL_DIR/([^\s'\"]+)", str(t)): out.add(m)
+    return out
+
+
+def unlisted_files(skill_dir: Path, c, limit=None) -> list:
+    """[(kind, rel)] for files under skill_dir that integrity.files does not cover (s11.2)."""
+    files = set(c.get("integrity", {}).get("files", {})); excl = list(DEFAULT_EXCLUDE) + list(c.get("integrity", {}).get("exclude", []))
+    must = required_paths(c); out = []
+    for root, dirs, names in os.walk(skill_dir, followlinks=False):
+        rp = Path(root)
+        for n in sorted(dirs + names):
+            f = rp / n; rel = f.relative_to(skill_dir).as_posix()
+            if rel == CONTRACT_FILE: continue
+            protected = _excluded(rel, PROTECTED) or rel in must
+            if f.is_symlink():
+                if protected or not _excluded(rel, excl): out.append(("symlink", rel))
+                continue
+            if f.is_dir() or rel in files: continue
+            if protected or not _excluded(rel, excl): out.append(("file", rel))
+        if limit and len(out) >= limit: break
+    return out
+
+
+def draft_markers(c) -> list:
+    out = []
+    for k in ("init", "import"):
+        if c.get("x", {}).get(k, {}).get("uncertain"): out.append(f"x.{k}.uncertain")
+    def walk(v, path):
+        if isinstance(v, dict):
+            for k, i in v.items(): walk(i, f"{path}/{k}")
+        elif isinstance(v, list):
+            for n, i in enumerate(v): walk(i, f"{path}/{n}")
+        elif isinstance(v, str) and "TODO(" in v: out.append(path or "/")
+    walk({k: v for k, v in c.items() if k != "x"}, "")
+    return out
 
 
 # ---------------- integrity / signing ----------------
 def sha256(p: Path) -> str: return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 
-def hash_files(skill_dir, contract_path=None, include=("SKILL.md", "scripts/**", "references/**", "assets/**", "templates/**", "mcp/**", "src/**", "pyproject.toml", "package.json")):
+def hash_files(skill_dir, contract_path=None):
+    """List every file of the skill (spec 0.8 s11.2): all regular files except skill.contract.json, the default excludes
+    and integrity.exclude (protected files are always listed). Symbolic links are refused."""
     skill_dir = Path(skill_dir).resolve(); c, cpath = load_contract(skill_dir, contract_path)
+    exclude = c.get("integrity", {}).get("exclude", [])
+    c["integrity"] = {"algorithm": "sha256", "files": {}, **({"exclude": exclude} if exclude else {})}
     files = {}
-    for pat in include:
-        # Path.glob("x/**") yields only directories before Python 3.13; use rglob for portability
-        found = skill_dir.joinpath(pat[:-3]).rglob("*") if pat.endswith("/**") else skill_dir.glob(pat)
-        for f in sorted(found):
-            if f.is_file() and "__pycache__" not in f.parts: files[str(f.relative_to(skill_dir))] = sha256(f)
-    c["integrity"] = {"algorithm": "sha256", "files": files, "signatures": []}
+    for kind, rel in unlisted_files(skill_dir, c):
+        if kind == "symlink": raise SystemExit(f"refusing to hash: {rel} is a symbolic link")
+        files[rel] = sha256(skill_dir / rel)
+    if len(files) > MAX_FILES: raise SystemExit(f"too many files ({len(files)} > {MAX_FILES})")
+    c["integrity"] = {"algorithm": "sha256", "files": dict(sorted(files.items())), **({"exclude": exclude} if exclude else {}), "signatures": []}
     cpath.write_text(json.dumps(c, ensure_ascii=False, indent=2) + "\n")
     return len(files)
 
@@ -186,10 +380,26 @@ def jcs(obj) -> bytes:
     return rfc8785.dumps(obj)
 
 
-def _canonical(c):
+def _legacy_numbers(v):
+    """0.1-0.3 legacy form supports integer numbers within +-(2^53-1) only (spec 0.8 s11.1); integral floats become ints."""
+    if isinstance(v, dict): return {k: _legacy_numbers(i) for k, i in v.items()}
+    if isinstance(v, list): return [_legacy_numbers(i) for i in v]
+    if isinstance(v, float):
+        if not v.is_integer() or abs(v) > SAFE_INT: raise ContractJSONError("legacy (0.1-0.3) canonicalization supports integers only; migrate and re-sign")
+        return int(v)
+    return v
+
+
+def _canonical(c, role=None):
+    """Signing input. >= 0.8: JCS({"contract": C, "role": R}) so the role is signed; 0.4-0.7: JCS(C); 0.1-0.3: legacy sorted.
+    C is the contract without integrity.signatures."""
     c2 = json.loads(json.dumps(c)); c2.get("integrity", {}).pop("signatures", None)
+    if _vt(c.get("contract_version", "0.1")) >= V08: return jcs({"contract": c2, "role": role or "author"})
     if canonicalization_for(c) == "jcs": return jcs(c2)
-    return json.dumps(c2, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    return json.dumps(_legacy_numbers(c2), sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+
+
+def signing_input(c, role="author"): return _canonical(c, role)
 
 
 def keygen(path):
@@ -208,9 +418,9 @@ def sign(skill_dir, key_path, signer="", contract_path=None, role="author"):
     if "integrity" not in c: raise SystemExit("run `hash` first")
     k = s.load_pem_private_key(Path(key_path).read_bytes(), None)
     pub = "ed25519:" + base64.b64encode(k.public_key().public_bytes(s.Encoding.Raw, s.PublicFormat.Raw)).decode()
-    sig = base64.b64encode(k.sign(_canonical(c))).decode()
+    sig = base64.b64encode(k.sign(_canonical(c, role))).decode()
     entry = {"type": "ed25519", "key": pub, "sig": sig, "signer": signer}
-    if role != "author": entry["role"] = role
+    if role != "author" or _vt(c.get("contract_version", "0.1")) >= V08: entry["role"] = role
     c["integrity"].setdefault("signatures", []).append(entry)
     cpath.write_text(json.dumps(c, ensure_ascii=False, indent=2) + "\n")
     return pub
@@ -221,16 +431,33 @@ def verify_signatures(c, sigstore_verifier=None, offline=False) -> dict:
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
     out = {}
     for s_ in c.get("integrity", {}).get("signatures", []):
+        k = sig_key(s_)
         if s_.get("type") == "sigstore":
             from . import sigstore_sig
-            pre = "sigstore-staging" if s_.get("instance") == "staging" else "sigstore"  # staging never matches a production trust entry
-            out[f"{pre}:{s_.get('issuer')}|{s_.get('identity')}"] = sigstore_sig.verify_entry(c, s_, sigstore_verifier, offline)
-            continue
-        try:
-            Ed25519PublicKey.from_public_bytes(base64.b64decode(s_["key"].split(":", 1)[1])).verify(base64.b64decode(s_["sig"]), _canonical(c))
-            out[s_["key"]] = True
-        except Exception: out[s_["key"]] = False
+            ok = sigstore_sig.verify_entry(c, s_, sigstore_verifier, offline)
+        else:
+            try:
+                Ed25519PublicKey.from_public_bytes(base64.b64decode(s_["key"].split(":", 1)[1])).verify(base64.b64decode(s_["sig"]), _canonical(c, s_.get("role")))
+                ok = True
+            except Exception: ok = False
+        out[k] = out.get(k, True) and ok   # a key that signs twice is only valid if every entry is (s11, DUP_SIGNATURE)
     return out
+
+
+def sig_key(s_):
+    if s_.get("type") == "sigstore":
+        pre = "sigstore-staging" if s_.get("instance") == "staging" else "sigstore"  # staging never matches a production trust entry
+        return f"{pre}:{s_.get('issuer')}|{s_.get('identity')}"
+    return s_.get("key")
+
+
+def duplicate_signers(c) -> list:
+    seen, dup = set(), []
+    for s_ in c.get("integrity", {}).get("signatures", []):
+        k = sig_key(s_)
+        if k in seen and k not in dup: dup.append(k)
+        seen.add(k)
+    return dup
 
 
 # ---------------- requirements & tests ----------------
@@ -301,33 +528,71 @@ def _jpath(obj, path):
 def _subst(tok, env): return tok.replace("$SKILL_DIR", env["SKILL_DIR"]).replace("$WORKDIR", env["WORKDIR"])
 
 
-def _snapshot(d: Path):
-    return {str(p.relative_to(d)): (p.stat().st_size, p.stat().st_mtime_ns) for p in d.rglob("*") if p.is_file() and "__pycache__" not in p.parts}
+def _snapshot(d: Path, cap=20000):
+    """Content hashes (not size/mtime) of every file under d (spec 0.8 s10.2)."""
+    out = {}
+    if not d.exists(): return out
+    for p in d.rglob("*"):
+        if len(out) >= cap: break
+        try:
+            if p.is_symlink(): out[str(p.relative_to(d))] = "link:" + os.readlink(p)
+            elif p.is_file() and "__pycache__" not in p.parts: out[str(p.relative_to(d))] = sha256(p)
+        except OSError: pass
+    return out
+
+
+ENV_ALLOW = ("PATH", "LANG", "LC_ALL", "TZ", "TERM")
+
+
+def _sandbox():
+    """'bwrap' (filesystem read-only except $WORKDIR + network namespace), 'unshare' (network namespace only) or None."""
+    if os.environ.get("SKILLPACT_SANDBOX") == "none": return None
+    if shutil.which("bwrap") and subprocess.run(["bwrap", "--ro-bind", "/", "/", "--dev", "/dev", "--unshare-net", "true"], capture_output=True).returncode == 0: return "bwrap"
+    if shutil.which("unshare") and subprocess.run(["unshare", "-rn", "true"], capture_output=True).returncode == 0: return "unshare"
+    return None
+
+
+def _wrap(cmd, mode, net, work, rw_skill):
+    if mode == "bwrap":
+        w = ["bwrap", "--die-with-parent", "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--unshare-pid", "--bind", str(work), str(work)]
+        if rw_skill: w += ["--bind", rw_skill, rw_skill]
+        if not net: w += ["--unshare-net"]
+        return w + ["--chdir", str(work), "--"] + cmd
+    if mode == "unshare" and not net: return ["unshare", "-rn"] + cmd
+    return cmd
 
 
 def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, skills_path=()) -> dict:
+    """Run the declared tests (spec 0.8 s10): setup and cases in a sandbox, allowlisted environment only,
+    writes outside $WORKDIR prevented (bwrap) or detected by content hash (fallback)."""
     skill_dir = Path(skill_dir).resolve(); c, _ = load_contract(skill_dir, contract_path)
     skill_env, skill_reqs = locate_skills(c, skill_dir, skills_path)
     reqs = check_requirements(c) + skill_reqs
     if not all(r["ok"] for r in reqs):
         return {"ok": False, "requirements": reqs, "cases": [], "error": "requirements not met"}
-    netbox = sandbox_network and shutil.which("unshare") and subprocess.run(["unshare", "-rn", "true"]).returncode == 0
+    mode = _sandbox() if sandbox_network else None
     caps = {cap["id"]: cap for cap in c["capabilities"]}
-    work = Path(tempfile.mkdtemp(prefix="skilltest-"))
-    env = {**os.environ, **skill_env, "SKILL_DIR": str(skill_dir), "WORKDIR": str(work), "PYTHONDONTWRITEBYTECODE": "1"}
+    work = Path(tempfile.mkdtemp(prefix="skilltest-")); (work / ".home").mkdir(); (work / ".tmp").mkdir()
+    scope = c["permissions"]["write"].get("scope", [])
+    skill_dir_writes_allowed = any(s_.startswith("$SKILL_DIR") for s_ in scope)
+    env = {k: os.environ[k] for k in ENV_ALLOW if k in os.environ}
+    env.update({**skill_env, "SKILL_DIR": str(skill_dir), "WORKDIR": str(work), "HOME": str(work / ".home"), "TMPDIR": str(work / ".tmp"),
+                "PYTHONDONTWRITEBYTECODE": "1", "LANG": env.get("LANG", "C.UTF-8")})
+    wrap = lambda cmd, net=False: _wrap(cmd, mode, net, work, str(skill_dir) if skill_dir_writes_allowed else None)
     results = []
-    before = _snapshot(skill_dir)
+    watch = [skill_dir] + ([] if mode == "bwrap" else [skill_dir.parent])
+    before = {str(d): _snapshot(d) for d in watch}
+    setup_error = None
     try:
         for cmd in c.get("tests", {}).get("setup", []):
-            p = subprocess.run([_subst(t, env) for t in cmd], cwd=work, env=env, capture_output=True, text=True, timeout=300)
-            if p.returncode != 0: return {"ok": False, "requirements": reqs, "cases": [], "error": f"setup failed: {p.stderr[-500:]}"}
-        for t in c.get("tests", {}).get("cases", []):
+            p = subprocess.run(wrap([_subst(t, env) for t in cmd]), cwd=work, env=env, capture_output=True, text=True, timeout=300)
+            if p.returncode != 0: setup_error = f"setup failed: {p.stderr[-500:]}"; break
+        for t in ([] if setup_error else c.get("tests", {}).get("cases", [])):
             if only and t["id"] not in only: continue
             if any(not os.environ.get(v) for v in t.get("skip_unless_env", [])):
                 results.append({"id": t["id"], "capability": t.get("capability"), "ok": True, "skipped": True, "failures": [], "seconds": 0, "network_sandboxed": False, "stderr_tail": ""}); continue
-            cmd = [_subst(x, env) for x in t["run"]]
-            cenv = {**env, **{k: _subst(v, env) for k, v in t.get("env", {}).items()}}
-            if netbox and not t.get("network"): cmd = ["unshare", "-rn"] + cmd
+            cenv = {**env, **{v: os.environ[v] for v in t.get("skip_unless_env", [])}, **{k: _subst(v, env) for k, v in t.get("env", {}).items()}}
+            cmd = wrap([_subst(x, env) for x in t["run"]], bool(t.get("network")))
             t0 = time.time(); fails = []
             try:
                 p = subprocess.run(cmd, cwd=work, env=cenv, capture_output=True, text=True, timeout=t.get("timeout_s", 120) * float(os.environ.get("SKILLPACT_TIMEOUT_SCALE", "1")))
@@ -365,29 +630,34 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
                 elif not f.get("exists", True) and fp.exists(): fails.append(f"file should not exist: {f['path']}")
                 elif fp.exists() and fp.stat().st_size < f.get("min_bytes", 0): fails.append(f"file too small: {f['path']}")
             results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails,
-                            "seconds": round(time.time() - t0, 2), "network_sandboxed": bool(netbox and not t.get("network")),
+                            "seconds": round(time.time() - t0, 2), "network_sandboxed": bool(mode and not t.get("network")),
                             "stderr_tail": errout[-300:] if fails else ""})
     finally:
-        after = _snapshot(skill_dir)
+        after = {str(d): _snapshot(d) for d in watch}
         shutil.rmtree(work, ignore_errors=True)
-    t_net = {t["id"]: bool(t.get("network")) for t in c.get("tests", {}).get("cases", [])}
-    wrote = sorted(k for k in after if after[k] != before.get(k))
-    scope = c["permissions"]["write"].get("scope", [])
-    skill_dir_writes_allowed = any(s_.startswith("$SKILL_DIR") for s_ in scope)
+    changed = lambda b, a: sorted(k for k in set(a) | set(b) if a.get(k) != b.get(k))
+    wrote = changed(before[str(skill_dir)], after[str(skill_dir)])
+    outside = []
+    if mode != "bwrap":
+        sk = skill_dir.name + "/"
+        outside = [k for k in changed(before[str(skill_dir.parent)], after[str(skill_dir.parent)]) if not k.startswith(sk)]
     violations = [] if skill_dir_writes_allowed else wrote
-    return {"ok": all(r["ok"] for r in results) and not violations, "requirements": reqs, "cases": results,
-            "skill_dir_writes": violations, "network_isolated": bool(netbox) or all(r.get("skipped") or t_net.get(r["id"]) for r in results), "passed": sum(r["ok"] and not r.get("skipped") for r in results), "skipped": sum(bool(r.get("skipped")) for r in results), "total": len(results)}
+    t_net = {t["id"]: bool(t.get("network")) for t in c.get("tests", {}).get("cases", [])}
+    isolated_pass = sum(1 for r in results if r["ok"] and not r.get("skipped") and not t_net.get(r["id"]))
+    res = {"ok": not setup_error and all(r["ok"] for r in results) and not violations and not outside, "requirements": reqs, "cases": results,
+           "sandbox": mode or "none", "fs_isolated": mode == "bwrap", "network_isolated": bool(mode) and isolated_pass > 0,
+           "skill_dir_writes": violations, "outside_writes": outside,
+           "network_cases": sum(1 for r in results if t_net.get(r["id"]) and not r.get("skipped")),
+           "passed": sum(r["ok"] and not r.get("skipped") for r in results), "skipped": sum(bool(r.get("skipped")) for r in results), "total": len(results)}
+    if setup_error: res["error"] = setup_error
+    return res
 
 
 # ---------------- harness policy matching ----------------
 ORDER = {"allow": 0, "ask": 1, "deny": 2}
 
 
-def _covered(scope, patterns):
-    return bool(scope) and all(any(fnmatch.fnmatchcase(s_, p) for p in patterns) for s_ in scope)
-
-
-def match_policy(contract, policy) -> dict:
+def match_policy(contract, policy, skill_dir=None, contract_path=None) -> dict:
     errs = list(Draft202012Validator(POLICY_SCHEMA).iter_errors(policy))
     if errs: raise ValueError("invalid policy: " + "; ".join(e.message for e in errs[:3]))
     name = contract["skill"]["name"]
@@ -395,10 +665,16 @@ def match_policy(contract, policy) -> dict:
     def out(decision, reason, caps=None):
         return {"skill": name, "decision": decision, "reason": reason, "capabilities": caps or []}
     if name in sk.get("deny", []): return out("deny", "skill is on the deny list")
+    mv = policy.get("min_contract_version")
+    if mv and _vt(contract.get("contract_version", "0.1")) < _vt(mv): return out("deny", f"contract_version {contract.get('contract_version')} is below the policy minimum {mv}")
     if policy.get("require_signature"):
-        trusted = set(policy.get("trusted_keys", []))
-        res = verify_signatures(contract)
-        if not any(ok and k in trusted for k, ok in res.items()): return out("deny", "policy requires a valid signature from a trusted key")
+        # spec 0.8 s13.1: the files must match integrity (full coverage) and the trusted signature must be an author signature
+        if skill_dir is None: return out("deny", "require_signature: the skill directory is needed to verify integrity")
+        v = validate(skill_dir, contract_path)
+        bad = [f["code"] for f in v["findings"] if f["level"] == "error" or f["code"] in ("INTEGRITY_UNLISTED", "INTEGRITY_PATH")]
+        if bad: return out("deny", f"require_signature: contract or files do not verify ({', '.join(sorted(set(bad))[:4])})")
+        if "integrity" not in contract: return out("deny", "require_signature: contract has no integrity section")
+        if not trusted_author(contract, set(policy.get("trusted_keys", []))): return out("deny", "policy requires a valid author signature from a trusted key")
     perms = contract["permissions"]
     caps = []
     for cap in contract["capabilities"]:
@@ -406,10 +682,12 @@ def match_policy(contract, policy) -> dict:
         for eff in cap["effects"]:
             pe = perms[eff]; d = policy["defaults"][eff]; why = f"default for {eff}"
             if eff in cap.get("effect_scopes", {}): pe = {**pe, "scope": cap["effect_scopes"][eff]}
+            if eff in PATH_EFFECTS and pe["level"] == "scoped" and any(scope_traversal(s_) for s_ in pe.get("scope", [])):
+                per.append({"effect": eff, "decision": "deny", "why": "scope escapes its base (SCOPE_TRAVERSAL)"}); continue
             for rule in policy.get("rules", []):          # first matching rule wins
                 if rule["effect"] != eff: continue
                 pats = rule.get("scope", ["*"])
-                if (pe["level"] == "scoped" and _covered(pe.get("scope", []), pats)) or (pe["level"] == "any" and pats == ["*"]):
+                if (pe["level"] == "scoped" and _covered(pe.get("scope", []), pats, effect_kind(eff))) or (pe["level"] == "any" and pats == ["*"]):
                     d, why = rule["decision"], f"rule {rule.get('id', eff)}"; break
             if pe["level"] == "any" and d == "allow" and eff in policy.get("never_auto_allow_any", ["spend", "send"]):
                 d, why = "ask", f"{eff} with level 'any' is never auto-allowed"
@@ -432,52 +710,101 @@ def match_policy(contract, policy) -> dict:
     return res
 
 
-# ---------------- compile to native harness configs (best effort) ----------------
-def compile_native(contract, policy, target, mcp_server=None) -> dict:
-    """Translate the allow/ask/deny result for one skill into a harness's native config fragment."""
-    m = match_policy(contract, policy)
-    perms = contract["permissions"]
-    cmds = perms["exec"].get("scope", []) if perms["exec"]["level"] == "scoped" else []
-    hosts = expand_scope(perms["network"].get("scope", [])) if perms["network"]["level"] == "scoped" else []
-    dec = {e["effect"]: e["decision"] for c in m["capabilities"] for e in c["effects"]}
-    bucket = lambda eff: "deny" if not m["capabilities"] and m["decision"] == "deny" else dec.get(eff, "allow")
+# ---------------- compile to native harness configs (spec 0.8 s13.2) ----------------
+def _native_path(sc, style):
+    """Map a SkillPact path scope to a harness path rule, or None if it cannot be expressed statically."""
+    if sc.startswith("$WORKDIR"):
+        rest = sc[len("$WORKDIR"):].lstrip("/") or "**"
+        return ("./" + rest) if style == "claude" else rest
+    if sc.startswith("/"): return ("/" + sc) if style == "claude" else sc   # Claude Code: '//abs' is an absolute path
+    return None
+
+
+def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, contract_path=None) -> dict:
+    """Translate the allow/ask/deny result for one skill into a harness's native config fragment.
+    Returns {"config": <native config>, "lossy": [what could not be expressed]} (s13.2: lossy MUST be reported)."""
+    m = match_policy(contract, policy, skill_dir, contract_path)
+    perms, lossy = contract["permissions"], []
+    lvl = lambda e: perms[e]["level"]
+    scope = lambda e: perms[e].get("scope", []) if lvl(e) == "scoped" else []
+    cmds, hosts = scope("exec"), expand_scope(scope("network"))
+    if "@local" in scope("network"): lossy.append(f"network @local: {LOCAL_LOSSY}")
+    worst = {}
+    for c_ in m["capabilities"]:
+        for e in c_["effects"]: worst[e["effect"]] = max(worst.get(e["effect"], "allow"), e["decision"], key=ORDER.get)
+    skill_denied = m["decision"] == "deny" and not m["capabilities"]
+    bucket = lambda eff: "deny" if skill_denied else worst.get(eff, "allow")
+    used = lambda eff: lvl(eff) != "none"
+    by = {x_["capability"]: x_["decision"] for x_ in m["capabilities"]}
+    if skill_denied: lossy.append(f"skill is denied ({m['reason']}): do not install it; the fragment below only restricts what it could do")
+    for eff in ("spend", "send"):
+        if used(eff): lossy.append(f"{eff}: {target} has no native permission for {eff}; decision '{bucket(eff)}' is only enforced through exec/network/MCP rules")
     sb = policy.get("sandbox", {})
     if target == "claude-code":
-        out = {"permissions": {"allow": [], "ask": [], "deny": []}}
-        for c in cmds: out["permissions"][bucket("exec")].append(f"Bash({c} *)")
-        for h in hosts: out["permissions"][bucket("network")].append(f"WebFetch(domain:{h})")
-        if bucket("write") != "allow": out["permissions"]["ask" if bucket("write") == "ask" else "deny"].append("Write")
+        out = {"allow": [], "ask": [], "deny": []}
+        for c_ in cmds: out[bucket("exec")].append(f"Bash({c_} *)")
+        if used("exec") and lvl("exec") == "any": out[bucket("exec")].append("Bash")
+        for h in hosts: out[bucket("network")].append(f"WebFetch(domain:{h})")
+        if used("network"):
+            if lvl("network") == "any": out[bucket("network")].append("WebFetch")
+            lossy.append("network: WebFetch rules do not cover network use by Bash commands; enable Claude Code sandboxing to enforce hosts")
+        for eff, tool in (("write", "Edit"), ("read", "Read")):
+            if not used(eff): continue
+            if lvl(eff) == "any":
+                if bucket(eff) != "allow": out[bucket(eff)].append(tool)
+                continue
+            for sc in scope(eff):
+                r_ = _native_path(sc, "claude")
+                if r_: out[bucket(eff)].append(f"{tool}({r_})")
+                else: lossy.append(f"{eff} scope {sc}: depends on a variable resolved at run time; not expressed")
         if mcp_server:
-            by = {x["capability"]: x["decision"] for x in m["capabilities"]}
             for cap in contract["capabilities"]:
                 t = cap.get("entry", {}).get("mcp_tool")
-                if t: out["permissions"][by.get(cap["id"], "deny")].append(f"mcp__{mcp_server}__{t}")
-        return {"permissions": {k: sorted(set(v)) for k, v in out["permissions"].items()}}
+                if t: out[by.get(cap["id"], "deny")].append(f"mcp__{mcp_server}__{t}")
+        return {"config": {"permissions": {k: sorted(set(v)) for k, v in out.items()}}, "lossy": lossy}
     if target == "cursor":
-        out = {"version": 1, "editor": {"vimMode": False}, "permissions": {"allow": [], "deny": []}}  # no 'ask' list: omission => prompt
-        for c in cmds:
-            if bucket("exec") in ("allow", "deny"): out["permissions"][bucket("exec")].append(f"Shell({c})")
-        for h in hosts:
-            if bucket("network") in ("allow", "deny"): out["permissions"][bucket("network")].append(f"WebFetch({h})")
+        out = {"allow": [], "deny": []}   # Cursor has no ask list: anything not allowed prompts
+        put = lambda d, rule: out[d].append(rule) if d in out else None
+        for c_ in cmds: put(bucket("exec"), f"Shell({c_})")
+        for h in hosts: put(bucket("network"), f"WebFetch({h})")
+        if used("network") and lvl("network") == "any": put(bucket("network"), "WebFetch(*)")
+        for eff, tool in (("write", "Write"), ("read", "Read")):
+            if not used(eff): continue
+            for sc in (scope(eff) if lvl(eff) == "scoped" else ["/**"]):
+                r_ = _native_path(sc, "cursor")
+                if r_: put(bucket(eff), f"{tool}({r_})")
+                else: lossy.append(f"{eff} scope {sc}: depends on a variable resolved at run time; not expressed")
         if mcp_server:
-            by = {x["capability"]: x["decision"] for x in m["capabilities"]}
             for cap in contract["capabilities"]:
-                t = cap.get("entry", {}).get("mcp_tool"); d = by.get(cap["id"], "deny")
-                if t and d in ("allow", "deny"): out["permissions"][d].append(f"Mcp({mcp_server}:{t})")
-        return out
+                t = cap.get("entry", {}).get("mcp_tool")
+                if t: put(by.get(cap["id"], "deny"), f"Mcp({mcp_server}:{t})")
+        return {"config": {"version": 1, "permissions": {k: sorted(set(v)) for k, v in out.items()}}, "lossy": lossy}
     if target == "codex":
         fs = {"read-only": "read-only", "workdir": "workspace-write", "repo": "workspace-write", "any": "danger-full-access"}.get(sb.get("filesystem", "workdir"))
-        ask = any(c["decision"] == "ask" for c in m["capabilities"])
-        return {"approval_policy": "on-request" if ask else "never", "sandbox_mode": fs,
-                "sandbox_workspace_write": {"network_access": sb.get("network", "off") != "off"}}
+        decisions = {e for e in worst.values()} | ({"deny"} if skill_denied else set())
+        cfg = {"approval_policy": "on-request" if decisions & {"ask", "deny"} else "never", "sandbox_mode": fs}
+        if "deny" in decisions: lossy.append("deny: Codex config.toml cannot block single commands or hosts; denied actions are only gated by approval prompts (on-request)")
+        if cmds: lossy.append("exec: per-command allow/deny is not expressed (Codex execpolicy rules are out of scope)")
+        net = sb.get("network", "off")
+        if fs == "workspace-write": cfg["sandbox_workspace_write"] = {"network_access": net == "on"}
+        if net == "allowlist": lossy.append("network allowlist: needs a Codex permissions profile with network.domains and features.network_proxy; network_access left false")
+        if fs == "danger-full-access": lossy.append("filesystem 'any' maps to danger-full-access: no sandbox")
+        return {"config": cfg, "lossy": lossy}
     if target == "gemini-cli":
         g = {"allow": "allow", "ask": "ask_user", "deny": "deny"}
-        rules = [{"toolName": "run_shell_command", "commandPrefix": c, "decision": g[bucket("exec")], "priority": 100} for c in cmds]
+        rules = [{"toolName": "run_shell_command", "commandPrefix": f"{c_} ", "decision": g[bucket("exec")], "priority": 100} for c_ in cmds]
+        if cmds: lossy.append("exec: commandPrefix 'cmd ' does not match the bare command without arguments (falls back to the default)")
+        if not used("write"): pass
+        elif lvl("write") == "any" or bucket("write") != "allow": rules.append({"toolName": ["write_file", "replace"], "decision": g[bucket("write")], "priority": 100})
+        else: lossy.append("write: Gemini CLI rules cannot scope write_file/replace by path; left to the default (ask)")
+        if not used("network"): pass
+        elif lvl("network") == "any" or bucket("network") != "allow": rules.append({"toolName": "web_fetch", "decision": g[bucket("network")], "priority": 100})
+        else: lossy.append("network: Gemini CLI rules cannot scope web_fetch by host; left to the default (ask)")
         if mcp_server:
-            by = {x["capability"]: x["decision"] for x in m["capabilities"]}
+            if "_" in mcp_server: lossy.append(f"MCP server name {mcp_server!r} contains '_': Gemini CLI may mis-parse it; rename the server")
             rules += [{"toolName": cap["entry"]["mcp_tool"], "mcpName": mcp_server, "decision": g[by.get(cap["id"], "deny")], "priority": 100}
                       for cap in contract["capabilities"] if cap.get("entry", {}).get("mcp_tool")]
-        return {"rule": rules}
+        return {"config": {"rule": rules}, "lossy": lossy}
     raise ValueError(f"unknown target {target}")
 
 
@@ -554,13 +881,16 @@ def migrate(c: dict, to: str = None) -> tuple[dict, list]:
 
 
 def signature_roles(c) -> dict:
-    """{key-or-identity: role}; role defaults to author (spec 0.7)."""
+    """{key-or-identity: role}; role defaults to author. From 0.8 the role is part of the signed bytes."""
     out = {}
-    for s_ in c.get("integrity", {}).get("signatures", []):
-        pre = "sigstore-staging" if s_.get("instance") == "staging" else "sigstore"
-        k = s_["key"] if s_.get("type") == "ed25519" else f"{pre}:{s_.get('issuer')}|{s_.get('identity')}"
-        out[k] = s_.get("role", "author")
+    for s_ in c.get("integrity", {}).get("signatures", []): out[sig_key(s_)] = s_.get("role", "author")
     return out
+
+
+def trusted_author(c, trusted) -> bool:
+    """True if a valid signature with role author was made by a trusted key/identity."""
+    res, roles = verify_signatures(c), signature_roles(c)
+    return any(ok and k in trusted and roles.get(k, "author") == "author" for k, ok in res.items())
 
 
 def expand_scope(scope):

@@ -1,6 +1,6 @@
 {
-  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.7.json",
-  "contract_version": "0.7",
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.8.json",
+  "contract_version": "0.8",
   "kind": "tool",
   "skill": {
     "name": "subtitle-skill",
@@ -247,9 +247,23 @@
   "integrity": {
     "algorithm": "sha256",
     "files": {
+      ".github/workflows/ci.yml": "550d7fbaf96d433a0b3c83f6d3a8a691f55bd06ef4e82b79fc77a6c6c82c4e33",
+      ".github/workflows/vendor-drift.yml": "204809509b7a726ef3ee6177715e348a03690b9575adbc10dcb4771f4b416ddc",
+      ".gitignore": "675dda56bc3b22a2f488d6f6b18bb66defb89bbb3cd019335ca558cef1131372",
+      "CLAUDE.md": "19895845d9cff46f0ab31a8de5a59f47625a40d907792d663c041df41fd7e87b",
+      "LICENSE": "7522b29e4d6e90f2a8fab15f07d224b1064c70692a872be9996ac1a88cf474e9",
+      "README.md": "c9c72b13de7a23b41b866e897858e7acab84e3be2c6fe4c81a1de25c226f045d",
       "SKILL.md": "630c6979f96b428faa559d208f7e6cb5e83b75bc3cd991aa0feface4c6539007",
-      "scripts/check_vendor_drift.py": "fcc01cc9b5fe85bd1c0e4760b17a2178413b681e6bdafa062bcea668a9bd2e79",
       "assets/logo.png": "effc1181552b95baa1e470af39ef6e2aa9a8d4c062f4e879a6e9db81a3308b0a",
+      "brand/app-icon-dark.png": "ecf1b1a3aaae7f8b9909356406849b852a027bf2e65829409f5a82c78e9af72f",
+      "brand/app-icon.png": "62309c27363c8327479be1c0ea43923ecf37289b87d0537a7a98fb416bb183cc",
+      "brand/logo/subtitle-skill-wordmark-black.svg": "be18d41bae325a0d8594b06727d7d884f8da884b5a2ab3e5ff32485a59fc5741",
+      "brand/logo/subtitle-skill-wordmark-white.svg": "e0862db0a2283bf0b232d4768ba301fa117f85e702508b2c36954718cfdcc979",
+      "brand/subtitle-skill.icon/Assets/captions.svg": "8aa5704baafb282015d2f345d101e25608116e1c4f882d7bf86c5b7ad41d154d",
+      "brand/subtitle-skill.icon/Assets/screen.svg": "b67611b5a1081d29a1a85cd76d41163187e1f3e7388ca45d6de6060d868fc829",
+      "brand/subtitle-skill.icon/icon.json": "1f57901e613b53be3bb10cfb3f169584a19dcacb8c1b822ddbae1a9f0c5cc3bc",
+      "pyproject.toml": "0bb35f716cf3236d28698fba7c9b1abfbb4d169c1ed11b8e382d8d52e614b26d",
+      "scripts/check_vendor_drift.py": "fcc01cc9b5fe85bd1c0e4760b17a2178413b681e6bdafa062bcea668a9bd2e79",
       "src/subtitle_skill/SKILL.md": "630c6979f96b428faa559d208f7e6cb5e83b75bc3cd991aa0feface4c6539007",
       "src/subtitle_skill/__init__.py": "eb52b44b50ebe10ea78d6163b35b8f7945bd21e9e022a45f93621dec1fd165fa",
       "src/subtitle_skill/__main__.py": "307299fda7b77d22c64cb51430ec75e5f59d78e9c948786afb3b2544fe45e4b7",
@@ -268,16 +282,34 @@
       "src/subtitle_skill/provenance.py": "a44200e7ab7fa174f6904fd285d281ded59757594088fdcb07760a44aac4466e",
       "src/subtitle_skill/security.py": "e13dd47ac2a9973694479f2b7c0ed8811f958d1997fac6122d5aca6b463a0a4d",
       "src/subtitle_skill/validation.py": "8eb44619d500e4fe69264bcef6af2f1980f74610cc3f417d330851ec8c47008c",
-      "pyproject.toml": "0bb35f716cf3236d28698fba7c9b1abfbb4d169c1ed11b8e382d8d52e614b26d"
+      "tests/conftest.py": "8c75b617726556b77f7765ea7fb2d37a0203fddb8c336687122f0030b78f3bf9",
+      "tests/fixtures/ffmpeg_skill_vendor/LICENSE": "7522b29e4d6e90f2a8fab15f07d224b1064c70692a872be9996ac1a88cf474e9",
+      "tests/fixtures/ffmpeg_skill_vendor/README.md": "f158a581d6c9eafc0fe8cdc4b619efc627f6ae4b4274eb07daaa4309e16d4886",
+      "tests/fixtures/ffmpeg_skill_vendor/scripts/_common.py": "62b92e68327c22eeca2ffe04d9edb54300f7f951bf7b8574548bbeb1cb96604c",
+      "tests/fixtures/ffmpeg_skill_vendor/scripts/_contract.py": "dac37caa8b836d387ecb9eabffb3fef349b5fd96d957cc21b5b4164ebe551d10",
+      "tests/fixtures/ffmpeg_skill_vendor/scripts/caption.py": "2b58b07026f0c8311f61998092f0d0dc9bb7bd1775542d6c66a3ad5f777ca94d",
+      "tests/fixtures/ffmpeg_skill_vendor/scripts/probe.py": "9fc27043a05b4a075a15ff1cc9ceee690db63b07da9260b3b1a9c5c1862a40d5",
+      "tests/test_cli.py": "442fcb149cb434b15f2583d2ce1b45b021fdaccea6141014c37f8298d9be857a",
+      "tests/test_doctor.py": "b08b0dac4f9eb02418b8c7d64388e0ff4d3f9e45e8624198ca905ab4c05def2a",
+      "tests/test_engine_boundaries.py": "dd5ed95c7baa6ff352826793328ebcc7712ed53340c2766b3c8a7ad368902b17",
+      "tests/test_engine_layout.py": "37f77a0726da6b8e2e883fea173ed486ce925d81401bf65a622525b0dfdf4bd7",
+      "tests/test_engine_render.py": "f4535b9696481e1633dfb380d4daeceefa5c0084f207adbb0d315d8219f34307",
+      "tests/test_engine_style.py": "4808401ea153afed4eacaa3af74b82965849368fe8cdcdfde3733666b30be8a6",
+      "tests/test_formats.py": "bbe5a6fde2088f31c443815e608fa63c81c1b81a79d41670d04c231ddf4df2d5",
+      "tests/test_installer.py": "35cda92311475674d58af840137023b51290d10fa40dd88307e25827a0ee9aaf",
+      "tests/test_models.py": "21b16d889a85421f5668a70e033df0bfda2238f8ba0cd34e28aed65b396d2919",
+      "tests/test_pathpolicy.py": "625c7ae708efd4f06148c51371ec35b831ba1ba3dd2b6bf4d4880ce70d379a70",
+      "tests/test_security.py": "193a32c9014c2552d9fe1c2000fddfdad566bb78aec6fc19048303e1e37363bd",
+      "tests/test_validation.py": "c10ab6283c0d19a2af46771334a7787c24b5424951d738b9fe3cf009607e5a2e"
     },
     "signatures": [
       {
         "type": "ed25519",
         "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
-        "sig": "wwP7VPr+vjgM8hW+r2zGUGFcAOHGMzKSTL28TyP1SJFCInxqljhAk8KXtdf+BuxuidxkCYsyegUVckJLHzEgDQ==",
-        "signer": "SEVENTHWELL"
+        "sig": "nWiVZlRReCTotqRxW+xeJO6UIeryT899SzAA0d43TRrfkD/Vz04Qvn2uBCjGGB+3Hx5BLL4MQJ+BcBMLGWyGDw==",
+        "signer": "SEVENTHWELL",
+        "role": "author"
       }
-    ],
-    "canonicalization": "jcs"
+    ]
   }
 }

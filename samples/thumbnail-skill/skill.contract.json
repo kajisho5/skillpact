@@ -1,6 +1,6 @@
 {
-  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.7.json",
-  "contract_version": "0.7",
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.8.json",
+  "contract_version": "0.8",
   "kind": "tool",
   "skill": {
     "name": "thumbnail-skill",
@@ -237,7 +237,26 @@
   "integrity": {
     "algorithm": "sha256",
     "files": {
+      ".github/FUNDING.yml": "9abab93f37373a83c71522c3fabc7940e78bed2e4bd76d897e581de13e20f461",
+      ".github/workflows/tests.yml": "541b1bdbaf896d1da37a25eb016d2ca7049b6c5ecd0bf628a3efdc3976cf18d5",
+      ".gitignore": "6ead8d6686963051df4647e603df085581c8dce9e50eb485ea3545cbb9300756",
+      "LICENSE": "7522b29e4d6e90f2a8fab15f07d224b1064c70692a872be9996ac1a88cf474e9",
+      "README.md": "ef8391ff90ed9562d19f1567b3773a584def93b656d1fa6a73cc186782695766",
       "SKILL.md": "50c2b6db6ee915a7cb4fc45d7a3d8c363f6b3d122037a9cb6fc6ff3cdebbe9c6",
+      "brand/app-icon-dark.png": "500fca6d3acec38cc04cb41dc051726ea44c5b5b18740983cc6e3d14b12e3ed6",
+      "brand/app-icon.png": "3e78ecc21ff92d6fe219a73bd63105969a7d635eace818631eaa1baec5c82529",
+      "brand/logo/thumbnail-skill-wordmark-black.svg": "2146e40b5f1ce94960a0ff97755e96a963c130b9be16d835d5638413b8ec5e45",
+      "brand/logo/thumbnail-skill-wordmark-white.svg": "7c56fb3a9145963d0ace74c8cd81a36d5ca7b6d67417eb1ce1d6552478adfc65",
+      "brand/thumbnail-skill.icon/Assets/frame.svg": "79b318ca0e62835c2187d0fc0a466fcbec06566398ede6bdb5d7648daf5390a7",
+      "brand/thumbnail-skill.icon/Assets/scene.svg": "1ea8802cd7377ba0c4c4a7647edd618480bf47e1501151ad80449c1f2fa93817",
+      "brand/thumbnail-skill.icon/icon.json": "116a7983a739a72c43311fdd0057142c43b20d475a4a69cd97d1951e84eae1d3",
+      "docs/architecture.md": "afdf8bdbc0ed20474863656567eb65373c8b9a118b4c8b90e4e20efe66fbe944",
+      "docs/decisions.md": "ffbe3c00d62639ed903602c692cbe7776fd2c23bc5eebb73c2fb473352210187",
+      "docs/ffmpeg-skill.md": "8cb2f04d7cebb8900c9cc519d0358be3e35b48a00c3ee2d5b29221f5f6cf26f4",
+      "docs/model.md": "5ce3adc6136bc6dbe7dda6cb152cdaf5e90c123278b64e4c6faa6727c8170816",
+      "docs/security.md": "38354055193c3753b4ee1301ac6f6cfb542653fbcce34126aa036a455f75a1d3",
+      "docs/testing.md": "05b32eb0e1dfa43d71a39f8df0347f2bbe836541823c2a09c6331d51fd601066",
+      "pyproject.toml": "d8bead57e904d8642227b8cae5a36966181515647e18c74bd6229a6f79651eab",
       "src/thumbnail_skill/__init__.py": "c0e0df9035eb0a03094355ab436856005e3bb1039dcd43ad9dd0a615b0e9db13",
       "src/thumbnail_skill/adapter.py": "a7990bd4fc2044b946631565a3001fbbb75fdb3418d7b74305611b59fed21a8d",
       "src/thumbnail_skill/canonical.py": "64db39ba5c3b411acb948f8567957139e0db27199371c9d3763bf66142d7bd41",
@@ -251,16 +270,25 @@
       "src/thumbnail_skill/renderer.py": "8798ad99e667366b990cc081ca593d25db634c16acf1cfba5165c3c2aa88582b",
       "src/thumbnail_skill/security.py": "eb3460c2a9a0ad468d17cd6d71254dace66dd56f7017e130cb6f36a1f19b91fe",
       "src/thumbnail_skill/skill.py": "7a0f812ae904aa6e669b8c952291ab8f3b17525950673cd78d8cd04abed55fa2",
-      "pyproject.toml": "d8bead57e904d8642227b8cae5a36966181515647e18c74bd6229a6f79651eab"
+      "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests/conftest.py": "2471f5ecd581a4af20cbf0e42f41f5ff893202669cd6cf3866e18fcae6007a28",
+      "tests/fixtures/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests/fixtures/generate.py": "bdabfd8fb5c4c243da5a47f730f4051de2bec9638f5076acd66b0124fcca8cd4",
+      "tests/test_cli.py": "7f262f365dfaad0936d321bf91c1cf887b4a315c88163017bdab5b62edd3ecc4",
+      "tests/test_contract.py": "11da8f3de7b9097e0154ccd521f6cc3c90d2ae364a703508237ad31506af6b11",
+      "tests/test_ffmpeg_skill_compat.py": "1826ed500c099265aa5f8ef0f20fd58a0d00cbdbef41bb052b6dcf08f59829ed",
+      "tests/test_integration.py": "04960eea99e99d6fee0daf98e96798403944b1f0821c3c09b8219a227314b629",
+      "tests/test_security.py": "9d849be5503201286afec23405a9787afd67838dfc47ceefef5d99dc7ddeb033",
+      "tests/test_unit.py": "0d53b08d34ff30ec0a0352e288755209c7efaa3c2cba7c5b9f3a7e3b70d67b05"
     },
     "signatures": [
       {
         "type": "ed25519",
         "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
-        "sig": "uQ9fWoXcJqp0FkR3/IsPrUfLOVa93IyPDvH2BjYqE8wJNyslrcLr+EodCx23kUBiKby6vDifQBGWBsxRRxuXDA==",
-        "signer": "SEVENTHWELL"
+        "sig": "KQz59FHoo+YOdZYqoCJ89d5EJM8128984NQyXIB7I8D/2edmenf1QffIUj7JFg5thuQ92019upwATeDjfq89Aw==",
+        "signer": "SEVENTHWELL",
+        "role": "author"
       }
-    ],
-    "canonicalization": "jcs"
+    ]
   }
 }

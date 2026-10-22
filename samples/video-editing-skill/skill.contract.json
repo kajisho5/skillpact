@@ -1,6 +1,6 @@
 {
-  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.7.json",
-  "contract_version": "0.7",
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.8.json",
+  "contract_version": "0.8",
   "kind": "tool",
   "skill": {
     "name": "video-editing-skill",
@@ -231,7 +231,25 @@
   "integrity": {
     "algorithm": "sha256",
     "files": {
+      ".github/workflows/tests.yml": "0c3c0f0ed8c705946a42b9e28bd4acdd9f0d34646d60b7edba419611d3bcfe58",
+      ".gitignore": "d838619db42042450d66173c4a4c586585f600c780ffea48bb8307602979a2c3",
+      "CLAUDE.md": "fc2c76336d40f0be0679e728e851fd4c4159412ee780f778508cccf9393332d8",
+      "LICENSE": "7522b29e4d6e90f2a8fab15f07d224b1064c70692a872be9996ac1a88cf474e9",
+      "README.md": "37e360581e1b9ee5319ba8a9f157ce9edc911cb215bee00ff923a2a0a257507f",
       "SKILL.md": "dcc477859907569c476b491964b3e238b5228c93b7ccc6e24490efbdb954c716",
+      "brand/app-icon-dark.png": "38c16b101393500e3c8080bb29d216f5dcc6facdd2bb4fadcd6b2840533acf72",
+      "brand/app-icon.png": "ed5dadc38e1a10130bd2f4d1b0191c17c41d1846f2e5bfd322443bce8216b0bb",
+      "brand/logo/video-editing-skill-wordmark-black.svg": "0c777827a86e6df87f9b4de7cf8d5cb61940b06ce03cd6ca0e18a6c16af30bc4",
+      "brand/logo/video-editing-skill-wordmark-white.svg": "918cb1d4afd2d1eb1e3bd93a3b4c868536c81acceea57dc9dd3ac18dd25de940",
+      "brand/video-editing-skill.icon/Assets/clips.svg": "89dfcd52451854ae8dd17c5c4752ac4df0b84ee965a0c4fa41cc7d9c890f2ed5",
+      "brand/video-editing-skill.icon/Assets/playhead.svg": "59a052d4ba8317a9f273d1f2bb99224cc12ae2ee0339198e88e9185270d4feab",
+      "brand/video-editing-skill.icon/icon.json": "d87b5bf5c19d4d12ddf562be7a45eb53dd3acb8f446a0781b01f28da113f242b",
+      "docs/contract.md": "db19701a602ac5b13125992c2619d8cc64368148fecce1ec35b8f6758aef0c15",
+      "docs/decisions.md": "d8076c9cfb7580e5180c46debce0e5f07b4cf438dafcb621581d07562c25f6b6",
+      "docs/operations.md": "bd4c5bbc96476f1178baa71822e74c5fb5a79390f28d7f32e6103cb1f169be47",
+      "docs/security.md": "26afc43a0335d55f1c07b2be1b719976fb592ba6dcc7d4f5ecfc4449d2f07c77",
+      "examples/request.json": "2055dec6830555c049906a5f351d5eabe8c3d5b4591a70a91f114fad5bc15020",
+      "pyproject.toml": "731c76fd875a4993d385ab4297e23cad51b313aeb7040c116db5c01f7c130ac0",
       "src/video_editing_skill/__init__.py": "c392cd8b3e50fe085e32b16619fe619d854bb28d5ffa4561362e1adc69b335d3",
       "src/video_editing_skill/__main__.py": "7afeadd4522552160b4980dc798d62c6351e23026023c4dc3f40ef0a286a8f3d",
       "src/video_editing_skill/canonical.py": "ea4c4288e034e0444abfbcb0dc5eaff60a33fe2548db69df9517a411e8f90128",
@@ -249,16 +267,25 @@
       "src/video_editing_skill/response.py": "74dc8a3e90980cbeef4216e01307ba1b251e67423a7d4fb07f2b378ba7bb4c82",
       "src/video_editing_skill/timebase.py": "53ec04e84fd26d04e88741650c23f5a0802522a624a69a8c43bcb05da0cd7bfd",
       "src/video_editing_skill/timeline.py": "e6d01aeec040ce0d66cff43c31c0b900b626b26663c7d09226485a2910396343",
-      "pyproject.toml": "731c76fd875a4993d385ab4297e23cad51b313aeb7040c116db5c01f7c130ac0"
+      "tests/contract/contract.json": "8b7be43d9f6c104e2a45a679b6d6626d72f723cb2750e2f84aeb48c562fb71c6",
+      "tests/fake_engine.py": "0f07a14992c9fc0ed4965d69a252d5ab71462bc183250c4a96fbf99330ebc7fc",
+      "tests/fixtures/generate.py": "ae36bd9fd9adff8fe413a58acd0e148283a8846098124de84b7d9448ff011da4",
+      "tests/helpers.py": "86017191135fb651b0530377ceb2a814e0fe602d239ab954c871cec483e3091f",
+      "tests/test_engine_compat.py": "7756d6404dad0a650bf3b74caab8991f056bf3f22064a1e9f21b760544cf2dc8",
+      "tests/test_engine_contract.py": "2f6e99cf94d1f588ac08b222ab6cd1c9da5afac10abb14fec9aa131084203d79",
+      "tests/test_integration.py": "e25e849b7d3503158f3b9b61c07fc0abbf01fe9e1c5391cfc13acd4894c53d8c",
+      "tests/test_paths.py": "348eb365e1b0d993e0f76a056f3192524b8a0c63fd7e970c8746dcd640021304",
+      "tests/test_security.py": "79381b7822abc2db274f25aef2c661ee67869067d30bb9051974f0cc6a33d642",
+      "tests/test_unit.py": "0145e6031cb2387225bd53224db1b56773234fd55c77ecdb081715929f33b5e2"
     },
     "signatures": [
       {
         "type": "ed25519",
         "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
-        "sig": "65OJHRUWHPxdKsvHUtYVAv+QX0AEZFtOv+tezDWOj+zfuTlMks+mAZ7rF7DqWsIEKI6peqL22Ac6mXvkuxuYBw==",
-        "signer": "SEVENTHWELL"
+        "sig": "rBSK76b0mCNnwrcs1RWy7Ilk50fodo4pCUyKEDr21e5GIWoO+AwVJkCyaxbKfjjc5i5pEcN2hsvTeDDcTLvgAA==",
+        "signer": "SEVENTHWELL",
+        "role": "author"
       }
-    ],
-    "canonicalization": "jcs"
+    ]
   }
 }

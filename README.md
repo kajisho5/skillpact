@@ -1,14 +1,18 @@
-# SkillPact — machine-readable contracts for Agent Skills (draft 0.7)
+# SkillPact — machine-readable contracts for Agent Skills (draft 0.8)
 
 
-[![SkillPact L3](https://kajisho5.github.io/skillpact/badges/skillpact-L3.svg)](https://kajisho5.github.io/skillpact/) · [Checker (in your browser)](https://kajisho5.github.io/skillpact/check/) · [Schema](https://kajisho5.github.io/skillpact/schema/) · [Badges](https://kajisho5.github.io/skillpact/badges/) · [日本語](https://kajisho5.github.io/skillpact/ja/)
+[![SkillPact L3](https://kajisho5.github.io/skillpact/badges/skillpact-L3.svg)](https://kajisho5.github.io/skillpact/) · [Checker (in your browser)](https://kajisho5.github.io/skillpact/check/) · [Why](https://kajisho5.github.io/skillpact/why/) · [Spec](https://kajisho5.github.io/skillpact/spec/) · [Guides](https://kajisho5.github.io/skillpact/guides/) · [Schema](https://kajisho5.github.io/skillpact/schema/) · [Badges](https://kajisho5.github.io/skillpact/badges/) · [日本語](https://kajisho5.github.io/skillpact/ja/)
 
+## Why
+Agent skills run with your permissions, but `SKILL.md` is prose: nothing in it can be checked by a machine before install. SkillPact adds a contract that tools check first: you see what a skill may touch, your policy decides allow / ask / deny (and can pre-approve declared effects so fewer prompts remain), and any changed file is detected. **L3 means "these files, signed by an author you trust, tests passed in isolation" — not "safe".** Runtime enforcement stays with your harness or a runtime policy. More: [Why SkillPact](https://kajisho5.github.io/skillpact/why/) · [What it does not guarantee](https://kajisho5.github.io/skillpact/why/#what-skillpact-does-not-guarantee).
+
+## What it is
 `skill.contract.json` sits next to an unchanged `SKILL.md` and declares, so any agent harness can check it *before install*:
 - **capabilities**: entries (CLI / MCP tool), input & output JSON Schemas
 - **side effects**: read / write / network / exec / spend / send, with scopes, conditional effects and per-capability narrowing
 - **requirements**: binaries, versions, binary features (e.g. ffmpeg filters), packages, other skills
 - **conformance tests**: they run network-isolated, so any agent can verify the skill works
-- **integrity + ed25519 signature**
+- **integrity over every file + ed25519 / Sigstore signature** (the signer role is signed too)
 
 A small **harness policy** file then decides allow / ask / deny for each capability. The same decision is compiled to Claude Code, Cursor, Codex and Gemini CLI configs (each validated against that harness's schema) and exported to HushSpec / Rego for runtime enforcement.
 
@@ -16,15 +20,17 @@ A small **harness policy** file then decides allow / ask / deny for each capabil
 Scanners guess what a skill does after the fact. SkillPact makes the author **declare** every effect, ships executable **tests** that prove the declaration, and **signs** both (ed25519 or Sigstore). A harness checks this *before install* and compiles the result into its own permission config.
 Runtime enforcement is deliberately **not** reinvented: decisions export to APS / ACS / HushSpec / Rego, which enforce at run time. SkillPact complements scanners (a contract is a better scanner input) and interoperates with MDA Open Spec `requires` and AutoVault `capabilities` (`skillpact convert`). OWASP Agentic Skills Top 10 coverage: `owasp_mapping.md`.
 
-Schema: `https://kajisho5.github.io/skillpact/schema/v0.7.json` · License: spec CC BY 4.0, code Apache-2.0 · © SEVENTHWELL
+Schema: `https://kajisho5.github.io/skillpact/schema/v0.8.json` · License: spec CC BY 4.0, code Apache-2.0 · © SEVENTHWELL
 
 | doc | |
 |---|---|
-| `spec/spec_v0.7.md` | full normative spec (JA, BCP 14): conformance, versioning, security considerations & threat model |
+| `spec/spec_v0.8.md` | full normative spec (English, BCP 14); Japanese translation `spec/spec_v0.8.ja.md` |
+| `content/` | sources of the Why / Spec / Rationale / Guides / About pages (en + ja) |
+| `SECURITY.md` / `CODE_OF_CONDUCT.md` / `IPR.md` / `TRADEMARKS.md` / `CITATION.cff` / `ROADMAP.md` | policies and project info; full list in `STANDARDS_CHECKLIST.md` |
 | `spec/MIGRATION.md` / `spec/comparison.md` | migration from 0.x · comparison with Agent Skills, MDA, AutoVault, SkillSeal |
 | `conformance/` | implementation-independent conformance suite + JCS / ed25519 test vectors |
 | `ts/` | second implementation (TypeScript, verify-only); also powers the browser checker |
-| `action.yml` | reusable GitHub Action: `uses: kajisho5/skillpact@main` |
+| `action.yml` | reusable GitHub Action (pin to a commit SHA) |
 | `GOVERNANCE.md` | editor, change process, release checklist |
 | `spec/owasp_mapping.md` | OWASP Agentic Skills Top 10 mapping |
 | `spec/harness_research.md` | harness/runtime landscape, gap, harness_policy 0.1 (JA) |
@@ -37,14 +43,18 @@ Schema: `https://kajisho5.github.io/skillpact/schema/v0.7.json` · License: spec
 ## One-line use
 ```yaml
 # .github/workflows/skillpact.yml in your skill repo
-- uses: kajisho5/skillpact@main
+# pin to a full commit SHA; run on pull_request (not pull_request_target)
+- uses: kajisho5/skillpact@<commit-sha>
   with: { path: ., min-level: L2 }
 ```
-CLI (after packages are published): `pipx run skillpact conformance <skill_dir>` · `npx skillpact validate <skill_dir>`
+Packages are **not published yet** (PyPI / npm come with 1.0). Install from the repository:
+```
+git clone https://github.com/kajisho5/skillpact && pip install -e skillpact/ref
+sudo apt-get install bubblewrap   # Linux: sandbox for conformance tests
+```
 
 ## Quick start
 ```
-cd ref && pip install -r requirements.txt
 python3 -m skillpact.cli init        <skill_dir> -o draft.json       # draft from SKILL.md / native contract
 python3 -m skillpact.cli validate    <skill_dir>
 python3 -m skillpact.cli test        <skill_dir>                     # network-isolated conformance run
@@ -57,9 +67,9 @@ python3 -m skillpact.cli convert <skill_dir> --to mda|autovault   # or: convert 
 python3 -m skillpact.cli sign-sigstore <skill_dir>                 # keyless, CI
 python3 -m skillpact.cli owasp <skill_dir>
 python3 -m skillpact.cli mcp-check      <skill_dir> python3 '$SKILL_DIR/mcp/server.py'
-python3 -m pytest -q tests                                               # 52 tests, ~95 s
+python3 -m pytest -q ref/tests                                           # 86 tests
 ```
-Requires Python ≥ 3.11 (tomllib), ffmpeg for the flagship tests, `unshare` for network isolation (Linux). Optional: `.tools/opa` for the Rego test.
+Requires Python ≥ 3.11 (tomllib), ffmpeg for the flagship tests, bubblewrap (`bwrap`) for the test sandbox on Linux (fallback `unshare -rn`, network only). Optional: `.tools/opa` for the Rego test.
 
 ## Layout
 ```

@@ -1,218 +1,223 @@
 {
- "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "https://kajisho5.github.io/skillpact/schema/policy-v0.7.json",
- "title": "Harness policy 0.1",
- "type": "object",
- "required": [
-  "policy_version",
-  "defaults"
- ],
- "additionalProperties": false,
- "properties": {
-  "policy_version": {
-   "const": "0.1"
-  },
-  "defaults": {
-   "type": "object",
-   "required": [
-    "read",
-    "write",
-    "network",
-    "exec",
-    "spend",
-    "send"
-   ],
-   "additionalProperties": false,
-   "properties": {
-    "read": {
-     "$ref": "#/$defs/d"
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kajisho5.github.io/skillpact/schema/policy-v0.8.json",
+  "title": "Harness policy 0.1",
+  "type": "object",
+  "required": [
+    "policy_version",
+    "defaults"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "policy_version": {
+      "const": "0.1"
     },
-    "write": {
-     "$ref": "#/$defs/d"
+    "defaults": {
+      "type": "object",
+      "required": [
+        "read",
+        "write",
+        "network",
+        "exec",
+        "spend",
+        "send"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "read": {
+          "$ref": "#/$defs/d"
+        },
+        "write": {
+          "$ref": "#/$defs/d"
+        },
+        "network": {
+          "$ref": "#/$defs/d"
+        },
+        "exec": {
+          "$ref": "#/$defs/d"
+        },
+        "spend": {
+          "$ref": "#/$defs/d"
+        },
+        "send": {
+          "$ref": "#/$defs/d"
+        }
+      }
     },
-    "network": {
-     "$ref": "#/$defs/d"
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "effect",
+          "decision"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "effect": {
+            "enum": [
+              "read",
+              "write",
+              "network",
+              "exec",
+              "spend",
+              "send"
+            ]
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "glob patterns matched against the contract's declared scope"
+          },
+          "decision": {
+            "$ref": "#/$defs/d"
+          }
+        }
+      }
     },
-    "exec": {
-     "$ref": "#/$defs/d"
+    "skills": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deny": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     },
-    "spend": {
-     "$ref": "#/$defs/d"
+    "require_signature": {
+      "type": "boolean"
     },
-    "send": {
-     "$ref": "#/$defs/d"
+    "trusted_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ask_on_destructive": {
+      "type": "boolean"
+    },
+    "allowlist_overrides_ask": {
+      "type": "boolean"
+    },
+    "never_auto_allow_any": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_turns": {
+          "type": "integer"
+        },
+        "max_tool_calls": {
+          "type": "integer"
+        },
+        "max_wall_seconds": {
+          "type": "integer"
+        },
+        "max_cost_usd": {
+          "type": "number"
+        },
+        "max_tokens": {
+          "type": "integer"
+        }
+      }
+    },
+    "sandbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filesystem": {
+          "enum": [
+            "read-only",
+            "workdir",
+            "repo",
+            "any"
+          ]
+        },
+        "network": {
+          "enum": [
+            "off",
+            "allowlist",
+            "on"
+          ]
+        },
+        "egress_allowlist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pre_action": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "post_action": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "properties": {
+        "otel_genai": {
+          "type": "boolean"
+        },
+        "log_path": {
+          "type": "string"
+        }
+      }
+    },
+    "x": {
+      "type": "object"
+    },
+    "min_contract_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$",
+      "description": "deny contracts older than this contract_version (spec 0.8 s13.1); e.g. \"0.8\" so that roles are signed and integrity covers every file"
     }
-   }
   },
-  "rules": {
-   "type": "array",
-   "items": {
-    "type": "object",
-    "required": [
-     "effect",
-     "decision"
-    ],
-    "additionalProperties": false,
-    "properties": {
-     "id": {
-      "type": "string"
-     },
-     "effect": {
+  "$defs": {
+    "d": {
       "enum": [
-       "read",
-       "write",
-       "network",
-       "exec",
-       "spend",
-       "send"
+        "allow",
+        "ask",
+        "deny"
       ]
-     },
-     "scope": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      },
-      "description": "glob patterns matched against the contract's declared scope"
-     },
-     "decision": {
-      "$ref": "#/$defs/d"
-     }
     }
-   }
-  },
-  "skills": {
-   "type": "object",
-   "additionalProperties": false,
-   "properties": {
-    "allow": {
-     "type": "array",
-     "items": {
-      "type": "string"
-     }
-    },
-    "deny": {
-     "type": "array",
-     "items": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  "require_signature": {
-   "type": "boolean"
-  },
-  "trusted_keys": {
-   "type": "array",
-   "items": {
-    "type": "string"
-   }
-  },
-  "ask_on_destructive": {
-   "type": "boolean"
-  },
-  "allowlist_overrides_ask": {
-   "type": "boolean"
-  },
-  "never_auto_allow_any": {
-   "type": "array",
-   "items": {
-    "type": "string"
-   }
-  },
-  "limits": {
-   "type": "object",
-   "additionalProperties": false,
-   "properties": {
-    "max_turns": {
-     "type": "integer"
-    },
-    "max_tool_calls": {
-     "type": "integer"
-    },
-    "max_wall_seconds": {
-     "type": "integer"
-    },
-    "max_cost_usd": {
-     "type": "number"
-    },
-    "max_tokens": {
-     "type": "integer"
-    }
-   }
-  },
-  "sandbox": {
-   "type": "object",
-   "additionalProperties": false,
-   "properties": {
-    "filesystem": {
-     "enum": [
-      "read-only",
-      "workdir",
-      "repo",
-      "any"
-     ]
-    },
-    "network": {
-     "enum": [
-      "off",
-      "allowlist",
-      "on"
-     ]
-    },
-    "egress_allowlist": {
-     "type": "array",
-     "items": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  "hooks": {
-   "type": "object",
-   "additionalProperties": false,
-   "properties": {
-    "pre_action": {
-     "type": "array",
-     "items": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     }
-    },
-    "post_action": {
-     "type": "array",
-     "items": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     }
-    }
-   }
-  },
-  "audit": {
-   "type": "object",
-   "properties": {
-    "otel_genai": {
-     "type": "boolean"
-    },
-    "log_path": {
-     "type": "string"
-    }
-   }
-  },
-  "x": {
-   "type": "object"
   }
- },
- "$defs": {
-  "d": {
-   "enum": [
-    "allow",
-    "ask",
-    "deny"
-   ]
-  }
- }
 }

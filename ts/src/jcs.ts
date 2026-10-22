@@ -13,8 +13,9 @@ export function jcs(v: unknown): string {
 }
 
 // 0.1-0.3 legacy form: keys sorted by code point, separators , : and no ASCII escaping.
-// Limitation: Python float repr (e.g. 1.0) cannot be recovered after JSON.parse; integers and strings match.
+// Numbers: integers within +-(2^53-1) only (spec 0.8 s11.1); anything else cannot be reproduced and is refused.
 export function legacySorted(v: unknown): string {
+  if (typeof v === "number" && (!Number.isInteger(v) || Math.abs(v) > 9007199254740991)) throw new Error("legacy (0.1-0.3) canonicalization supports integers only; migrate and re-sign");
   if (Array.isArray(v)) return "[" + v.map(legacySorted).join(",") + "]";
   if (v && typeof v === "object") {
     const o = v as Record<string, unknown>;

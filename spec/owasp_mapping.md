@@ -1,19 +1,20 @@
-# SkillPact × OWASP Agentic Skills Top 10 (2026) — mapping (draft 0.3)
+# SkillPact × OWASP Agentic Skills Top 10 — mapping (draft 0.8)
 
-`skillpact owasp <skill_dir>` prints this per skill. Statuses: **addressed** = the contract gives machine-checkable evidence, **partial** = it helps but does not settle the risk.
+`skillpact owasp <skill_dir>` prints this per skill. Risk IDs and names checked against the OWASP project page on 2026-10-22 (https://owasp.org/www-project-agentic-skills-top-10/top10).
 
-| ID | Risk | SkillPact mechanism | Status (generic) | Remaining gap |
+Statuses: **addressed** = the contract gives machine-checkable evidence for the main control OWASP names; **partial** = it helps, but the risk is not settled by SkillPact alone. Most items are partial: a contract is a signed, tested declaration, not proof of safety.
+
+| ID | Risk | What SkillPact provides | Status | What remains |
 |---|---|---|---|---|
-| AST01 | Malicious Skills | per-tool declared effects + conformance tests + policy-check | partial | cannot prove absence of malice → runtime enforcement (APS / ACS / HushSpec) + review |
-| AST02 | Supply Chain Compromise | sha256 of every file + ed25519 or Sigstore signature, trusted-key list | addressed when signed | key management by publisher |
-| AST03 | Over-Privileged Skills | 6 effect classes (read/write/network/exec/spend/send) with scopes; policy denies unscoped grants | addressed when all scoped | — |
-| AST04 | Insecure Metadata | JSON Schema (draft 2020-12), vendor keys only under `x.*`, canonical JSON signed | addressed | — |
-| AST05 | Untrusted External Instructions | network scope enumerates hosts | partial | fetched content itself |
-| AST06 | Weak Isolation | tests run network-isolated; `policy-compile` emits harness sandbox/permission config | partial | host must enforce at runtime |
-| AST07 | Update Drift | version + file hashes; any change invalidates the signature | addressed | — |
-| AST08 | Poor Scanning | declare + test + sign instead of a scanner verdict | addressed when tested | — |
-| AST09 | No Governance | versionable harness policies (first-match, worst-case decision) | partial | organisational process |
-| AST10 | Cross-Platform Reuse | one contract → Claude Code / Cursor / Codex / Gemini CLI configs; MDA / AutoVault converters | addressed | — |
+| AST01 | Malicious Skills | declared effects per capability, sandboxed tests, author signatures, policy decisions | partial | cannot prove absence of malice; behavioural scanning, review and runtime enforcement still needed |
+| AST02 | Supply Chain Compromise | sha256 over every skill file (0.8), ed25519 / Sigstore signatures with trusted keys | partial | a signature identifies the signer, not safety; dependencies outside the skill, SBOM and dependency pinning are not covered |
+| AST03 | Over-Privileged Skills | six effects with scopes (paths, host allowlists, commands); policy denies unscoped or traversing scopes | addressed when every effect is scoped | scoped credentials and runtime enforcement are the harness's job |
+| AST04 | Insecure Metadata | JSON Schema, I-JSON parsing, signed contract incl. signer role | addressed when signed with full coverage, otherwise partial | `SKILL.md` prose itself is not validated |
+| AST05 | Untrusted External Instructions | network scope lists every host | partial | content fetched from those hosts is not covered |
+| AST06 | Weak Isolation | tests run in a bubblewrap sandbox (no network, read-only FS, env allowlist); compiled harness settings | partial | only tests are sandboxed; isolation at real run time is the harness's job |
+| AST07 | Update Drift | version + hashes of every file; any change breaks verification; policy `min_contract_version` | addressed when signed with full coverage | harness must re-verify before each run (TOCTOU) |
+| AST08 | Poor Scanning | executable tests of declared behaviour; contract as scanner input | partial | tests are author-written and cover only what they exercise; complements scanners |
+| AST09 | No Governance | versionable policies, signed contracts as review records | partial | organisational process, inventories, audit logging |
+| AST10 | Cross-Platform Reuse | one contract compiles to Claude Code / Cursor / Codex / Gemini CLI settings; MDA / AutoVault converters | partial | each target loses some constraints (`lossy` list) |
 
-Flagship (kajisho5/ffmpeg-skill, L3): AST02/03/04/07/08/10 addressed, AST01/05/06/09 partial.
-Source: OWASP Agentic Skills Top 10 project page (owasp.github.io/www-project-agentic-skills-top-10). IDs/names to be re-checked against the final OWASP text before publishing.
+Flagship (ffmpeg-skill, 0.8, L3): AST03 / AST04 / AST07 addressed; the rest partial.

@@ -1,6 +1,5 @@
 # SkillPact — machine-readable contracts for Agent Skills (draft 0.7)
 
-> **Public review of v0.7 (30 days, dates TBD):** see [REVIEW.md](REVIEW.md) for what feedback is wanted and how to send it.
 
 [![SkillPact L3](https://kajisho5.github.io/skillpact/badges/skillpact-L3.svg)](https://kajisho5.github.io/skillpact/) · [Checker (in your browser)](https://kajisho5.github.io/skillpact/check/) · [Schema](https://kajisho5.github.io/skillpact/schema/) · [Badges](https://kajisho5.github.io/skillpact/badges/) · [日本語](https://kajisho5.github.io/skillpact/ja/)
 

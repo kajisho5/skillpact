@@ -638,8 +638,9 @@ def _seatbelt_profile(work, rw_skill, net, keep=()):
     return "\n".join(prof)
 
 
-def _wrap(cmd, mode, net, work, rw_skill, ro=(), programs=()):
-    """ro: paths to re-expose read-only under the masked roots (the skill directory, dependency skills)."""
+def _wrap(cmd, mode, net, work, rw_skill, ro=(), programs=(), extra=()):
+    """ro: paths to re-expose read-only under the masked roots (the skill directory, dependency skills).
+    extra: further bwrap arguments (the egress directory of a network case)."""
     if mode == "bwrap":
         w = ["bwrap", "--die-with-parent", "--new-session", "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--unshare-cgroup-try",
              "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc"]
@@ -647,11 +648,22 @@ def _wrap(cmd, mode, net, work, rw_skill, ro=(), programs=()):
         for k in _keep_paths(ro, list(programs) + cmd[:1]): w += ["--ro-bind", k, k]
         w += ["--bind", str(work), str(work)]
         if rw_skill: w += ["--bind", rw_skill, rw_skill]
+        w += list(extra)
         if not net: w += ["--unshare-net"]
         return w + ["--chdir", str(work), "--"] + cmd
     if mode == "unshare" and not net: return ["unshare", "-rn"] + cmd
     if mode == "seatbelt": return [SEATBELT, "-p", _seatbelt_profile(work, rw_skill, net, _keep_paths(ro, list(programs) + cmd[:1])), "--"] + cmd
     return cmd
+
+
+def network_scope(c, cap=None):
+    """(scope, level) a network case may reach: the capability's effect_scopes.network if present, else
+    permissions.network.scope, plus the scopes of the capability's conditional network effects."""
+    pe = c["permissions"]["network"]
+    scope = list((cap or {}).get("effect_scopes", {}).get("network") or pe.get("scope", []))
+    for ce in (cap or {}).get("conditional_effects", []):
+        if ce["effect"] == "network": scope += [s_ for s_ in ce.get("scope", []) if s_ not in scope]
+    return scope, pe["level"]
 
 
 def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, skills_path=(), pass_env=()) -> dict:
@@ -688,7 +700,13 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
                 why = "not allowed (use --pass-env)" if all(os.environ.get(v) for v in t.get("skip_unless_env", [])) else "not set"
                 results.append({"id": t["id"], "capability": t.get("capability"), "ok": True, "skipped": True, "skip_reason": f"skip_unless_env {why}", "failures": [], "seconds": 0, "network_sandboxed": False, "stderr_tail": ""}); continue
             cenv = {**env, **{v: os.environ[v] for v in t.get("skip_unless_env", [])}, **{k: _subst(v, env) for k, v in t.get("env", {}).items()}}
-            cmd = wrap([_subst(x, env) for x in t["run"]], bool(t.get("network")))
+            run_ = [_subst(x, env) for x in t["run"]]; eg = None
+            if t.get("network") and mode == "bwrap":   # 0.8.x erratum: network cases reach declared hosts only
+                from . import egress
+                sc, lvl = network_scope(c, caps.get(t.get("capability")))
+                eg = egress.Egress(sc, lvl); cenv.update(eg.env())
+                cmd = _wrap(eg.wrap(run_), mode, False, work, str(skill_dir) if skill_dir_writes_allowed else None, ro + eg.keep(), progs, eg.bwrap_args())
+            else: cmd = wrap(run_, bool(t.get("network")))
             t0 = time.time(); fails = []
             try:
                 p = subprocess.run(cmd, cwd=work, env=cenv, capture_output=True, text=True, stdin=subprocess.DEVNULL, start_new_session=True, timeout=t.get("timeout_s", 120) * float(os.environ.get("SKILLPACT_TIMEOUT_SCALE", "1")))
@@ -725,7 +743,11 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
                 if f.get("exists", True) and not fp.exists(): fails.append(f"file missing: {f['path']}")
                 elif not f.get("exists", True) and fp.exists(): fails.append(f"file should not exist: {f['path']}")
                 elif fp.exists() and fp.stat().st_size < f.get("min_bytes", 0): fails.append(f"file too small: {f['path']}")
-            results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails,
+            hosts = None
+            if eg:
+                hosts = {"allowed": eg.proxy.allowed_hosts, "denied": eg.proxy.denied_hosts}; eg.close()
+                if hosts["denied"]: fails.append(f"undeclared host (not in the network scope): {', '.join(hosts['denied'])}")
+            results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails, **({"network_hosts": hosts} if hosts else {}),
                             "seconds": round(time.time() - t0, 2), "network_sandboxed": bool(mode and not t.get("network")),
                             "stderr_tail": errout[-300:] if fails else ""})
     finally:
@@ -741,7 +763,7 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
     t_net = {t["id"]: bool(t.get("network")) for t in c.get("tests", {}).get("cases", [])}
     isolated_pass = sum(1 for r in results if r["ok"] and not r.get("skipped") and not t_net.get(r["id"]))
     res = {"ok": not setup_error and all(r["ok"] for r in results) and not violations and not outside, "requirements": reqs, "cases": results,
-           "sandbox": mode or "none", "fs_isolated": mode in ("bwrap", "seatbelt"), "network_isolated": bool(mode) and isolated_pass > 0,
+           "sandbox": mode or "none", "network_egress": "allowlist" if mode == "bwrap" else "open", "fs_isolated": mode in ("bwrap", "seatbelt"), "network_isolated": bool(mode) and isolated_pass > 0,
            "skill_dir_writes": violations, "outside_writes": outside,
            "network_cases": sum(1 for r in results if t_net.get(r["id"]) and not r.get("skipped")),
            "passed": sum(r["ok"] and not r.get("skipped") for r in results), "skipped": sum(bool(r.get("skipped")) for r in results), "total": len(results)}

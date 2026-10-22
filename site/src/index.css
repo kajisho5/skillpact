@@ -1,0 +1,97 @@
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-sans-jp/400.css";
+@import "@fontsource/ibm-plex-sans-jp/500.css";
+@import "@fontsource/ibm-plex-sans-jp/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 99%;
+    --foreground: 24 10% 10%;
+    --muted: 40 12% 95%;
+    --muted-foreground: 25 6% 36%;
+    --secondary: 40 12% 95%;
+    --secondary-foreground: 24 10% 10%;
+    --accent: 40 12% 94%;
+    --accent-foreground: 24 10% 10%;
+    --primary: 24 10% 10%;
+    --primary-foreground: 40 20% 98%;
+    --destructive: 0 70% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 8% 87%;
+    --input: 30 8% 82%;
+    --ring: 222 64% 40%;
+    --ink: 222 64% 38%;
+    --ok: 152 60% 26%;
+    --warn: 32 90% 30%;
+    --radius: 0.375rem;
+  }
+  .dark {
+    --background: 24 8% 7%;
+    --foreground: 40 15% 92%;
+    --muted: 24 6% 12%;
+    --muted-foreground: 30 6% 66%;
+    --secondary: 24 6% 13%;
+    --secondary-foreground: 40 15% 92%;
+    --accent: 24 6% 14%;
+    --accent-foreground: 40 15% 92%;
+    --primary: 40 15% 92%;
+    --primary-foreground: 24 8% 8%;
+    --destructive: 0 75% 68%;
+    --destructive-foreground: 0 0% 8%;
+    --border: 24 5% 19%;
+    --input: 24 5% 24%;
+    --ring: 217 85% 70%;
+    --ink: 217 85% 74%;
+    --ok: 150 50% 62%;
+    --warn: 38 90% 64%;
+  }
+  * { @apply border-border; }
+  html { -webkit-text-size-adjust: 100%; scroll-padding-top: 4.5rem; }
+  body { @apply bg-background text-foreground font-sans antialiased; font-feature-settings: "kern"; text-rendering: optimizeLegibility; }
+  :lang(ja) body, body:lang(ja) { line-break: strict; }
+  ::selection { background: hsl(var(--ink) / 0.18); }
+  :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 2px; }
+}
+
+@layer components {
+  .prose-sp {
+    @apply prose prose-stone max-w-none dark:prose-invert;
+    --tw-prose-body: hsl(var(--foreground) / 0.88);
+    --tw-prose-headings: hsl(var(--foreground));
+    --tw-prose-links: hsl(var(--ink));
+    --tw-prose-code: hsl(var(--foreground));
+    --tw-prose-th-borders: hsl(var(--border));
+    --tw-prose-td-borders: hsl(var(--border));
+    --tw-prose-invert-body: hsl(var(--foreground) / 0.88);
+    --tw-prose-invert-headings: hsl(var(--foreground));
+    --tw-prose-invert-links: hsl(var(--ink));
+    --tw-prose-invert-code: hsl(var(--foreground));
+    --tw-prose-invert-th-borders: hsl(var(--border));
+    --tw-prose-invert-td-borders: hsl(var(--border));
+    font-size: 1rem; line-height: 1.75;
+  }
+  .prose-sp :where(h1) { @apply text-[1.875rem] font-semibold tracking-tight leading-tight mb-4; }
+  .prose-sp :where(h2) { @apply mt-14 mb-4 border-t pt-8 text-xl font-semibold tracking-tight; }
+  .prose-sp > h2:first-of-type { @apply mt-8 border-t-0 pt-0; }
+  .prose-sp :where(h3) { @apply mt-8 text-base font-semibold; }
+  .prose-sp :where(h2, h3, h4) a.anchor { @apply ml-2 font-normal text-muted-foreground no-underline opacity-0 transition-opacity; }
+  .prose-sp :where(h2, h3, h4):hover a.anchor, .prose-sp a.anchor:focus { @apply opacity-100; }
+  .prose-sp :where(a) { @apply underline decoration-[hsl(var(--ink)/0.35)] underline-offset-[3px] hover:decoration-[hsl(var(--ink))]; font-weight: 450; }
+  .prose-sp :where(code):not(pre code) { @apply rounded-sm bg-muted px-[0.3em] py-[0.1em] font-mono text-[0.86em] font-normal; }
+  .prose-sp :where(code):not(pre code)::before, .prose-sp :where(code):not(pre code)::after { content: none; }
+  .prose-sp :where(pre) { @apply rounded-md border bg-muted/60 text-foreground text-[0.82rem] leading-relaxed; }
+  .prose-sp :where(table) { @apply my-6 text-[0.9rem]; }
+  .prose-sp :where(thead th) { @apply font-medium text-muted-foreground; }
+  .prose-sp :where(blockquote) { @apply border-l-2 border-[hsl(var(--ink))] font-normal not-italic text-foreground/80; }
+  .prose-sp :where(blockquote p)::before, .prose-sp :where(blockquote p)::after { content: none; }
+  .prose-sp :where(strong) { @apply font-semibold text-foreground; }
+  .tbl-wrap { @apply -mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0; }
+  .kbd { @apply font-mono text-[0.78rem] tracking-tight; }
+}

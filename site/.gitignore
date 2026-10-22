@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.vite-react-ssg-temp/
+public/schema/
+public/badges/
+public/check/

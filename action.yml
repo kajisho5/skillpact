@@ -32,6 +32,7 @@ runs:
       shell: bash
       run: |
         sudo apt-get install -y -q bubblewrap >/dev/null || echo "::warning::bubblewrap not installed; tests fall back to unshare -rn (no filesystem isolation)"
+        sudo apt-get install -y -q strace >/dev/null || echo "::warning::strace not installed; programs started by tests are not checked against permissions.exec"
         sudo sysctl -q -w kernel.apparmor_restrict_unprivileged_userns=0 || true
     - id: check
       shell: bash

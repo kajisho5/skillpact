@@ -19,7 +19,7 @@ jobs:
           echo "$PWD/$(ls -d ffmpeg-n8.1-*)/bin" >> "$GITHUB_PATH"
       - run: ffmpeg -version | head -1
       - name: sandbox for conformance tests (bubblewrap; needs unprivileged user namespaces)
-        run: sudo apt-get install -y -q bubblewrap && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+        run: sudo apt-get install -y -q bubblewrap strace && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: cd ref && pip install -e .[test,sigstore]
       - run: cd ref && python -m pytest -q tests
       - name: flagship conformance (L3)

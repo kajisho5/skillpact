@@ -142,7 +142,8 @@
         "whisper-cpp",
         "whisper",
         "parakeet-mlx",
-        "parakeet-cli"
+        "parakeet-cli",
+        "fc-match"
       ],
       "why": "argv lists only, no shell (argv list only: [python3, scripts/<tool>.py, ...] and [ffmpeg|ffprobe, ...] resolved from PATH; with --transcribe, a loc)"
     },
@@ -773,7 +774,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -1120,7 +1122,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -1413,7 +1416,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -1780,7 +1784,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -2558,7 +2563,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -2896,7 +2902,8 @@
       "effect_scopes": {
         "exec": [
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -3491,7 +3498,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -3819,7 +3827,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -4055,7 +4064,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -4597,7 +4607,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -4930,7 +4941,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -5279,7 +5291,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -5660,7 +5673,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -6126,7 +6140,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -6446,7 +6461,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -6999,7 +7015,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -7407,7 +7424,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -7765,7 +7783,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -8277,7 +8296,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -8577,7 +8597,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -8925,7 +8946,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -9212,7 +9234,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -9574,7 +9597,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -9962,7 +9986,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -10518,7 +10543,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -10836,7 +10862,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -11025,7 +11052,8 @@
       "effect_scopes": {
         "exec": [
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -11327,7 +11355,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -11696,7 +11725,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -12120,7 +12150,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -12387,7 +12418,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -12695,7 +12727,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -13064,7 +13097,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -13391,7 +13425,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -13918,7 +13953,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -14221,7 +14257,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -14630,7 +14667,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -14970,7 +15008,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -15305,7 +15344,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -15704,7 +15744,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -15961,7 +16002,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     },
@@ -16475,7 +16517,8 @@
         "exec": [
           "ffmpeg",
           "ffprobe",
-          "python3"
+          "python3",
+          "fc-match"
         ]
       }
     }
@@ -19358,14 +19401,6 @@
       "tests/test_orchestration.py": "f0411af13b528a98166d855ac44050be8c87b58bd96f0ddf75d89c3cffc95ea7",
       "tests/test_picture.py": "2ad4b9ffa0d265f575caf53e82b134698ff492f6a01c41fa6f2cfb09ae054294"
     },
-    "signatures": [
-      {
-        "type": "ed25519",
-        "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
-        "sig": "Mprt6hdBjai0nYzd9VyGA8Vi1rYsiBl0t9MjDdFmLuYuE36Ap31LAAAexfYhMfS3atT8bfuBpefsg3loOtXsDw==",
-        "signer": "SEVENTHWELL",
-        "role": "author"
-      }
-    ]
+    "signatures": []
   }
 }

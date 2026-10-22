@@ -284,6 +284,8 @@ def _mock_signer_verifier():
 def test_sigstore_sign_verify_mocked(skill):
     """Keyless signing needs an OIDC token + Fulcio/Rekor; mocked here (no ambient token on the box)."""
     signer, verifier = _mock_signer_verifier()
+    c0 = C(skill); c0["integrity"]["signatures"] = [s for s in c0["integrity"]["signatures"] if s.get("type") != "sigstore"]   # the mock verifier knows only its own entry
+    W(skill, c0)
     sigstore_sig.sign(skill, signer=signer)
     c = C(skill); assert core_valid(c)
     res = core.verify_signatures(c, sigstore_verifier=verifier)

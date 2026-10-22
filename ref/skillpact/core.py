@@ -1,6 +1,6 @@
 """SkillPact reference implementation (spec 0.8): validate, hash, sign/verify, run declared tests, match against a harness policy."""
 from __future__ import annotations
-import base64, ipaddress, hashlib, json, math, os, re, shutil, subprocess, tempfile, time
+import base64, ipaddress, hashlib, json, math, os, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator
@@ -699,6 +699,85 @@ def _wrap(cmd, mode, net, work, rw_skill, ro=(), programs=()):
     return cmd
 
 
+# 0.8.x erratum (s10): programs a case starts are recorded and compared with permissions.exec. The tracer runs outside the
+# sandbox, so a case can neither see nor stop it. Detection only: the program still runs; the case fails afterwards.
+EXEC_LAUNCHERS = ("bwrap", "unshare", "sandbox-exec", "env")   # sandbox wrappers and `#!/usr/bin/env` shebangs
+TEST_SHELLS = ("sh", "bash", "dash", "zsh")
+# file and text utilities an inline test shell may use to set up and check results; nothing else is exempt
+TEST_UTILS = ("basename", "cat", "cmp", "cp", "cut", "diff", "dirname", "echo", "false", "grep", "head", "ls", "md5sum", "mkdir", "mv",
+              "printf", "readlink", "realpath", "rm", "sha1sum", "sha256sum", "sleep", "sort", "stat", "tail", "test", "[", "touch", "tr",
+              "true", "uniq", "wc")
+_EXECVE = re.compile(r'^execve\("((?:[^"\\]|\\.)*)".*= 0$')
+_FORK = re.compile(r"^(?:clone3?|v?fork)\(.*\)\s+= (\d+)(?: /\* (\d+) in strace's PID NS \*/)?$")   # host pid (bwrap has its own pid namespace)
+
+
+def _exec_tracer():
+    """strace on Linux, or None (exec audit unavailable). SKILLPACT_EXEC_AUDIT=0 turns the audit off."""
+    if os.environ.get("SKILLPACT_EXEC_AUDIT") == "0" or not shutil.which("strace"): return None
+    try: ok = subprocess.run(["strace", "-f", "-qq", "--decode-pids=pidns", "-e", "trace=execve", "-o", os.devnull, "true"], capture_output=True, timeout=20).returncode == 0
+    except (OSError, subprocess.TimeoutExpired): ok = False
+    return shutil.which("strace") if ok else None
+
+
+def _traced(tracer, cmd, out_dir):
+    return [tracer, "-f", "-ff", "-qq", "--decode-pids=pidns", "-s", "4096", "-e", "trace=execve,clone,clone3,fork,vfork", "-e", "signal=none",
+            "-o", str(Path(out_dir) / "t")] + cmd
+
+
+def _trace_events(out_dir) -> dict:
+    """{pid: [("exec", path) | ("fork", child_pid)]} in order, from strace -ff files t.<pid>."""
+    ev = {}
+    for f in Path(out_dir).glob("t.*"):
+        try: pid = int(f.suffix[1:])
+        except ValueError: continue
+        rows = ev.setdefault(pid, [])
+        for line in f.read_text(errors="replace").splitlines():
+            m = _EXECVE.match(line)
+            if m: rows.append(("exec", m.group(1).encode().decode("unicode_escape", "replace"))); continue
+            m = _FORK.match(line)
+            if m: rows.append(("fork", int(m.group(2) or m.group(1))))
+    return ev
+
+
+def skill_execs(events, inline_shell) -> list:
+    """Programs started by the skill, from a process tree. Not counted: sandbox launchers, the case command itself and,
+    when the case command is an inline shell (`sh -c ...`), the TEST_UTILS that shell starts directly (test plumbing such
+    as cp, cmp, sha256sum). Any other program, and everything started below the shell's direct children, is counted."""
+    children = {c for rows in events.values() for k, c in rows if k == "fork"}
+    stack = [(p, "wrapper") for p in sorted(set(events) - children)]
+    seen, out = set(), []
+    while stack:
+        pid, state = stack.pop()
+        if pid in seen: continue
+        seen.add(pid)
+        for kind, val in events.get(pid, []):
+            if kind == "fork": stack.append((val, state)); continue
+            name = os.path.basename(val)
+            if name in EXEC_LAUNCHERS: continue                              # state unchanged: launchers are transparent
+            if state == "wrapper": state = "shell" if inline_shell else "skill"   # the case command
+            elif state == "shell":                                           # started by the test's own shell
+                state = "skill"
+                if name not in TEST_UTILS: out.append(val)
+            else: out.append(val)
+    return out
+
+
+def undeclared_execs(paths, c, trusted_dirs=(), cap=None) -> list:
+    """Program names that the exec scope does not cover: the capability's effect_scopes.exec when it narrows the scope,
+    else permissions.exec. Files inside the skill or its located dependency skills (trusted_dirs) are the skill's own
+    code and are not counted."""
+    perm = c["permissions"]["exec"]; scope = perm.get("scope", [])
+    if cap and "exec" in cap.get("effect_scopes", {}): perm, scope = {"level": "scoped"}, cap["effect_scopes"]["exec"]
+    roots = [os.path.realpath(d).rstrip("/") + "/" for d in trusted_dirs]
+    out = []
+    for p_ in paths:
+        name = os.path.basename(p_)
+        if any(os.path.realpath(p_).startswith(r) for r in roots): continue
+        if perm["level"] == "any" or any(glob_match(name, s_) for s_ in scope): continue
+        if name not in out: out.append(name)
+    return sorted(out)
+
+
 def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, skills_path=(), pass_env=()) -> dict:
     """Run the declared tests (spec 0.8 s10): setup and cases in a sandbox, allowlisted environment only,
     writes outside $WORKDIR prevented (bwrap) or detected by content hash (fallback)."""
@@ -718,6 +797,7 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
     ro = [str(skill_dir)] + list(skill_env.values()) + ([str(Path(contract_path).resolve().parent)] if contract_path else [])
     progs = _programs(c)
     wrap = lambda cmd, net=False: _wrap(cmd, mode, net, work, str(skill_dir) if skill_dir_writes_allowed else None, ro, progs)
+    tracer = _exec_tracer() if sys.platform.startswith("linux") else None
     results = []
     watch = [skill_dir] + ([] if mode in ("bwrap", "seatbelt") else [skill_dir.parent])
     before = {str(d): _snapshot(d) for d in watch}
@@ -734,6 +814,8 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
                 results.append({"id": t["id"], "capability": t.get("capability"), "ok": True, "skipped": True, "skip_reason": f"skip_unless_env {why}", "failures": [], "seconds": 0, "network_sandboxed": False, "stderr_tail": ""}); continue
             cenv = {**env, **{v: os.environ[v] for v in t.get("skip_unless_env", [])}, **{k: _subst(v, env) for k, v in t.get("env", {}).items()}}
             cmd = wrap([_subst(x, env) for x in t["run"]], bool(t.get("network")))
+            trace_dir = tempfile.mkdtemp(prefix="skilltrace-") if tracer else None
+            if tracer: cmd = _traced(tracer, cmd, trace_dir)
             t0 = time.time(); fails = []
             try:
                 p = subprocess.run(cmd, cwd=work, env=cenv, capture_output=True, text=True, stdin=subprocess.DEVNULL, start_new_session=True, timeout=t.get("timeout_s", 120) * float(os.environ.get("SKILLPACT_TIMEOUT_SCALE", "1")))
@@ -770,7 +852,13 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
                 if f.get("exists", True) and not fp.exists(): fails.append(f"file missing: {f['path']}")
                 elif not f.get("exists", True) and fp.exists(): fails.append(f"file should not exist: {f['path']}")
                 elif fp.exists() and fp.stat().st_size < f.get("min_bytes", 0): fails.append(f"file too small: {f['path']}")
-            results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails,
+            undeclared = []
+            if tracer:
+                inline = len(t["run"]) > 1 and os.path.basename(t["run"][0]) in TEST_SHELLS and t["run"][1] == "-c"
+                undeclared = undeclared_execs(skill_execs(_trace_events(trace_dir), inline), c, [str(skill_dir)] + list(skill_env.values()), caps.get(t.get("capability")))
+                shutil.rmtree(trace_dir, ignore_errors=True)
+                if undeclared: fails.append(f"undeclared exec (not in permissions.exec): {', '.join(undeclared)}")
+            results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails, "exec_undeclared": undeclared,
                             "seconds": round(time.time() - t0, 2), "network_sandboxed": bool(mode and not t.get("network")),
                             "stderr_tail": errout[-300:] if fails else ""})
     finally:
@@ -786,7 +874,7 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
     t_net = {t["id"]: bool(t.get("network")) for t in c.get("tests", {}).get("cases", [])}
     isolated_pass = sum(1 for r in results if r["ok"] and not r.get("skipped") and not t_net.get(r["id"]))
     res = {"ok": not setup_error and all(r["ok"] for r in results) and not violations and not outside, "requirements": reqs, "cases": results,
-           "sandbox": mode or "none", "fs_isolated": mode in ("bwrap", "seatbelt"), "network_isolated": bool(mode) and isolated_pass > 0,
+           "sandbox": mode or "none", "exec_audit": "strace" if tracer else "none", "fs_isolated": mode in ("bwrap", "seatbelt"), "network_isolated": bool(mode) and isolated_pass > 0,
            "skill_dir_writes": violations, "outside_writes": outside,
            "network_cases": sum(1 for r in results if t_net.get(r["id"]) and not r.get("skipped")),
            "passed": sum(r["ok"] and not r.get("skipped") for r in results), "skipped": sum(bool(r.get("skipped")) for r in results), "total": len(results)}

@@ -112,12 +112,12 @@ def main(argv=None):
                     r_ok = [k for k, ok in sig.items() if ok and k in a.trusted_key]
                     if core.trusted_author(c, set(a.trusted_key)): level = "L3-signed"
                     elif core._vt(c.get("contract_version", "0.1")) < core.V08: note = "contract_version < 0.8: the signer role is not signed, so L3 is not granted (0.8 errata); migrate and re-sign"
-                    elif any(sig.get(k) is None for k in a.trusted_key): note = "the trusted Sigstore signature could not be verified here (install skillpact[sigstore]; the trust root needs network): L3 not granted"
+                    elif any(k in sig and sig[k] is None for k in a.trusted_key): note = "the trusted Sigstore signature could not be verified here (install skillpact[sigstore]; the trust root needs network): L3 not granted"
                     elif r_ok: note = "only reviewer/scanner signatures are trusted: L3 needs a trusted author signature (spec 0.8 s11)"
                     else: note = "signature is valid but no --trusted-key matched: L3 not granted (spec 0.8 s11)"
                 r_extra["attestations"] = [{"key": k, "role": roles.get(k, "author"), "trusted": k in a.trusted_key} for k, ok in sig.items() if ok and roles.get(k, "author") != "author"]
         r = {"ok": level != "none", "level": level, "validate_errors": v["errors"], "warnings": v["warnings"],
-             "tests": {k: t.get(k) for k in ("passed", "total", "skipped", "network_cases", "sandbox", "fs_isolated", "error") if t.get(k) is not None} if t else None, **r_extra}
+             "tests": {k: t.get(k) for k in ("passed", "total", "skipped", "network_cases", "sandbox", "fs_isolated", "exec_audit", "error") if t.get(k) is not None} if t else None, **r_extra}
         if note: r["note"] = note
         if t:   # 0.8.x erratum: say which requirement failed, and which declared packages install start-up hooks
             bad = [f"{x['name']}: {x.get('reason', 'not found')}" for x in t.get("requirements", []) if not x["ok"]]

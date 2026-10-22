@@ -135,7 +135,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - ランナーはスキルディレクトリの変更を（大きさや時刻ではなく）内容のハッシュで検出し、write の scope に `$SKILL_DIR` がなければそのケースを失敗にしなければなりません（MUST）。ファイルシステムを隔離できない場合は親ディレクトリも監視し、スキルの外への書き込みを報告しなければなりません（MUST）。
 - ネットワークを隔離できないランナーは L2 を出してはなりません（MUST NOT）。L2 には、`network: true` ではない隔離ケースが 1 つ以上通っていることも必要です。
 - スキップしたケースは失敗ではありませんが、件数を報告しなければなりません（MUST）。
-- 参照ランナーは Linux では bubblewrap（`bwrap`）を使い、なければ `unshare -rn`（ネットワークのみ。`fs_isolated: false` と報告）を使います。macOS では Seatbelt（`/usr/bin/sandbox-exec`、**試験的**）を使い、書き込みは `$WORKDIR`（宣言があれば `$SKILL_DIR` も）だけ、`network: true` 以外は通信をすべて拒否します。Apple は `sandbox-exec` を非推奨としていますが、現在も動作し、他のエージェントのサンドボックスでも使われています。Windows には対応する方式がない（WSL2 かコンテナを使う）ため、L2 になりません。
+- 参照ランナーは Linux では bubblewrap（`bwrap`）を使い、なければ `unshare -rn`（ネットワークのみ。`fs_isolated: false` と報告）を使います。macOS では Seatbelt（`/usr/bin/sandbox-exec`、**試験的**）を使い、書き込みは `$WORKDIR`（宣言があれば `$SKILL_DIR` も）だけ、`network: true` 以外は通信をすべて拒否します。Apple は `sandbox-exec` を非推奨としていますが、現在も動作し、他のエージェントのサンドボックスでも使われています。0.8.x 正誤：Seatbelt のプロファイルは `network: true` のケースでも Unix ソケットへの接続（システムの DNS リゾルバを除く）を拒否します。ただし Mach/XPC の問い合わせは許したままなので、ケースが launchd のサービス（`open` など）にサンドボックスの外での処理を頼めます。このため Seatbelt は**試験的**のままで、L2 の要件をすべて満たすのは Linux の bubblewrap だけです。Windows には対応する方式がない（WSL2 かコンテナを使う）ため、L2 になりません。
 
 ## 11. integrity と署名
 - `integrity.algorithm` は `sha256`。`integrity.files` は相対パス → 16 進小文字のハッシュ。検証者は載っている全ファイルを照合しなければなりません（MUST、`INTEGRITY_MISMATCH`、`INTEGRITY_MISSING`）。

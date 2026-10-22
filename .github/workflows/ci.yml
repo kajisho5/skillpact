@@ -74,3 +74,14 @@ jobs:
           assert r["sandbox"] == "seatbelt" and r["fs_isolated"] and r["network_isolated"] and r["ok"], r
           assert not (tmp / "escaped.txt").exists() and "\nt\n" not in (d / "SKILL.md").read_text()
           PY
+      - name: Seatbelt blocks host Unix sockets even for network cases (0.8.x erratum)
+        run: |
+          python - <<'PY'
+          import socket, subprocess, sys, tempfile, threading, os
+          sys.path.insert(0, "ref"); from skillpact import core
+          sp = os.path.join(tempfile.mkdtemp(), "host.sock"); srv = socket.socket(socket.AF_UNIX); srv.bind(sp); srv.listen(5)
+          threading.Thread(target=lambda: [srv.accept() for _ in range(5)], daemon=True).start()
+          w = tempfile.mkdtemp(); code = f"import socket; s=socket.socket(socket.AF_UNIX); s.connect({sp!r}); print('REACHED')"
+          r = subprocess.run(core._wrap([sys.executable, "-c", code], "seatbelt", True, w, None), capture_output=True, text=True, timeout=30)
+          print(r.returncode, r.stdout, r.stderr[-300:]); assert "REACHED" not in r.stdout
+          PY

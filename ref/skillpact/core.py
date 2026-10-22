@@ -617,6 +617,9 @@ def _seatbelt_profile(work, rw_skill, net, keep=()):
             f'(allow file-write* {roots} (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/fd/"))']
     if home not in ("/", ""): prof += [f"(deny file-read* (subpath {q(home)}))", f"(allow file-read* {reads})"]
     if not net: prof.append("(deny network*)")
+    else:  # 0.8.x erratum: even with network, no host Unix sockets (only the DNS resolver socket)
+        prof += ["(deny network-outbound (remote unix-socket))",
+                 '(allow network-outbound (remote unix-socket (path-literal "/private/var/run/mDNSResponder")))']
     return "\n".join(prof)
 
 

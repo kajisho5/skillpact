@@ -245,7 +245,8 @@ def validate(skill_dir, contract_path=None) -> dict:
         if c["integrity"].get("signatures"):
             for k in duplicate_signers(c): r.err("DUP_SIGNATURE", f"more than one signature by {k}", "/integrity/signatures")
             res = verify_signatures(c)
-            if not all(res.values()): r.err("SIGNATURE_INVALID", f"signature check failed: {res}")
+            if any(v is False for v in res.values()): r.err("SIGNATURE_INVALID", f"signature check failed: {res}")
+            if any(v is None for v in res.values()): r.warn("SIGSTORE_UNVERIFIED", "a Sigstore signature could not be verified here (install skillpact[sigstore]; the trust root needs network on first use); it is neither valid nor trusted")
             if not v08: r.warn("SIGNATURE_ROLE_UNSIGNED", "before 0.8 the signer role is not signed, so it can be changed: such signatures never give L3 (0.8 errata); migrate and re-sign")
     return r.to_dict()
 
@@ -452,7 +453,8 @@ def sign(skill_dir, key_path, signer="", contract_path=None, role="author"):
 
 
 def verify_signatures(c, sigstore_verifier=None, offline=False) -> dict:
-    """{key-or-identity: bool}. ed25519 entries are keyed by public key, sigstore entries by 'sigstore:<issuer>|<identity>'."""
+    """{key-or-identity: True | False | None}. ed25519 entries are keyed by public key, sigstore entries by
+    'sigstore:<issuer>|<identity>'. None: a Sigstore entry that cannot be verified here (SIGSTORE_UNVERIFIED)."""
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
     out = {}
     for s_ in c.get("integrity", {}).get("signatures", []):
@@ -465,7 +467,8 @@ def verify_signatures(c, sigstore_verifier=None, offline=False) -> dict:
                 Ed25519PublicKey.from_public_bytes(base64.b64decode(s_["key"].split(":", 1)[1])).verify(base64.b64decode(s_["sig"]), _canonical(c, s_.get("role")))
                 ok = True
             except Exception: ok = False
-        out[k] = out.get(k, True) and ok   # a key that signs twice is only valid if every entry is (s11, DUP_SIGNATURE)
+        prev = out.get(k, True)   # a key that signs twice is only valid if every entry is (s11, DUP_SIGNATURE)
+        out[k] = False if False in (prev, ok) else None if None in (prev, ok) else True
     return out
 
 

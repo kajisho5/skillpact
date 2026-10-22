@@ -1,5 +1,5 @@
 name: ci
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]   # dispatched by sigstore-sign.yml after it pushes signatures
 permissions:
   contents: read
 jobs:
@@ -23,7 +23,7 @@ jobs:
       - run: cd ref && pip install -e .[test,sigstore]
       - run: cd ref && python -m pytest -q tests
       - name: flagship conformance (L3)
-        run: cd ref && python -m skillpact.cli conformance ../samples/ffmpeg-skill --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ="
+        run: cd ref && python -m skillpact.cli conformance ../samples/ffmpeg-skill --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=" "sigstore:https://token.actions.githubusercontent.com|https://github.com/kajisho5/skillpact/.github/workflows/sigstore-sign.yml@refs/heads/main"
       - name: conformance suite (reference implementation)
         run: cd ref && python ../conformance/run.py --cmd "python -m skillpact.cli validate {dir}" > /dev/null
       - name: v0.8 conformance cases are reproducible from gen_v08.py
@@ -33,7 +33,7 @@ jobs:
           pip install -q Pillow   # thumbnail-skill requirement (requirements.packages)
           cd ref
           for s in subtitle-skill thumbnail-skill video-editing-skill; do
-            python -m skillpact.cli conformance ../samples/$s --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=" | python -c "import json,sys; r=json.load(sys.stdin); print('$s', r['level']); assert r['level']=='L3-signed'"
+            python -m skillpact.cli conformance ../samples/$s --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=" "sigstore:https://token.actions.githubusercontent.com|https://github.com/kajisho5/skillpact/.github/workflows/sigstore-sign.yml@refs/heads/main" | python -c "import json,sys; r=json.load(sys.stdin); print('$s', r['level']); assert r['level']=='L3-signed'"
           done
       - name: schemas in docs and both implementations match
         run: cmp ref/skillpact/schema.json docs/schema/v0.8.json && cmp ref/skillpact/schema.json ts/src/schema.json && cmp ref/skillpact/policy_schema.json docs/schema/policy-v0.8-r2.json

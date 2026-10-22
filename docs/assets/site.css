@@ -54,3 +54,4 @@ textarea:focus,input:focus{outline:2px solid var(--acc);outline-offset:1px;borde
 .err{color:#b91c1c}.warn{color:#b45309}.ok{color:#047857}
 @media(max-width:640px){header .wrap.nav{padding-left:16px;padding-right:16px}}
 .badge-row,.badges td,.badges code,main code{overflow-wrap:anywhere}main table{max-width:100%}@media(max-width:640px){main table:has(img),main table:has(img) tbody,main table:has(img) tr,main table:has(img) td{display:block}}
+.review-banner{background:#eef2ff;border-bottom:1px solid #c7d2fe;color:#312e81;font-size:14px;padding:8px 0}.review-banner a{color:#4338ca;font-weight:600}

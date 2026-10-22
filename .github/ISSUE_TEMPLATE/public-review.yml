@@ -1,0 +1,31 @@
+name: Public review (v0.7)
+description: Feedback on the SkillPact v0.7 draft during the 30-day public review
+title: "[review] "
+labels: ["public-review"]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for reviewing! See REVIEW.md for scope. One topic per issue. 日本語でも大丈夫です。Security issues: please contact the editor privately instead."
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Effects model / scopes, Levels (L1-L3), Signing / Sigstore / attestations, Interop (SKILL.md, MDA, harnesses), Schema, Conformance suite, Implementations (ref / ts), Docs / site, Other]
+    validations: {required: true}
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options: [Question / unclear text, Problem / bug, Proposal (new or changed text), Breaking change request before 1.0, Implementation report]
+    validations: {required: true}
+  - type: textarea
+    id: detail
+    attributes:
+      label: Details
+      description: What you tried, what you expected, and (for proposals) suggested text and compatibility impact (none / additive / breaking).
+    validations: {required: true}
+  - type: input
+    id: ref
+    attributes:
+      label: Spec section or file
+      placeholder: "e.g. spec_v0.7.md §6, conformance/cases/v07-network-local"

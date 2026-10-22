@@ -44,8 +44,21 @@ def page_kind(p: pathlib.Path):
     return lang, "../" * (len(parts) - 1), active
 
 
+REVIEW = {"start": "TBD", "end": "TBD"}  # set both (YYYY-MM-DD) on announcement day; see REVIEW.md
+
+
+def banner(lang: str) -> str:
+    url = f"{GH}/blob/main/REVIEW.md"
+    if lang == "ja":
+        t = f'<b>公開レビュー中（v0.7）</b> 期間：{REVIEW["start"]} 〜 {REVIEW["end"]}（30日間）。ご意見は <a href="{url}">REVIEW.md</a> の手順でお寄せください。'
+    else:
+        t = f'<b>Public review of v0.7</b> · {REVIEW["start"]} – {REVIEW["end"]} (30 days). Feedback welcome: see <a href="{url}">REVIEW.md</a>.'
+    return f'<div class="review-banner"><div class="wrap">{t}</div></div>'
+
+
 def apply_header(html: str, lang: str, rel: str, active: str) -> str:
-    return re.sub(r'<header class="top">.*?</header>', lambda m: header(rel, lang, active), html, count=1, flags=re.S)
+    html = re.sub(r'\n?<div class="review-banner">.*?</div></div>', "", html, flags=re.S)
+    return re.sub(r'<header class="top">.*?</header>', lambda m: header(rel, lang, active) + "\n" + banner(lang), html, count=1, flags=re.S)
 
 
 CARDS_EN = f'''<a class="card" href="schema/"><h3>Schema reference</h3><span>Every field, type and allowed value, with real examples.</span></a>

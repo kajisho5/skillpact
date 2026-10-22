@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Review scope and process (REVIEW.md)
+    url: https://github.com/kajisho5/skillpact/blob/main/REVIEW.md
+    about: Read this first. Period, what feedback is wanted, how decisions are made.

@@ -69,6 +69,8 @@ mk("v08r-bytecode-unlisted", base("v08r-bytecode-unlisted"), files={"scripts/hel
    desc="N1: bytecode is not excluded by default (an unchecked .pyc can shadow a signed .py)", expect=ERR("INTEGRITY_UNLISTED"))
 mk("v08r-exclude-code", base("v08r-exclude-code"), files={"lib/x.sh": "go(){ echo hi; }\n"}, integ=["SKILL.md", "scripts/run.sh"],
    post=lambda c, d: c["integrity"].update(exclude=["lib/**"]), sign=["author"], desc="N2: code files cannot be excluded", expect=ERR("INTEGRITY_UNLISTED"))
+mk("v08r-exclude-pth", base("v08r-exclude-pth"), files={"hook.pth": "import os\n"}, integ=["SKILL.md", "scripts/run.sh"],
+   post=lambda c, d: c["integrity"].update(exclude=["*.pth"]), sign=["author"], desc="N4: start-up hooks (*.pth) cannot be excluded", expect=ERR("INTEGRITY_UNLISTED"))
 mk("v08r-legacy-role-unsigned", base("v08r-legacy-role-unsigned", "0.7"), sign=["author"],
    desc="N3: before 0.8 the role is not signed; valid, but warned and never L3", expect={"warnings_include": ["SIGNATURE_ROLE_UNSIGNED"]})
 (HERE / "cases" / "v08-json-bigint").mkdir(exist_ok=True)

@@ -9,6 +9,7 @@ from skillpact import core, cli
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = ROOT.parent / "samples" / "ffmpeg-skill"
 POL = lambda n: json.loads((ROOT / "policies" / f"{n}.json").read_text())
+FULL_SANDBOX = core._sandbox() in ("bwrap", "seatbelt")   # L2 needs file-system isolation, not only the unshare fallback
 SAMPLE_CI_SIGNER = "sigstore:https://token.actions.githubusercontent.com|https://github.com/kajisho5/skillpact/.github/workflows/sigstore-sign.yml@refs/heads/main"   # keys/public/README.txt
 
 @pytest.fixture
@@ -38,6 +39,7 @@ def test_flagship_mcp_server_matches_contract():
     r = core.mcp_check(SAMPLE, ["python3", "$SKILL_DIR/mcp/server.py"]); assert r["ok"], r["problems"]
     assert r["tools_served"] == r["tools_mapped"] == 42
 
+@pytest.mark.skipif(not FULL_SANDBOX, reason="L2/L3 need a file-system sandbox (bubblewrap)")
 def test_flagship_is_L3():
     assert cli.main(["conformance", str(SAMPLE), "--trusted-key", (ROOT.parent / "keys/public/seventhwell-skill-signing.pub").read_text().strip(), SAMPLE_CI_SIGNER]) == 0
 
@@ -120,12 +122,16 @@ def test_policy_skill_denylist_and_invalid_policy():
 
 def test_compile_targets():
     c, p = C(SAMPLE), POL("solo-dev")
-    # 0.8 errata: conditional effects (ffmpeg-skill's model downloads ask) make the static config follow decision_worst_case
-    cc = core.compile_native(c, p, "claude-code")["config"]; assert "Bash(ffmpeg *)" in cc["permissions"]["ask"]
-    assert "Shell(ffprobe)" not in core.compile_native(c, p, "cursor")["config"]["permissions"]["allow"]   # Cursor prompts for anything not allowed
+    # 0.8 errata: conditional effects (ffmpeg-skill's model downloads ask) make the static config follow decision_worst_case;
+    # proposal #12: per program, so only the conditional speech engines are ask and the declared tools keep their allow
+    cc = core.compile_native(c, p, "claude-code")["config"]
+    assert "Bash(ffmpeg *)" in cc["permissions"]["allow"] and "Bash(whisper *)" in cc["permissions"]["ask"]
+    assert "WebFetch(domain:huggingface.co)" in cc["permissions"]["ask"]   # network still follows the worst case
+    assert "Shell(whisper)" not in core.compile_native(c, p, "cursor")["config"]["permissions"]["allow"]   # Cursor prompts for anything not allowed
     cx = core.compile_native(c, p, "codex")["config"]; assert cx["sandbox_mode"] == "workspace-write" and cx["approval_policy"] == "on-request"
     assert core.compile_native(c, POL("strict-ci"), "gemini-cli")["config"]["rule"][0]["decision"] == "deny"  # unsigned -> deny
-    assert core.compile_native(c, p, "gemini-cli")["config"]["rule"][0]["decision"] == "ask_user"
+    g = {r.get("commandPrefix"): r["decision"] for r in core.compile_native(c, p, "gemini-cli")["config"]["rule"]}
+    assert g["whisper "] == "ask_user" and g["ffmpeg "] == "allow"
 
 def test_cli_exit_codes(capsys):
     assert cli.main(["validate", str(SAMPLE)]) == 0
@@ -282,6 +288,8 @@ def _mock_signer_verifier():
 def test_sigstore_sign_verify_mocked(skill):
     """Keyless signing needs an OIDC token + Fulcio/Rekor; mocked here (no ambient token on the box)."""
     signer, verifier = _mock_signer_verifier()
+    c0 = C(skill); c0["integrity"]["signatures"] = [s for s in c0["integrity"]["signatures"] if s.get("type") != "sigstore"]   # the mock verifier knows only its own entry
+    W(skill, c0)
     sigstore_sig.sign(skill, signer=signer)
     c = C(skill); assert core_valid(c)
     res = core.verify_signatures(c, sigstore_verifier=verifier)
@@ -388,6 +396,7 @@ def test_v04_sample_resigned_with_jcs():
     c = C(SAMPLE); assert c["contract_version"] == core.LATEST
     res = core.verify_signatures(c); assert res and all(res.values())
 
+@pytest.mark.skipif(not FULL_SANDBOX, reason="L2/L3 need a file-system sandbox (bubblewrap)")
 def test_v04_untrusted_signature_not_L3(capsys):
     assert cli.main(["conformance", str(SAMPLE), "--trusted-key", "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="]) == 0
     out = json.loads(capsys.readouterr().out); assert out["level"] == "L2-tested" and "trusted" in out["note"]
@@ -530,3 +539,15 @@ def test_v08_network_only_tests_no_L2(tmp_path, capsys):
     d = _cp(tmp_path, "v08-valid-signed"); c = C(d); c["tests"]["cases"][0]["network"] = True
     c["permissions"]["network"] = {"level": "scoped", "scope": ["example.com"]}; c["capabilities"][0]["effects"].append("network"); W(d, c)
     t = core.run_tests(d); assert not t["network_isolated"]   # E9
+
+def test_v08_network_only_sandbox_no_L2(tmp_path, capsys, monkeypatch):
+    # 0.8.x erratum: the unshare fallback isolates the network but not the file system, so it cannot give L2 / L3
+    d = _cp(tmp_path, "v08-valid-signed"); monkeypatch.setattr(core, "_sandbox", lambda: "unshare")
+    cli.main(["conformance", str(d), "--trusted-key", TPUB]); out = json.loads(capsys.readouterr().out)
+    assert out["level"] == "L1-declared" and out["tests"]["fs_isolated"] is False and "file system" in out["note"]
+
+@pytest.mark.skipif(not _shutil.which("bwrap"), reason="needs bubblewrap")
+def test_v08_bwrap_sandbox_gives_L3(tmp_path, capsys):
+    d = _cp(tmp_path, "v08-valid-signed")
+    cli.main(["conformance", str(d), "--trusted-key", TPUB]); out = json.loads(capsys.readouterr().out)
+    assert out["level"] == "L3-signed" and out["tests"]["sandbox"] == "bwrap" and out["tests"]["fs_isolated"] is True

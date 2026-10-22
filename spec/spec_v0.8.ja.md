@@ -117,7 +117,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 
 ## 8. requirements
 - `binaries[]` / `runtimes[]`：`name`、`version`（例 `>=4.4`）、`check`、`version_regex`、`optional`、`when`、`alternatives`、`features_check`。
-- `packages[]`：`ecosystem`、`name`、`import`。`skills[]`：`name`、`version`、`env`、`optional`。
+- `packages[]`：`ecosystem`、`name`、`version`、`import`、`optional`。0.8.x 正誤：`version` があれば、ランナーはテストの前にインストール済みの版を確かめ、合わなければ要件未達として扱わなければなりません（MUST）。任意（optional）のパッケージでも、入っていれば同じです。解釈できない版指定は不合格です。条件はカンマ区切りで、`==`・`!=`・`>=`・`<=`・`>`・`<`・`~=` を使います（演算子なしは `==`）。侵害されると利用者に害が及ぶパッケージは、作者が版を `==` で固定するべきです（SHOULD）。侵害されたリリースはたいてい新しい版として届くためです（例：PyPI の litellm 1.107.0、2026-10-21）。宣言したパッケージが起動フック（`*.pth`、`sitecustomize.py`、`usercustomize.py`）を入れる場合、ランナーはそれを報告するべきです（SHOULD）。Python は import しなくてもこれらを実行します。参照ランナーが確かめるのは `pypi` のパッケージだけで、自身のインタープリタで確認します。`skills[]`：`name`、`version`、`env`、`optional`。
 - `env[]`：`name`、`required`、`secret`、`description`。秘密の値を契約に書いてはなりません（MUST NOT）。
 
 ## 9. compat
@@ -133,9 +133,11 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
   4. 利用者のホームと、ホストの一時・実行時ディレクトリ（`/tmp`、`/var/tmp`、`/run`、`/dev/shm`）を隠し、ユーザーのファイルを読んだりホストの Unix ソケットに接続したりできないようにする。読み取り専用で見せてよいのは、契約が使うプログラム（exec の scope、requirements、テストと setup のコマンド）を解決したディレクトリとその virtualenv のルートだけ。それ以外の `PATH` の要素やその親（`~/.local` など）は、テストを実行する人が足さない限り隠したまま（参照実装では `SKILLPACT_SANDBOX_KEEP`）（0.8.x 正誤）
   5. 制御端末から切り離した新しいセッションで、標準入力を閉じて実行する（0.8.x 正誤）
 - ランナーはスキルディレクトリの変更を（大きさや時刻ではなく）内容のハッシュで検出し、write の scope に `$SKILL_DIR` がなければそのケースを失敗にしなければなりません（MUST）。ファイルシステムを隔離できない場合は親ディレクトリも監視し、スキルの外への書き込みを報告しなければなりません（MUST）。
-- ネットワークを隔離できないランナーは L2 を出してはなりません（MUST NOT）。L2 には、`network: true` ではない隔離ケースが 1 つ以上通っていることも必要です。
+- ネットワークを隔離できないランナーは L2 を出してはなりません（MUST NOT）。0.8.x 正誤：ファイルシステムを隔離できないランナー（項目 2 と 4。参照実装の `unshare -rn` へのフォールバックなど）も同じです。L2 には、`network: true` ではない隔離ケースが 1 つ以上通っていることも必要です。
+- 0.8.x 正誤（exec の記録）：ランナーは、各ケースが起動したプログラムを、ケースからは見えず止められない形でサンドボックスの外から記録するべきです（SHOULD）（参照実装は Linux の `strace`。`exec_audit: strace` と報告し、使えなければ `none`）。記録した場合、exec の範囲（capability の `effect_scopes.exec` があればそれ、なければ `permissions.exec`）に含まれないプログラムを起動したケースは、プログラムのファイル名で照合して不合格にしなければなりません（MUST）。数えないもの：サンドボックスの起動役と `env`、ケースのコマンド自身、skill のディレクトリや見つけた依存 skill の中のファイル、そしてケースのコマンドがその場のシェル（`sh`・`bash`・`dash`・`zsh` に `-c`）のときに、そのシェルが直接起動した次のユーティリティ：basename, cat, cmp, cp, cut, diff, dirname, echo, false, grep, head, ls, md5sum, mkdir, mv, printf, readlink, realpath, rm, sha1sum, sha256sum, sleep, sort, stat, tail, test, `[`, touch, tr, true, uniq, wc。これらがさらに起動したものは数えます。この記録は検出であって防止ではありません。ケースが不合格になる時点で、プログラムはすでに実行されています。
+- 0.8.x 正誤（通信先の許可リスト）：`network: true` のケースは、そのケースのネットワーク範囲にあるホストにだけ通信できるべきです（SHOULD）。範囲は capability の `effect_scopes.network` があればそれ、なければ `permissions.network.scope` で、capability の条件付きネットワーク効果の範囲も含みます（`level: any` はすべてのホストを許可）。参照ランナー（bubblewrap）では、こうしたケースに自前のネットワークインターフェースを与えません。外へ出る唯一の道はサンドボックス内 `127.0.0.1` の HTTP プロキシで（`HTTP_PROXY`・`HTTPS_PROXY`・`ALL_PROXY` と小文字の同名変数に設定）、これがサンドボックス外のプロキシに中継され、宣言したホストへの `CONNECT` と平文 HTTP だけを通します。これを行うランナーは、宣言していないホストを求めたケースを不合格にしなければならず（MUST）、求められたホストを報告するべきです（SHOULD）（参照実装：`network_hosts`、`network_egress: allowlist`）。プロキシ変数を無視するプログラムはネットワークを使えません（安全側に失敗）。他のランナーモードは `network_egress: open` と報告します。
 - スキップしたケースは失敗ではありませんが、件数を報告しなければなりません（MUST）。
-- 参照ランナーは Linux では bubblewrap（`bwrap`）を使い、なければ `unshare -rn`（ネットワークのみ。`fs_isolated: false` と報告）を使います。macOS では Seatbelt（`/usr/bin/sandbox-exec`、**試験的**）を使い、書き込みは `$WORKDIR`（宣言があれば `$SKILL_DIR` も）だけ、`network: true` 以外は通信をすべて拒否します。Apple は `sandbox-exec` を非推奨としていますが、現在も動作し、他のエージェントのサンドボックスでも使われています。0.8.x 正誤：Seatbelt のプロファイルは `network: true` のケースでも Unix ソケットへの接続（システムの DNS リゾルバを除く）を拒否します。ただし Mach/XPC の問い合わせは許したままなので、ケースが launchd のサービス（`open` など）にサンドボックスの外での処理を頼めます。このため Seatbelt は**試験的**のままで、L2 の要件をすべて満たすのは Linux の bubblewrap だけです。Windows には対応する方式がない（WSL2 かコンテナを使う）ため、L2 になりません。
+- 参照ランナーは Linux では bubblewrap（`bwrap`）を使い、なければ `unshare -rn`（ネットワークのみ。`fs_isolated: false` と報告し、L2 は出しません。0.8.x 正誤）を使います。macOS では Seatbelt（`/usr/bin/sandbox-exec`、**試験的**）を使い、書き込みは `$WORKDIR`（宣言があれば `$SKILL_DIR` も）だけ、`network: true` 以外は通信をすべて拒否します。Apple は `sandbox-exec` を非推奨としていますが、現在も動作し、他のエージェントのサンドボックスでも使われています。0.8.x 正誤：Seatbelt のプロファイルは `network: true` のケースでも Unix ソケットへの接続（システムの DNS リゾルバを除く）を拒否します。ただし Mach/XPC の問い合わせは許したままなので、ケースが launchd のサービス（`open` など）にサンドボックスの外での処理を頼めます。このため Seatbelt は**試験的**のままで、L2 の要件をすべて満たすのは Linux の bubblewrap だけです。Windows には対応する方式がない（WSL2 かコンテナを使う）ため、L2 になりません。
 
 ## 11. integrity と署名
 - `integrity.algorithm` は `sha256`。`integrity.files` は相対パス → 16 進小文字のハッシュ。検証者は載っている全ファイルを照合しなければなりません（MUST、`INTEGRITY_MISMATCH`、`INTEGRITY_MISSING`）。
@@ -154,7 +156,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 
 ### 11.2 ファイルの網羅（0.8 から）
 - `integrity.files` にはスキルディレクトリ内のすべての通常ファイルを載せなければなりません（MUST）。除外できるのは `skill.contract.json`、既定の除外（`.git/**`、`**/.DS_Store`）、任意の `integrity.exclude` のパターンだけです。0.8.x 正誤：Python は署名されたソースではなく未検証のバイトコードを実行しうるため、`__pycache__` と `*.pyc` は除外しなくなりました。ハッシュを取る前にバイトコードを消してください。
-- 次の保護ファイルは必ず載せ、除外できません：`SKILL.md`、`**/SKILL.md`、`**/CLAUDE.md`、`**/AGENTS.md`、`**/GEMINI.md`、`**/.mcp.json`、`.claude-plugin/**`、`.claude/**`、`.cursor/**`、`.codex/**`、`.gemini/**`、`.agents/**`、`hooks/**`、`package.json`、`pyproject.toml`、entry・テスト・setup に `$SKILL_DIR/...` として出てくるファイル、および（0.8.x 正誤）コードとバイトコードのファイル（`*.py`、`*.pyc`、`*.sh`、`*.js`、`*.ts`、`*.so`、`*.dll`、`*.jar`、`*.wasm` など。一覧は参照実装）。契約をスキルディレクトリの外に置いた場合も網羅を確かめます。
+- 次の保護ファイルは必ず載せ、除外できません：`SKILL.md`、`**/SKILL.md`、`**/CLAUDE.md`、`**/AGENTS.md`、`**/GEMINI.md`、`**/.mcp.json`、`.claude-plugin/**`、`.claude/**`、`.cursor/**`、`.codex/**`、`.gemini/**`、`.agents/**`、`hooks/**`、`package.json`、`pyproject.toml`、entry・テスト・setup に `$SKILL_DIR/...` として出てくるファイル、および（0.8.x 正誤）コードとバイトコードのファイル（`*.py`、`*.pyc`、`*.pth`、`*.sh`、`*.js`、`*.ts`、`*.so`、`*.dll`、`*.jar`、`*.wasm` など。一覧は参照実装）。契約をスキルディレクトリの外に置いた場合も網羅を確かめます。
 - 載っていないファイル：`INTEGRITY_UNLISTED`（0.8 からエラー、それより前は警告）。`files` に `SKILL.md` がない：`INTEGRITY_EMPTY`（0.8）。
 - パスは相対の POSIX パスで、`.`・`..`・空のセグメント、バックスラッシュ、制御文字を含まず、1024 バイト・32 セグメント以内、全体で 10 000 件以内。スキルディレクトリ内や載っているパスの途中にあるシンボリックリンクは拒否します（`INTEGRITY_PATH`、全版）。
 - どの版でも、`INTEGRITY_UNLISTED` か `INTEGRITY_PATH` の指摘が 1 つでもあれば L3 にしてはなりません（MUST NOT）。
@@ -175,7 +177,9 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - `require_signature`：照合器はファイル（§11.2 の網羅を含む integrity）を確かめ、信頼済みの **author** 署名を求めなければなりません（MUST）。満たさなければ拒否します。
 ### 13.1 変換
 - `policy-compile` は Claude Code・Cursor・Codex・Gemini CLI の設定を出力し、各ハーネスの公開スキーマ（なければ文書から起こしたスキーマ）で検証します。変換先が表せないものは `lossy` に挙げなければなりません（MUST）。
+- 提案 #12（0.8.x）：コマンド単位の規則を持つ変換先（Claude Code の `Bash(...)`、Cursor の `Shell(...)`、Gemini CLI の `commandPrefix`）では、変換器は exec の範囲にある各プログラムに、そのプログラムだけを範囲とする exec 効果の判定（ポリシーの規則、既定値、skill の `confirm`）を与えるべきです（SHOULD）。効果全体で 1 つの最悪ケースにまとめません。条件付きの効果だけが実行するプログラムには、そのプログラム自身の判定を与えます。
 - 変換先が deny や ask を表せない場合、出力は判定と同じかそれより厳しくなければなりません（MUST）（例：Codex は `approval_policy: on-request`。`never` にはしない）。変換した設定は条件付きの効果を含む `decision_worst_case` に従います（0.8.x 正誤）。
+- 0.8.x 正誤：コマンド単位の allow（例：Claude Code の `Bash(python3 *)`）によって、宣言したプログラムを任意の引数で実行できるようになる場合、変換器はそれを `lossy` に挙げなければならず（MUST）、そのプログラムが任意のコードを実行できるもの（インタープリタやシェル）であればその旨も書くべきです（SHOULD）。そうした allow は `exec: any` と同じ広さになるためです。
 - `export --format hushspec|rego` は実行時ポリシーの文書を出力します。
 
 ### 13.2 （欠番）
@@ -190,7 +194,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 |---|---|---|
 | `exfiltration`（持ち出し） | 秘密の scope（`~/.ssh`、`.env`、認証情報、トークン、鍵など）、広い scope（`/**`、`~/**`）、`level: any` のどれかの read、**かつ** `@local` 以外の network か send | 高 |
 | `persistence`（居座り） | `$WORKDIR`・`$OUTPUT`・`$TMPDIR` の外への write（または `level: any`）、**かつ** exec | 中 |
-| `spend_untrusted` | spend、**かつ** 信頼済みの author 署名がないスキル（2 つ以上の組） | 高 |
+| `spend_untrusted` | spend、**かつ** ファイルの照合に通る信頼済みの author 署名がないスキル（2 つ以上の組。0.8.x 正誤：ファイルが §11 に通らない契約の署名は数えない） | 高 |
 
   役割は 1 つのスキルが担うことも、別々のスキルが担うこともあります（`cross_skill`）。秘密の scope のパターンは参照実装とベクトル `conformance/vectors/compose.json` にあります。
 - ポリシー：任意の `compositions`（スキーマ `policy-v0.8-r2.json`）で、パスごとに `allow`・`ask`・`deny` を決めます。照合器に複数の契約を渡すと、スキルごとの結果はそのままで、判定のあるパスごとに 1 件を足します。組の判定は、その中でいちばん厳しいものです。`compositions` がなければ、スキルを一つずつ確かめた結果と同じです。
@@ -223,7 +227,7 @@ L3 の意味は「このファイル一式は、あなたが信頼する人が�
 | ハーネス | `decision_worst_case` に従い、実行前に integrity を確かめ直すべき（SHOULD） |
 
 ### 16.3 適合スイート
-`conformance/manifest.json` と `conformance/cases/<id>/`（0.8 と 0.8.x 正誤で 48 ケース）。適合を名乗る検証者は全ケースに合格しなければなりません（MUST）：`python3 conformance/run.py --cmd '<validator> {dir}'`。0.8 のケースは `conformance/gen_v08.py` が作ります。Python の参照実装と TypeScript 実装の両方が全ケースに合格しています。
+`conformance/manifest.json` と `conformance/cases/<id>/`（0.8 と 0.8.x 正誤で 49 ケース）。適合を名乗る検証者は全ケースに合格しなければなりません（MUST）：`python3 conformance/run.py --cmd '<validator> {dir}'`。0.8 のケースは `conformance/gen_v08.py` が作ります。Python の参照実装と TypeScript 実装の両方が全ケースに合格しています。
 
 ## 17. バージョン・安定性・非推奨
 - 検証者は知っているすべての版を受け付け、知らない major 版を拒否しなければなりません（MUST、`CONTRACT_VERSION_UNSUPPORTED`）。0.x の間は、知らない minor 版も知らない major 版として扱います。

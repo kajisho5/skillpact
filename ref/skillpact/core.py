@@ -1,6 +1,6 @@
 """SkillPact reference implementation (spec 0.8): validate, hash, sign/verify, run declared tests, match against a harness policy."""
 from __future__ import annotations
-import base64, ipaddress, hashlib, json, math, os, re, shutil, subprocess, tempfile, time
+import base64, ipaddress, hashlib, json, math, os, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator
@@ -49,7 +49,7 @@ PROTECTED = ("SKILL.md", "**/SKILL.md", "**/CLAUDE.md", "**/AGENTS.md", "**/GEMI
              ".claude/**", ".cursor/**", ".codex/**", ".gemini/**", ".agents/**", "hooks/**", "package.json", "pyproject.toml")
 # 0.8 errata: code and bytecode can never be excluded either (an excluded module could be imported or sourced by a listed entry)
 CODE_PROTECTED = tuple(f"**/*.{e}" for e in ("py", "pyc", "pyo", "pyd", "sh", "bash", "zsh", "fish", "js", "mjs", "cjs", "ts", "mts", "cts", "rb", "pl", "pm",
-                       "php", "lua", "ps1", "psm1", "bat", "cmd", "exe", "so", "dylib", "dll", "jar", "class", "wasm"))
+                       "php", "lua", "ps1", "psm1", "bat", "cmd", "exe", "so", "dylib", "dll", "jar", "class", "wasm", "pth"))
 PROTECTED = PROTECTED + CODE_PROTECTED
 BYTECODE = ("**/__pycache__/**", "**/*.pyc", "**/*.pyo")
 PATH_EFFECTS = ("read", "write")
@@ -500,6 +500,40 @@ def _ver_ok(found, spec):
     return {">=": f >= want, ">": f > want, "==": f[:len(want)] == want, "<=": f <= want, "<": f < want}[op]
 
 
+PKG_CLAUSE = re.compile(r"^\s*(==|!=|>=|<=|~=|>|<)?\s*(\d+(?:\.\d+)*)\s*$")
+
+
+def _pkg_version_ok(found, spec):
+    """0.8.x erratum: requirements.packages[].version, e.g. '==1.106.2' or '>=1.0,<2'. Every comma-separated clause must hold;
+    a clause that cannot be parsed fails (a pin that is not understood must not pass silently)."""
+    f = _ver_tuple(found)
+    for clause in spec.split(","):
+        m = PKG_CLAUSE.match(clause)
+        if not m: return False
+        op, want = m.group(1) or "==", _ver_tuple(m.group(2))
+        if op == "~=":
+            if len(want) < 2 or f < want or f[:len(want) - 1] != want[:-1]: return False
+        elif op == "!=":
+            if f[:len(want)] == want: return False
+        elif not _ver_ok(found, op + m.group(2)): return False
+    return True
+
+
+STARTUP_HOOKS = ("sitecustomize.py", "usercustomize.py")
+
+
+def _dist(name):
+    import importlib.metadata as md
+    try: return md.distribution(name)
+    except md.PackageNotFoundError: return None
+
+
+def startup_hooks(dist) -> list:
+    """Files a distribution installs at the top of site-packages that Python runs at start-up (*.pth, sitecustomize.py,
+    usercustomize.py): the litellm 1.107.0 payload (2026-10-21) used both, so it ran without being imported."""
+    return sorted(str(f) for f in (dist.files or []) if "/" not in str(f) and (str(f).endswith(".pth") or str(f) in STARTUP_HOOKS))
+
+
 def check_requirements(c) -> list:
     out = []
     for b in c.get("requirements", {}).get("binaries", []) + c.get("requirements", {}).get("runtimes", []):
@@ -528,8 +562,16 @@ def check_requirements(c) -> list:
     import importlib.util
     for pk in c.get("requirements", {}).get("packages", []):
         if pk["ecosystem"] == "pypi":
-            ok = importlib.util.find_spec(pk.get("import") or pk["name"].replace("-", "_").lower()) is not None
-            out.append({"name": f"pypi:{pk['name']}", "ok": ok or pk.get("optional", False), "found": ok, "kind": "package"})
+            found = importlib.util.find_spec(pk.get("import") or pk["name"].replace("-", "_").lower()) is not None
+            d = _dist(pk["name"]) if found else None
+            res = {"name": f"pypi:{pk['name']}", "found": found, "kind": "package", "required": pk.get("version"), "version": d.version if d else None}
+            ok = found
+            if found and pk.get("version"):   # 0.8.x erratum: an installed package must match its pin, even when optional
+                if not d: ok, res["reason"] = False, "installed version unknown (no distribution metadata)"
+                elif not _pkg_version_ok(d.version, pk["version"]): ok, res["reason"] = False, f"installed {d.version} does not satisfy {pk['version']}"
+            if d and startup_hooks(d): res["startup_hooks"] = startup_hooks(d)
+            res["ok"] = ok or (not found and pk.get("optional", False))
+            out.append(res)
     return out
 
 
@@ -641,8 +683,9 @@ def _seatbelt_profile(work, rw_skill, net, keep=()):
     return "\n".join(prof)
 
 
-def _wrap(cmd, mode, net, work, rw_skill, ro=(), programs=()):
-    """ro: paths to re-expose read-only under the masked roots (the skill directory, dependency skills)."""
+def _wrap(cmd, mode, net, work, rw_skill, ro=(), programs=(), extra=()):
+    """ro: paths to re-expose read-only under the masked roots (the skill directory, dependency skills).
+    extra: further bwrap arguments (the egress directory of a network case)."""
     if mode == "bwrap":
         w = ["bwrap", "--die-with-parent", "--new-session", "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--unshare-cgroup-try",
              "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc"]
@@ -650,11 +693,101 @@ def _wrap(cmd, mode, net, work, rw_skill, ro=(), programs=()):
         for k in _keep_paths(ro, list(programs) + cmd[:1]): w += ["--ro-bind", k, k]
         w += ["--bind", str(work), str(work)]
         if rw_skill: w += ["--bind", rw_skill, rw_skill]
+        w += list(extra)
         if not net: w += ["--unshare-net"]
         return w + ["--chdir", str(work), "--"] + cmd
     if mode == "unshare" and not net: return ["unshare", "-rn"] + cmd
     if mode == "seatbelt": return [SEATBELT, "-p", _seatbelt_profile(work, rw_skill, net, _keep_paths(ro, list(programs) + cmd[:1])), "--"] + cmd
     return cmd
+
+
+# 0.8.x erratum (s10): programs a case starts are recorded and compared with permissions.exec. The tracer runs outside the
+# sandbox, so a case can neither see nor stop it. Detection only: the program still runs; the case fails afterwards.
+EXEC_LAUNCHERS = ("bwrap", "unshare", "sandbox-exec", "env", "skillpact-egress")   # sandbox wrappers, `#!/usr/bin/env` shebangs, the egress relay
+TEST_SHELLS = ("sh", "bash", "dash", "zsh")
+# file and text utilities an inline test shell may use to set up and check results; nothing else is exempt
+TEST_UTILS = ("basename", "cat", "cmp", "cp", "cut", "diff", "dirname", "echo", "false", "grep", "head", "ls", "md5sum", "mkdir", "mv",
+              "printf", "readlink", "realpath", "rm", "sha1sum", "sha256sum", "sleep", "sort", "stat", "tail", "test", "[", "touch", "tr",
+              "true", "uniq", "wc")
+_EXECVE = re.compile(r'^execve\("((?:[^"\\]|\\.)*)".*= 0$')
+_FORK = re.compile(r"^(?:clone3?|v?fork)\(.*\)\s+= (\d+)(?: /\* (\d+) in strace's PID NS \*/)?$")   # host pid (bwrap has its own pid namespace)
+
+
+def _exec_tracer():
+    """strace on Linux, or None (exec audit unavailable). SKILLPACT_EXEC_AUDIT=0 turns the audit off."""
+    if os.environ.get("SKILLPACT_EXEC_AUDIT") == "0" or not shutil.which("strace"): return None
+    try: ok = subprocess.run(["strace", "-f", "-qq", "--decode-pids=pidns", "-e", "trace=execve", "-o", os.devnull, "true"], capture_output=True, timeout=20).returncode == 0
+    except (OSError, subprocess.TimeoutExpired): ok = False
+    return shutil.which("strace") if ok else None
+
+
+def _traced(tracer, cmd, out_dir):
+    return [tracer, "-f", "-ff", "-qq", "--decode-pids=pidns", "-s", "4096", "-e", "trace=execve,clone,clone3,fork,vfork", "-e", "signal=none",
+            "-o", str(Path(out_dir) / "t")] + cmd
+
+
+def _trace_events(out_dir) -> dict:
+    """{pid: [("exec", path) | ("fork", child_pid)]} in order, from strace -ff files t.<pid>."""
+    ev = {}
+    for f in Path(out_dir).glob("t.*"):
+        try: pid = int(f.suffix[1:])
+        except ValueError: continue
+        rows = ev.setdefault(pid, [])
+        for line in f.read_text(errors="replace").splitlines():
+            m = _EXECVE.match(line)
+            if m: rows.append(("exec", m.group(1).encode().decode("unicode_escape", "replace"))); continue
+            m = _FORK.match(line)
+            if m: rows.append(("fork", int(m.group(2) or m.group(1))))
+    return ev
+
+
+def skill_execs(events, inline_shell) -> list:
+    """Programs started by the skill, from a process tree. Not counted: sandbox launchers, the case command itself and,
+    when the case command is an inline shell (`sh -c ...`), the TEST_UTILS that shell starts directly (test plumbing such
+    as cp, cmp, sha256sum). Any other program, and everything started below the shell's direct children, is counted."""
+    children = {c for rows in events.values() for k, c in rows if k == "fork"}
+    stack = [(p, "wrapper") for p in sorted(set(events) - children)]
+    seen, out = set(), []
+    while stack:
+        pid, state = stack.pop()
+        if pid in seen: continue
+        seen.add(pid)
+        for kind, val in events.get(pid, []):
+            if kind == "fork": stack.append((val, state)); continue
+            name = os.path.basename(val)
+            if name in EXEC_LAUNCHERS: continue                              # state unchanged: launchers are transparent
+            if state == "wrapper": state = "shell" if inline_shell else "skill"   # the case command
+            elif state == "shell":                                           # started by the test's own shell
+                state = "skill"
+                if name not in TEST_UTILS: out.append(val)
+            else: out.append(val)
+    return out
+
+
+def undeclared_execs(paths, c, trusted_dirs=(), cap=None) -> list:
+    """Program names that the exec scope does not cover: the capability's effect_scopes.exec when it narrows the scope,
+    else permissions.exec. Files inside the skill or its located dependency skills (trusted_dirs) are the skill's own
+    code and are not counted."""
+    perm = c["permissions"]["exec"]; scope = perm.get("scope", [])
+    if cap and "exec" in cap.get("effect_scopes", {}): perm, scope = {"level": "scoped"}, cap["effect_scopes"]["exec"]
+    roots = [os.path.realpath(d).rstrip("/") + "/" for d in trusted_dirs]
+    out = []
+    for p_ in paths:
+        name = os.path.basename(p_)
+        if any(os.path.realpath(p_).startswith(r) for r in roots): continue
+        if perm["level"] == "any" or any(glob_match(name, s_) for s_ in scope): continue
+        if name not in out: out.append(name)
+    return sorted(out)
+
+
+def network_scope(c, cap=None):
+    """(scope, level) a network case may reach: the capability's effect_scopes.network if present, else
+    permissions.network.scope, plus the scopes of the capability's conditional network effects."""
+    pe = c["permissions"]["network"]
+    scope = list((cap or {}).get("effect_scopes", {}).get("network") or pe.get("scope", []))
+    for ce in (cap or {}).get("conditional_effects", []):
+        if ce["effect"] == "network": scope += [s_ for s_ in ce.get("scope", []) if s_ not in scope]
+    return scope, pe["level"]
 
 
 def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, skills_path=(), pass_env=()) -> dict:
@@ -676,6 +809,7 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
     ro = [str(skill_dir)] + list(skill_env.values()) + ([str(Path(contract_path).resolve().parent)] if contract_path else [])
     progs = _programs(c)
     wrap = lambda cmd, net=False: _wrap(cmd, mode, net, work, str(skill_dir) if skill_dir_writes_allowed else None, ro, progs)
+    tracer = _exec_tracer() if sys.platform.startswith("linux") else None
     results = []
     watch = [skill_dir] + ([] if mode in ("bwrap", "seatbelt") else [skill_dir.parent])
     before = {str(d): _snapshot(d) for d in watch}
@@ -691,7 +825,15 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
                 why = "not allowed (use --pass-env)" if all(os.environ.get(v) for v in t.get("skip_unless_env", [])) else "not set"
                 results.append({"id": t["id"], "capability": t.get("capability"), "ok": True, "skipped": True, "skip_reason": f"skip_unless_env {why}", "failures": [], "seconds": 0, "network_sandboxed": False, "stderr_tail": ""}); continue
             cenv = {**env, **{v: os.environ[v] for v in t.get("skip_unless_env", [])}, **{k: _subst(v, env) for k, v in t.get("env", {}).items()}}
-            cmd = wrap([_subst(x, env) for x in t["run"]], bool(t.get("network")))
+            run_ = [_subst(x, env) for x in t["run"]]; eg = None
+            if t.get("network") and mode == "bwrap":   # 0.8.x erratum: network cases reach declared hosts only
+                from . import egress
+                sc, lvl = network_scope(c, caps.get(t.get("capability")))
+                eg = egress.Egress(sc, lvl); cenv.update(eg.env())
+                cmd = _wrap(eg.wrap(run_), mode, False, work, str(skill_dir) if skill_dir_writes_allowed else None, ro + eg.keep(), progs, eg.bwrap_args())
+            else: cmd = wrap(run_, bool(t.get("network")))
+            trace_dir = tempfile.mkdtemp(prefix="skilltrace-") if tracer else None
+            if tracer: cmd = _traced(tracer, cmd, trace_dir)
             t0 = time.time(); fails = []
             try:
                 p = subprocess.run(cmd, cwd=work, env=cenv, capture_output=True, text=True, stdin=subprocess.DEVNULL, start_new_session=True, timeout=t.get("timeout_s", 120) * float(os.environ.get("SKILLPACT_TIMEOUT_SCALE", "1")))
@@ -728,7 +870,17 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
                 if f.get("exists", True) and not fp.exists(): fails.append(f"file missing: {f['path']}")
                 elif not f.get("exists", True) and fp.exists(): fails.append(f"file should not exist: {f['path']}")
                 elif fp.exists() and fp.stat().st_size < f.get("min_bytes", 0): fails.append(f"file too small: {f['path']}")
-            results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails,
+            undeclared = []
+            if tracer:
+                inline = len(t["run"]) > 1 and os.path.basename(t["run"][0]) in TEST_SHELLS and t["run"][1] == "-c"
+                undeclared = undeclared_execs(skill_execs(_trace_events(trace_dir), inline), c, [str(skill_dir)] + list(skill_env.values()), caps.get(t.get("capability")))
+                shutil.rmtree(trace_dir, ignore_errors=True)
+                if undeclared: fails.append(f"undeclared exec (not in permissions.exec): {', '.join(undeclared)}")
+            hosts = None
+            if eg:
+                hosts = {"allowed": eg.proxy.allowed_hosts, "denied": eg.proxy.denied_hosts}; eg.close()
+                if hosts["denied"]: fails.append(f"undeclared host (not in the network scope): {', '.join(hosts['denied'])}")
+            results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails, "exec_undeclared": undeclared, **({"network_hosts": hosts} if hosts else {}),
                             "seconds": round(time.time() - t0, 2), "network_sandboxed": bool(mode and not t.get("network")),
                             "stderr_tail": errout[-300:] if fails else ""})
     finally:
@@ -744,7 +896,7 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
     t_net = {t["id"]: bool(t.get("network")) for t in c.get("tests", {}).get("cases", [])}
     isolated_pass = sum(1 for r in results if r["ok"] and not r.get("skipped") and not t_net.get(r["id"]))
     res = {"ok": not setup_error and all(r["ok"] for r in results) and not violations and not outside, "requirements": reqs, "cases": results,
-           "sandbox": mode or "none", "fs_isolated": mode in ("bwrap", "seatbelt"), "network_isolated": bool(mode) and isolated_pass > 0,
+           "sandbox": mode or "none", "exec_audit": "strace" if tracer else "none", "network_egress": "allowlist" if mode == "bwrap" else "open", "fs_isolated": mode in ("bwrap", "seatbelt"), "network_isolated": bool(mode) and isolated_pass > 0,
            "skill_dir_writes": violations, "outside_writes": outside,
            "network_cases": sum(1 for r in results if t_net.get(r["id"]) and not r.get("skipped")),
            "passed": sum(r["ok"] and not r.get("skipped") for r in results), "skipped": sum(bool(r.get("skipped")) for r in results), "total": len(results)}
@@ -819,6 +971,17 @@ def _native_path(sc, style):
     return None
 
 
+INTERPRETERS = r"(python[0-9.]*|pypy[0-9.]*|node|deno|bun|ruby|perl|php|lua|sh|bash|dash|zsh|fish|pwsh|powershell|osascript|java|npx|uvx|uv|pipx|env|xargs|find|awk|gawk)"
+def program_decision(contract, policy, prog) -> str:
+    """Decision for one program of the exec scope: the policy rules and defaults applied to an exec effect scoped to that
+    program alone, with the skill's own exec settings (confirm, level). A program that only a conditional effect may run
+    gets its own decision too, so it no longer drags the declared programs down to its worst case."""
+    pe = contract["permissions"]["exec"]
+    sub = {"skill": contract["skill"], "permissions": {**contract["permissions"], "exec": {**pe, "level": "scoped", "scope": [prog]}},
+           "capabilities": [{"id": "exec", "summary": "", "effects": ["exec"]}]}
+    return match_policy(sub, {**policy, "skills": {}, "require_signature": False})["capabilities"][0]["decision"]
+
+
 def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, contract_path=None) -> dict:
     """Translate the allow/ask/deny result for one skill into a harness's native config fragment.
     Returns {"config": <native config>, "lossy": [what could not be expressed]} (s13.1: lossy MUST be reported)."""
@@ -833,15 +996,22 @@ def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, co
         for e in c_["effects"] + c_.get("conditional", []): worst[e["effect"]] = max(worst.get(e["effect"], "allow"), e["decision"], key=ORDER.get)  # 0.8 errata: conditional too
     skill_denied = m["decision"] == "deny" and not m["capabilities"]
     bucket = lambda eff: "deny" if skill_denied else worst.get(eff, "allow")
+    prog_bucket = lambda c_: "deny" if skill_denied else program_decision(contract, policy, c_)   # 0.8.x proposal #12
     used = lambda eff: lvl(eff) != "none"
     by = {x_["capability"]: x_["decision"] for x_ in m["capabilities"]}
     if skill_denied: lossy.append(f"skill is denied ({m['reason']}): do not install it; the fragment below only restricts what it could do")
     for eff in ("spend", "send"):
         if used(eff): lossy.append(f"{eff}: {target} has no native permission for {eff}; decision '{bucket(eff)}' is only enforced through exec/network/MCP rules")
     sb = policy.get("sandbox", {})
+    allowed_cmds = [c_ for c_ in cmds if prog_bucket(c_) == "allow"]   # per program (#12)
+    if allowed_cmds and target in ("claude-code", "cursor", "gemini-cli"):
+        interp = [c_ for c_ in allowed_cmds if re.fullmatch(INTERPRETERS, c_)]
+        lossy.append(f"exec: allowing {', '.join(allowed_cmds)} lets the agent run these programs with any arguments, not only the skill's own calls"
+                     + (f"; {', '.join(interp)} can run arbitrary code (e.g. `python3 -c ...`), so this allow is as wide as exec: any" if interp else "")
+                     + f"; {target} cannot tie a command rule to one skill")
     if target == "claude-code":
         out = {"allow": [], "ask": [], "deny": []}
-        for c_ in cmds: out[bucket("exec")].append(f"Bash({c_} *)")
+        for c_ in cmds: out[prog_bucket(c_)].append(f"Bash({c_} *)")
         if used("exec") and lvl("exec") == "any": out[bucket("exec")].append("Bash")
         for h in hosts: out[bucket("network")].append(f"WebFetch(domain:{h})")
         if used("network"):
@@ -864,7 +1034,7 @@ def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, co
     if target == "cursor":
         out = {"allow": [], "deny": []}   # Cursor has no ask list: anything not allowed prompts
         put = lambda d, rule: out[d].append(rule) if d in out else None
-        for c_ in cmds: put(bucket("exec"), f"Shell({c_})")
+        for c_ in cmds: put(prog_bucket(c_), f"Shell({c_})")
         for h in hosts: put(bucket("network"), f"WebFetch({h})")
         if used("network") and lvl("network") == "any": put(bucket("network"), "WebFetch(*)")
         for eff, tool in (("write", "Write"), ("read", "Read")):
@@ -891,7 +1061,7 @@ def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, co
         return {"config": cfg, "lossy": lossy}
     if target == "gemini-cli":
         g = {"allow": "allow", "ask": "ask_user", "deny": "deny"}
-        rules = [{"toolName": "run_shell_command", "commandPrefix": f"{c_} ", "decision": g[bucket("exec")], "priority": 100} for c_ in cmds]
+        rules = [{"toolName": "run_shell_command", "commandPrefix": f"{c_} ", "decision": g[prog_bucket(c_)], "priority": 100} for c_ in cmds]
         if cmds: lossy.append("exec: commandPrefix 'cmd ' does not match the bare command without arguments (falls back to the default)")
         if not used("write"): pass
         elif lvl("write") == "any" or bucket("write") != "allow": rules.append({"toolName": ["write_file", "replace"], "decision": g[bucket("write")], "priority": 100})
@@ -992,6 +1162,15 @@ def trusted_author(c, trusted) -> bool:
     if _vt(c.get("contract_version", "0.1")) < V08: return False   # 0.8 errata: role is unsigned before 0.8 (relabel attack)
     res, roles = verify_signatures(c), signature_roles(c)
     return any(ok and k in trusted and roles.get(k, "author") == "author" for k, ok in res.items())
+
+
+def trusted_files(c, skill_dir, contract_path=None, trusted=()) -> bool:
+    """A trusted author signature over files that verify: integrity matches with full coverage (s11.2) and the contract
+    has no validator errors. Used where a skill counts as trusted, e.g. composition (s13.3)."""
+    if not c.get("integrity") or skill_dir is None: return False
+    v = validate(skill_dir, contract_path)
+    if not v["ok"] or any(f["code"] in ("INTEGRITY_UNLISTED", "INTEGRITY_PATH") for f in v["findings"]): return False
+    return trusted_author(c, set(trusted))
 
 
 def expand_scope(scope):

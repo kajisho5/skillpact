@@ -12,6 +12,10 @@ c["skill"].update({"license": "MIT", "authors": ["kajisho5"], "homepage": "https
 c["compat"] = {"agents": {"claude-code": {"status": "expected", "notes": "SKILL.md + MCP stdio"}, "cursor": {"status": "expected"}, "codex": {"status": "expected"},
                           "gemini-cli": {"status": "expected"}, "grok-bot": {"status": "tested", "tested_at": "2026-10-21", "notes": "box: Debian 13, ffmpeg 7.1, python 3.13"}},
                "os": ["linux", "macos"], "interfaces": ["skill-md", "cli", "mcp-stdio"]}
+c["permissions"]["exec"]["scope"].append("fc-match")  # found by the exec audit (0.8.x): scripts/_common/fonts.py asks fontconfig for font files
+for cap in c["capabilities"]:
+    if "exec" in cap.get("effect_scopes", {}): cap["effect_scopes"]["exec"].append("fc-match")   # fonts.py is shared by every tool
+    if cap["id"] == "media.check" and "ffmpeg" not in cap["effect_scopes"]["exec"]: cap["effect_scopes"]["exec"].insert(0, "ffmpeg")   # exec audit: check.py measures loudness with ffmpeg
 c["requirements"]["runtimes"].append({"name": "node", "version": ">=16", "check": ["node", "--version"], "optional": True, "when": "npx installer only"})
 c["requirements"]["env"] = [{"name": "FFMPEG_SKILL_HW", "required": False, "description": "1 = Apple GPU encoders by default"},
                             {"name": "FFMPEG_SKILL_MCP_FULL", "required": False, "description": "1 = MCP tools/list shows all 42 tools"},

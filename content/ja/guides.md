@@ -10,8 +10,8 @@
 
 ## スキルの作者
 1. `python3 -m skillpact.cli init <skill_dir> -o skill.contract.json` で下書きを作ります。すべての項目を確かめ、`TODO(...)` と `x.init.uncertain` を消します（残すと `UNCONFIRMED_DRAFT`）。
-2. 範囲を狭くします（`/**` ではなく `$WORKDIR/**`）。spend と send は正直に宣言します。
-3. ネットなしで動くテストを足し、`skillpact test <skill_dir>` で実行します。Linux は bubblewrap を入れると完全なサンドボックスになります。macOS は標準の Seatbelt（`sandbox-exec`）を自動で使います（試験的）。Windows は WSL2 か Linux コンテナの中で実行してください。テストからはホーム、`/tmp`、ホストの環境変数が見えません。`skip_unless_env` のケースに変数を渡すときは `--pass-env NAME` を付けます。
+2. 範囲を狭くします（`/**` ではなく `$WORKDIR/**`）。spend と send は正直に宣言します。依存パッケージは版を固定します（`requirements.packages` に `"version": "==1.106.2"`）。それ以外の版が入っているとテストは動きません。
+3. ネットなしで動くテストを足し、`skillpact test <skill_dir>` で実行します。Linux は bubblewrap を入れると完全なサンドボックスになります。入れない場合もテストは動きます（ネットワークのみ隔離）が、L2 / L3 にはなりません。strace も入れると、exec の範囲にないプログラムを起動したケースが不合格になります。macOS は標準の Seatbelt（`sandbox-exec`）を自動で使います（試験的）。Windows は WSL2 か Linux コンテナの中で実行してください。`network: true` のケースは、宣言したホストにだけ HTTP プロキシ（`HTTPS_PROXY`）経由で通信できます。プロキシ変数を無視するツールはネットワークを使えません。テストからはホーム、`/tmp`、ホストの環境変数が見えません。`skip_unless_env` のケースに変数を渡すときは `--pass-env NAME` を付けます。
 4. `__pycache__/` と `*.pyc` を消してから `skillpact hash <skill_dir>` で全ファイル（`migrate` の後も実行し直す）のハッシュを載せ、`skillpact sign <skill_dir> key.pem`（CI なら `sign-sigstore`）で署名します。公開鍵を公開します。
 5. GitHub Action をコミット SHA で固定し、`pull_request_target` ではなく `pull_request` で動かします。書き方は次のとおりです。
 ```yaml

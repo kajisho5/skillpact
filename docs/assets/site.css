@@ -52,3 +52,5 @@ textarea{min-height:240px;resize:vertical}textarea#k{min-height:64px}
 textarea:focus,input:focus{outline:2px solid var(--acc);outline-offset:1px;border-color:transparent}
 .res .box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0}.res ul{margin:6px 0 0;padding-left:20px}.res code{word-break:break-all}
 .err{color:#b91c1c}.warn{color:#b45309}.ok{color:#047857}
+@media(max-width:640px){header .wrap.nav{padding-left:16px;padding-right:16px}}
+.badge-row,.badges td,.badges code,main code{overflow-wrap:anywhere}main table{max-width:100%}@media(max-width:640px){main table:has(img),main table:has(img) tbody,main table:has(img) tr,main table:has(img) td{display:block}}

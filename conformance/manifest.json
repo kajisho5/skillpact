@@ -486,6 +486,17 @@
       }
     },
     {
+      "id": "v08r-exclude-pth",
+      "description": "N4: start-up hooks (*.pth) cannot be excluded",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "INTEGRITY_UNLISTED"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
       "id": "v08r-legacy-role-unsigned",
       "description": "N3: before 0.8 the role is not signed; valid, but warned and never L3",
       "expect": {

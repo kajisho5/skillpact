@@ -227,7 +227,7 @@ L3 の意味は「このファイル一式は、あなたが信頼する人が�
 | ハーネス | `decision_worst_case` に従い、実行前に integrity を確かめ直すべき（SHOULD） |
 
 ### 16.3 適合スイート
-`conformance/manifest.json` と `conformance/cases/<id>/`（0.8 と 0.8.x 正誤で 48 ケース）。適合を名乗る検証者は全ケースに合格しなければなりません（MUST）：`python3 conformance/run.py --cmd '<validator> {dir}'`。0.8 のケースは `conformance/gen_v08.py` が作ります。Python の参照実装と TypeScript 実装の両方が全ケースに合格しています。
+`conformance/manifest.json` と `conformance/cases/<id>/`（0.8 と 0.8.x 正誤で 49 ケース）。適合を名乗る検証者は全ケースに合格しなければなりません（MUST）：`python3 conformance/run.py --cmd '<validator> {dir}'`。0.8 のケースは `conformance/gen_v08.py` が作ります。Python の参照実装と TypeScript 実装の両方が全ケースに合格しています。
 
 ## 17. バージョン・安定性・非推奨
 - 検証者は知っているすべての版を受け付け、知らない major 版を拒否しなければなりません（MUST、`CONTRACT_VERSION_UNSUPPORTED`）。0.x の間は、知らない minor 版も知らない major 版として扱います。

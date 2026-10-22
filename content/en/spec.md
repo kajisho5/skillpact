@@ -178,6 +178,7 @@ All implementations MUST match globs exactly as follows; `fnmatch` or shell glob
 ### 13.1 Compilation
 - `policy-compile` emits native settings for Claude Code, Cursor, Codex and Gemini CLI, validated against each harness's public schema (or a schema derived from its documentation), and MUST list what the target cannot express in `lossy`.
 - When a target cannot express a deny or ask, the output MUST be at least as strict as the decision (e.g. Codex `approval_policy: on-request`, never `never`). Compiled settings follow `decision_worst_case`, including conditional effects (erratum 0.8.x).
+- Erratum 0.8.x: when a per-command allow (e.g. Claude Code `Bash(python3 *)`) lets the agent run a declared program with any arguments, the compiler MUST report it in `lossy`, and SHOULD say when the program can run arbitrary code (interpreters and shells), because such an allow is as wide as `exec: any`.
 - `export --format hushspec|rego` emits runtime policy documents.
 
 ### 13.2 (unassigned)
@@ -192,7 +193,7 @@ Installed skills share one agent. Data that one skill reads can reach another sk
 |---|---|---|
 | `exfiltration` | read of a sensitive scope (e.g. `~/.ssh`, `.env`, credentials, tokens, keys), a broad scope (`/**`, `~/**`) or `level: any`, **and** network other than `@local`, or any send | high |
 | `persistence` | write outside `$WORKDIR`/`$OUTPUT`/`$TMPDIR` (or `level: any`) **and** exec | medium |
-| `spend_untrusted` | spend **and** at least one skill without a trusted author signature (sets of two or more) | high |
+| `spend_untrusted` | spend **and** at least one skill without a trusted author signature over files that verify (sets of two or more; erratum 0.8.x: a valid signature on a contract whose files fail §11 does not count) | high |
 
   The roles may come from one skill or from different skills (`cross_skill`). The sensitive-scope patterns are listed in the reference implementation and vectors: `conformance/vectors/compose.json`.
 - Policy: the optional `compositions` object (schema `policy-v0.8-r2.json`) maps a path id to `allow`, `ask` or `deny`. A matcher given several contracts returns the per-skill results unchanged, plus one entry per detected path that has a decision; the set decision is the most restrictive of all. Without `compositions` the result is the same as checking each skill alone.

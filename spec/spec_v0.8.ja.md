@@ -178,6 +178,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 ### 13.1 変換
 - `policy-compile` は Claude Code・Cursor・Codex・Gemini CLI の設定を出力し、各ハーネスの公開スキーマ（なければ文書から起こしたスキーマ）で検証します。変換先が表せないものは `lossy` に挙げなければなりません（MUST）。
 - 変換先が deny や ask を表せない場合、出力は判定と同じかそれより厳しくなければなりません（MUST）（例：Codex は `approval_policy: on-request`。`never` にはしない）。変換した設定は条件付きの効果を含む `decision_worst_case` に従います（0.8.x 正誤）。
+- 0.8.x 正誤：コマンド単位の allow（例：Claude Code の `Bash(python3 *)`）によって、宣言したプログラムを任意の引数で実行できるようになる場合、変換器はそれを `lossy` に挙げなければならず（MUST）、そのプログラムが任意のコードを実行できるもの（インタープリタやシェル）であればその旨も書くべきです（SHOULD）。そうした allow は `exec: any` と同じ広さになるためです。
 - `export --format hushspec|rego` は実行時ポリシーの文書を出力します。
 
 ### 13.2 （欠番）
@@ -192,7 +193,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 |---|---|---|
 | `exfiltration`（持ち出し） | 秘密の scope（`~/.ssh`、`.env`、認証情報、トークン、鍵など）、広い scope（`/**`、`~/**`）、`level: any` のどれかの read、**かつ** `@local` 以外の network か send | 高 |
 | `persistence`（居座り） | `$WORKDIR`・`$OUTPUT`・`$TMPDIR` の外への write（または `level: any`）、**かつ** exec | 中 |
-| `spend_untrusted` | spend、**かつ** 信頼済みの author 署名がないスキル（2 つ以上の組） | 高 |
+| `spend_untrusted` | spend、**かつ** ファイルの照合に通る信頼済みの author 署名がないスキル（2 つ以上の組。0.8.x 正誤：ファイルが §11 に通らない契約の署名は数えない） | 高 |
 
   役割は 1 つのスキルが担うことも、別々のスキルが担うこともあります（`cross_skill`）。秘密の scope のパターンは参照実装とベクトル `conformance/vectors/compose.json` にあります。
 - ポリシー：任意の `compositions`（スキーマ `policy-v0.8-r2.json`）で、パスごとに `allow`・`ask`・`deny` を決めます。照合器に複数の契約を渡すと、スキルごとの結果はそのままで、判定のあるパスごとに 1 件を足します。組の判定は、その中でいちばん厳しいものです。`compositions` がなければ、スキルを一つずつ確かめた結果と同じです。

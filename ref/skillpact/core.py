@@ -971,6 +971,9 @@ def _native_path(sc, style):
     return None
 
 
+INTERPRETERS = r"(python[0-9.]*|pypy[0-9.]*|node|deno|bun|ruby|perl|php|lua|sh|bash|dash|zsh|fish|pwsh|powershell|osascript|java|npx|uvx|uv|pipx|env|xargs|find|awk|gawk)"
+
+
 def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, contract_path=None) -> dict:
     """Translate the allow/ask/deny result for one skill into a harness's native config fragment.
     Returns {"config": <native config>, "lossy": [what could not be expressed]} (s13.1: lossy MUST be reported)."""
@@ -991,6 +994,11 @@ def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, co
     for eff in ("spend", "send"):
         if used(eff): lossy.append(f"{eff}: {target} has no native permission for {eff}; decision '{bucket(eff)}' is only enforced through exec/network/MCP rules")
     sb = policy.get("sandbox", {})
+    if cmds and bucket("exec") == "allow" and target in ("claude-code", "cursor", "gemini-cli"):
+        interp = [c_ for c_ in cmds if re.fullmatch(INTERPRETERS, c_)]
+        lossy.append(f"exec: allowing {', '.join(cmds)} lets the agent run these programs with any arguments, not only the skill's own calls"
+                     + (f"; {', '.join(interp)} can run arbitrary code (e.g. `python3 -c ...`), so this allow is as wide as exec: any" if interp else "")
+                     + f"; {target} cannot tie a command rule to one skill")
     if target == "claude-code":
         out = {"allow": [], "ask": [], "deny": []}
         for c_ in cmds: out[bucket("exec")].append(f"Bash({c_} *)")
@@ -1144,6 +1152,15 @@ def trusted_author(c, trusted) -> bool:
     if _vt(c.get("contract_version", "0.1")) < V08: return False   # 0.8 errata: role is unsigned before 0.8 (relabel attack)
     res, roles = verify_signatures(c), signature_roles(c)
     return any(ok and k in trusted and roles.get(k, "author") == "author" for k, ok in res.items())
+
+
+def trusted_files(c, skill_dir, contract_path=None, trusted=()) -> bool:
+    """A trusted author signature over files that verify: integrity matches with full coverage (s11.2) and the contract
+    has no validator errors. Used where a skill counts as trusted, e.g. composition (s13.3)."""
+    if not c.get("integrity") or skill_dir is None: return False
+    v = validate(skill_dir, contract_path)
+    if not v["ok"] or any(f["code"] in ("INTEGRITY_UNLISTED", "INTEGRITY_PATH") for f in v["findings"]): return False
+    return trusted_author(c, set(trusted))
 
 
 def expand_scope(scope):

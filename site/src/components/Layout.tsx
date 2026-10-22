@@ -77,6 +77,14 @@ export function Layout({ lang, slug, title, description, children, csp, wide }: 
           </div>
         </div>
       </header>
+      <div role="note" className="border-b bg-muted/60 text-[0.8125rem]">
+        <div className="container max-w-[76rem] py-2">
+          {lang === "ja" ? "公開レビュー中（2026-10-22〜2026-11-21 JST）。" : "Public review open: 2026-10-22 – 2026-11-21 (JST). "}
+          <a className="underline underline-offset-2" href={`${REPO}/blob/main/REVIEW.md`}>{lang === "ja" ? "参加方法（REVIEW.md）" : "How to comment (REVIEW.md)"}</a>
+          {" · "}
+          <a className="underline underline-offset-2" href={`${REPO}/issues/1`}>{lang === "ja" ? "進捗の issue" : "Tracking issue"}</a>
+        </div>
+      </div>
       <main id="main" className={wide ? "" : "container max-w-[76rem]"}>{children}</main>
       <footer className="mt-24 border-t">
         <div className="container grid max-w-[76rem] gap-8 py-10 text-[0.8125rem] text-muted-foreground sm:grid-cols-[1fr_auto]">

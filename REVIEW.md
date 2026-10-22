@@ -1,6 +1,6 @@
 # SkillPact v0.8 — Public review
 
-**Status:** announced, open for comment · **Period:** START_DATE – END_DATE (30 days; the start date is the announcement date) · **Editor:** shogo kajiyama (SEVENTHWELL)
+**Status:** open for comment · **Period:** 2026-10-22 – 2026-11-21 (JST, 30 days) · **Tracking issue:** [#1](https://github.com/kajisho5/skillpact/issues/1) · **Editor:** shogo kajiyama (SEVENTHWELL)
 
 SkillPact is a draft standard: a `skill.contract.json` next to `SKILL.md` that declares a skill's effects (read / write / network / exec / spend / send), ships offline tests, and is signed. This review is the last step before the editor decides on v1.0.
 

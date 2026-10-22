@@ -1,12 +1,12 @@
 # 適合スキルの見本: kajisho5/ffmpeg-skill（L3 signed）
-「`SkillPact` に準拠したスキルとはこういうもの」を、実物 1 つで示す文書。数値はすべて 2026-10-21（JST）に box（Debian 13、ffmpeg 7.1、Python 3.13）で実測した。
+「`SkillPact` に準拠したスキルとはこういうもの」を、実物 1 つで示す文書。数値は 2026-10-21（JST）に box（Debian 13、ffmpeg 7.1、Python 3.13）で実測した。ファイル数と `policy-compile` の出力は 2026-10-22 に 0.8 の参照実装で取り直した（0.8 で全ファイル網羅・最悪ケースでの変換に変わったため）。
 
 ## 1 行でいうと
 SKILL.md は 1 バイトも変えずに、隣に `skill.contract.json` を置くだけで、次のことを機械が判定できるようになる。
 - 42 ツールそれぞれについて、何を読み書きし、どこへ通信しうるか
 - 動作に必要なもの（バイナリ、ffmpeg のフィルタ／エンコーダ）
 - 本当に動くか（78 テスト）
-- 改ざんされていないか（79 ファイルのハッシュと署名）
+- 改ざんされていないか（331 ファイルのハッシュと署名）
 
 ## 中身
 | 項目 | 値 |
@@ -16,21 +16,23 @@ SKILL.md は 1 バイトも変えずに、隣に `skill.contract.json` を置く
 | 副作用 | read / exec は全ツール。write は成果物を作る 39 ツール。network は無し。例外は caption と silence で、`--transcribe` のときだけ huggingface.co などへの通信と whisper 系の実行が起きる（`conditional_effects`） |
 | 書き込み範囲 | `$OUTPUT`、`$INPUT_DIR/**`、`$WORKDIR/**`、`$TMPDIR/**`。入力は変更しない（安全テストで確認） |
 | 必要なもの | ffmpeg / ffprobe 5.0 以上、python3 3.9 以上、node は任意。ffmpeg の機能 24 個（`filter:subtitles`、`filter:vidstabdetect`、`encoder:libx264` など）を実際に確認 |
-| テスト | 78 件。各ツールの実実行 41 件、dry-run で何も書かないことの確認 32 件、失敗系 2 件、安全系 2 件（上書き拒否・入力不変）、check の合否 2 件（正規化前は loudness で失敗、`--normalize` で書き出した後は合格）。全件ネットワーク隔離（`unshare -rn`）で、約 40 秒 |
+| テスト | 78 件。各ツールの実実行 41 件、dry-run で何も書かないことの確認 32 件、失敗系 2 件、安全系 2 件（上書き拒否・入力不変）、check の合否 2 件（正規化前は loudness で失敗、`--normalize` で書き出した後は合格）。全件ネットワーク隔離で、約 40 秒。参照ランナーは Linux では bubblewrap（`bwrap`）を使い、ない場合は `unshare -rn`（ネットワークのみ隔離、`fs_isolated: false`）に落ちる |
 | 独自契約との一致 | `scripts/_contract.py contract --json` からツール一覧・バージョン・必要条件を変換。テストでツール集合・バージョン・ffmpeg の要件が一致することを確認 |
 | MCP | `mcp-check` で、実サーバー（`FFMPEG_SKILL_MCP_FULL=1`）の 42 ツールのツール名と入力プロパティが契約と一致 |
-| 署名 | sha256 で 79 ファイル（SKILL.md、scripts、mcp、references、templates、assets）＋ ed25519 署名。SEVENTHWELL skill-signing key（指紋 SHA256:r8icjIp2v7H/uzrVov8ksXK0MPGJy1s+HWaDnKwI3j4） |
+| 署名 | sha256 で 331 ファイル（0.8 で全ファイル網羅が必須に。evals 90、docs 70、scripts 58、tests 33、.claude 20 ほか）＋ ed25519 署名。SEVENTHWELL skill-signing key（指紋 SHA256:r8icjIp2v7H/uzrVov8ksXK0MPGJy1s+HWaDnKwI3j4） |
 
 ## ハーネスから見た結果（`policy-check`、個人開発向けポリシー `ref/policies/solo-dev.json`）
 - 通常利用は **allow**。インストール時に確認は出ない。
-- 最悪の場合は **ask**。caption と silence の `--transcribe` がモデルをダウンロードする可能性があるため。ポリシーで huggingface.co を許可すれば allow になる。
-- `policy-compile` で 4 ハーネスの設定を生成すると、どれもスキーマ検証を通る。
+- 最悪の場合は **ask**。caption と silence の `--transcribe` が、モデルのダウンロード（network）と音声認識 CLI の実行（whisper など、exec）を起こしうるため。allow にするには、ポリシーで両方（huggingface.co などのホストと音声認識 CLI）を許可する必要がある。
+- `policy-compile` で 4 ハーネスの設定を生成すると、どれもスキーマ検証を通る。設定は最悪ケース（条件付きの効果を含む）に合わせて出るため、exec と network はハーネス側で ask になる。
 
 ```
-.claude/settings.json      permissions.allow: Bash(ffmpeg *), Bash(ffprobe *), Bash(python3 *), mcp__ffmpeg-skill__cut, ...
-.codex/config.toml         approval_policy = "never" / sandbox_mode = "workspace-write"
+.claude/settings.json      permissions.allow: Edit(./**), mcp__ffmpeg-skill__cut, ... (MCP 42)
+                           permissions.ask:   Bash(ffmpeg *), Bash(ffprobe *), Bash(python3 *), Bash(whisper *), WebFetch(domain:huggingface.co), ...
+.codex/config.toml         approval_policy = "on-request" / sandbox_mode = "workspace-write"
 .gemini/policies/*.toml    [[rule]] toolName="cut" mcpName="ffmpeg-skill" decision="allow"
-.cursor/cli.json           Shell(ffmpeg), Mcp(ffmpeg-skill:cut), ...
+                           [[rule]] toolName="run_shell_command" commandPrefix="ffmpeg " decision="ask_user"
+.cursor/cli.json           allow: Write(**), Mcp(ffmpeg-skill:cut), ...（Shell は allow に入らず、確認が出る）
 ```
 
 ## 再現手順

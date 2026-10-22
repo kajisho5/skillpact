@@ -34,7 +34,7 @@ Schema: `https://kajisho5.github.io/skillpact/schema/v0.8.json` · License: spec
 | `GOVERNANCE.md` | editor, change process, release checklist |
 | `spec/owasp_mapping.md` | OWASP Agentic Skills Top 10 mapping |
 | `spec/harness_research.md` | harness/runtime landscape, gap, harness_policy 0.1 (JA) |
-| `spec/showcase.md` | flagship: kajisho5/ffmpeg-skill at L3 (42 tools, 78 tests) |
+| `spec/showcase.md` / `spec/showcase.en.md` | flagship: kajisho5/ffmpeg-skill at L3 (42 tools, 78 tests); Japanese original and English version |
 | `CHANGELOG.md` / `CONTRIBUTING.md` | history / how to propose changes |
 | `site/` | GitHub Pages site (kajisho5.github.io/skillpact/), React + shadcn/ui, built from `content/` and `docs/` by `.github/workflows/pages.yml` |
 | `docs/` | Canonical static artifacts served as-is: `schema/*.json`, `badges/*.svg`, `check/` (browser checker bundle + example) |
@@ -68,19 +68,19 @@ python3 -m skillpact.cli convert <skill_dir> --to mda|autovault   # or: convert 
 python3 -m skillpact.cli sign-sigstore <skill_dir>                 # keyless, CI
 python3 -m skillpact.cli owasp <skill_dir>
 python3 -m skillpact.cli mcp-check      <skill_dir> python3 '$SKILL_DIR/mcp/server.py'
-python3 -m pytest -q ref/tests                                           # 86 tests
+python3 -m pytest -q ref/tests                                           # 100 tests (some skip without bwrap / opa / Sigstore)
 ```
 Requires Python ≥ 3.11 (tomllib), ffmpeg for the flagship tests, bubblewrap (`bwrap`) for the test sandbox on Linux (fallback `unshare -rn`, network only). Optional: `.tools/opa` for the Rego test.
 
 ## Layout
 ```
-ref/skillpact/   schema.json, policy_schema.json, core.py (validate/test/sign/policy/mcp), init.py, native.py,
-                     harness.py (+ harness_schemas/), export.py, cli.py
-ref/policies/        solo-dev.json, strict-ci.json
+ref/skillpact/                   schema.json, policy_schema.json, core.py (validate/test/sign/policy/mcp), compose.py, init.py,
+                                 native.py, harness.py (+ harness_schemas/), export.py, interop.py, owasp.py, sigstore_sig.py, cli.py
+ref/policies/                    solo-dev.json, strict-ci.json
 samples/ffmpeg-skill/            local copy of kajisho5/ffmpeg-skill @4334225 + skill.contract.json (L3, SEVENTHWELL key)
-ffmpeg-skill-patch/              clone on branch add-skill-contract (local commit, push disabled); patches/*.patch
-keys/public/                     SEVENTHWELL skill-signing public key + fingerprint
 samples/build_ffmpeg_contract.py regenerates it
-samples/others/*.contract.json   light contracts for 7 other kajisho5 skills (repos/ = read-only clones)
+samples/{subtitle,thumbnail,video-editing}-skill/   further signed L3 samples
+examples/contracts/*.contract.json  light contracts for 7 other kajisho5 skills
+keys/public/                     SEVENTHWELL skill-signing public key + fingerprint
 ```
 License: spec text CC BY 4.0, code Apache-2.0 (see LICENSE).

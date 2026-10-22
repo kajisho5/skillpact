@@ -5,10 +5,10 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 
 ## この文書の位置づけ
 - **ドラフト 0.8（2026-10-22）。** SEVENTHWELL（shogo kajiyama）が編集するドラフトです。差分ではなく完全版です。
-- まだ安定版ではありません。0.x の間は版ごとに互換性のない変更がありえます（バージョニング参照）。公開レビューの期間はまだ決まっていません（[REVIEW.md](https://github.com/kajisho5/skillpact/blob/main/REVIEW.md)）。
+- まだ安定版ではありません。0.x の間は版ごとに互換性のない変更がありえます（バージョニング参照）。公開レビューの期間は 2026-10-22 – 2026-11-21（JST）です（[REVIEW.md](https://github.com/kajisho5/skillpact/blob/main/REVIEW.md)、追跡 issue [#1](https://github.com/kajisho5/skillpact/issues/1)）。「0.8.x 正誤」と記した箇所はレビュー開始後に追加したもので、一覧は [CHANGELOG.md](https://github.com/kajisho5/skillpact/blob/main/CHANGELOG.md) にあります。
 - **規範となるのは英語版です。** この日本語訳は参考です。食い違う場合は[英語版](../../spec/)に従います。
 - ご意見は kajisho5/skillpact の GitHub issue へ。決め方は [GOVERNANCE.md](https://github.com/kajisho5/skillpact/blob/main/GOVERNANCE.md) にあります。
-- スキーマ：`https://kajisho5.github.io/skillpact/schema/v0.8.json`、ポリシー：`.../schema/policy-v0.8.json`。
+- スキーマ：`https://kajisho5.github.io/skillpact/schema/v0.8.json`、ポリシー：`.../schema/policy-v0.8.json`（改訂版 `policy-v0.8-r1.json`〔§13〕、`policy-v0.8-r2.json`〔§13.3〕）。
 - ライセンス：本文 CC BY 4.0、スキーマと実装 Apache-2.0。
 - 特許：SEVENTHWELL と Shogo Kajiyama は、この仕様の実装に対して、防御的終了つきの無償の特許不主張を誓約しています：[IPR.md](https://github.com/kajisho5/skillpact/blob/main/IPR.md)。
 - メディアタイプ：専用のメディアタイプの IANA 登録は 1.0 の後に検討します（付録 D）。
@@ -178,6 +178,9 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - 変換先が deny や ask を表せない場合、出力は判定と同じかそれより厳しくなければなりません（MUST）（例：Codex は `approval_policy: on-request`。`never` にはしない）。変換した設定は条件付きの効果を含む `decision_worst_case` に従います（0.8.x 正誤）。
 - `export --format hushspec|rego` は実行時ポリシーの文書を出力します。
 
+### 13.2 （欠番）
+0.8 ではこの番号を使いません。§13.3 はすでに参照されているため番号を変えません。
+
 ### 13.3 組み合わせ（0.8.x、追加）
 入れたスキルは、同じエージェントの中で動きます。あるスキルが読んだデータは、エージェントの文脈を通って別のスキルに渡りえます。スキルを一つずつ隔離しても、この流れは止まりません。この節は任意（OPTIONAL）で、単独の契約のレベルやポリシーの結果は変えません。
 - スキルの組の**実際の効果**は、宣言されたすべての効果の和集合です。条件付きの効果も含め（最悪の場合）、効果ごとに scope と、それを持つスキルを示します。
@@ -199,7 +202,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - 取り込みや `init` の下書きは、推測した箇所を `x.import.uncertain` / `x.init.uncertain` に挙げ、`TODO(...)` を使うことがあります。こうした契約は未確認の下書きで、`UNCONFIRMED_DRAFT`（0.8 からエラー）になります。人が確認して印を消す必要があります。0.8.x 正誤（参考、参照実装の `init`）：capability は CLI のサブコマンドごと（console script のモジュールと `scripts/` の argparse の `add_parser`）、MCP のツールごと（`@*.tool` の関数、`Tool(name=...)`）、指示だけのスキルなら `SKILL.md` の一般的でない `##` 見出しごとに作ります。`doctor`・`validate`・`plan` などの読むだけの動詞は `read`・`exec` だけにし、network の scope は見つかった URL から、なければ `TODO(init)` にします。
 
 ## 15. スキーマ
-- 契約：`schema/v0.8.json`（`$id` `https://kajisho5.github.io/skillpact/schema/v0.8.json`）。ポリシー：`schema/policy-v0.8.json`。公開したスキーマファイルは書き換えません。
+- 契約：`schema/v0.8.json`（`$id` `https://kajisho5.github.io/skillpact/schema/v0.8.json`）。ポリシー：`schema/policy-v0.8.json`。改訂版として `schema/policy-v0.8-r1.json`（`policy_version` "0.8"、0.8.x 正誤）と `schema/policy-v0.8-r2.json`（`compositions` を追加、§13.3）があります。公開したスキーマファイルは書き換えません。
 
 ## 16. 適合
 ### 16.1 レベル（契約について）
@@ -310,7 +313,7 @@ L1 は整合性しか示しません。ハーネスは L1 だけを根拠に、�
 | `SIGNATURE_INVALID` | エラー | §11 | 署名が検証できない |
 | `SIGNATURE_ROLE_UNSIGNED` | 警告 | §11.1 | 0.8 より前の契約の署名。role が署名されず L3 にならない（0.8.x） |
 | `DUP_SIGNATURE` | エラー | §11 | 同じ鍵が 2 回以上署名 |
-| `SIGSTORE_UNVERIFIED` | 警告 | §16.4 | Sigstore を検証できない実装 |
+| `SIGSTORE_UNVERIFIED` | 警告 | §11 | Sigstore を検証できない実装 |
 | `HIGH_RISK` | 警告 | §6 | spend/send が any |
 | `UNKNOWN_SCOPE_TOKEN` | 警告 | §6 | 未定義の @ トークン |
 | `UNKNOWN_VARIABLE` | 警告 | §6 | 未定義の $ 変数 |

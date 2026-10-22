@@ -5,10 +5,10 @@ SkillPact defines `skill.contract.json`, a machine-readable contract placed next
 
 ## Status of this document
 - **Draft 0.8, 2026-10-22.** Editor's draft published by SEVENTHWELL (shogo kajiyama). This is a complete document, not a diff.
-- Not yet stable. Breaking changes are possible between 0.x versions (see Versioning). A public review period will be announced; its dates are not set yet (see [REVIEW.md](https://github.com/kajisho5/skillpact/blob/main/REVIEW.md)).
+- Not yet stable. Breaking changes are possible between 0.x versions (see Versioning). Public review: 2026-10-22 – 2026-11-21 (JST); see [REVIEW.md](https://github.com/kajisho5/skillpact/blob/main/REVIEW.md) and tracking issue [#1](https://github.com/kajisho5/skillpact/issues/1). Text marked "erratum 0.8.x" was added after the review opened; the list is in [CHANGELOG.md](https://github.com/kajisho5/skillpact/blob/main/CHANGELOG.md).
 - **The English text is normative.** The Japanese translation ([/ja/spec/](../ja/spec/)) is informative; if they differ, English wins.
 - Feedback: GitHub issues on kajisho5/skillpact. Decision process: [GOVERNANCE.md](https://github.com/kajisho5/skillpact/blob/main/GOVERNANCE.md).
-- Schema: `https://kajisho5.github.io/skillpact/schema/v0.8.json` · Policy schema: `.../schema/policy-v0.8.json`.
+- Schema: `https://kajisho5.github.io/skillpact/schema/v0.8.json` · Policy schema: `.../schema/policy-v0.8.json` (revisions `policy-v0.8-r1.json`, §13, and `policy-v0.8-r2.json`, §13.3).
 - License: text CC BY 4.0; schemas and implementations Apache-2.0.
 - Patents: SEVENTHWELL and Shogo Kajiyama give a royalty-free patent non-assertion covenant, with defensive termination, for implementations of this specification: [IPR.md](https://github.com/kajisho5/skillpact/blob/main/IPR.md).
 - Media type: IANA registration of a specific media type is to be considered after 1.0 (Appendix D).
@@ -178,6 +178,9 @@ All implementations MUST match globs exactly as follows; `fnmatch` or shell glob
 - When a target cannot express a deny or ask, the output MUST be at least as strict as the decision (e.g. Codex `approval_policy: on-request`, never `never`). Compiled settings follow `decision_worst_case`, including conditional effects (erratum 0.8.x).
 - `export --format hushspec|rego` emits runtime policy documents.
 
+### 13.2 (unassigned)
+This number is not used in 0.8. §13.3 keeps its number because it is already cited.
+
 ### 13.3 Composition (0.8.x, additive)
 Installed skills share one agent. Data that one skill reads can reach another skill through the agent's context, so isolating each skill does not prevent flows between them. This section is OPTIONAL and does not change the level or policy result of any single contract.
 - The **effective effect set** of a skill set is the union of all declared effects, including conditional effects (worst case), with each effect's scopes and contributing skills.
@@ -199,7 +202,7 @@ Installed skills share one agent. Data that one skill reads can reach another sk
 - Imports and `init` drafts list guesses in `x.import.uncertain` / `x.init.uncertain`, and may use `TODO(...)` strings. Such a contract is an unconfirmed draft: `UNCONFIRMED_DRAFT` (error from 0.8). A person must confirm and remove the markers. Erratum 0.8.x (informative, reference `init`): one capability per CLI subcommand (argparse `add_parser` in console-script modules and `scripts/`), per MCP tool (`@*.tool` functions, `Tool(name=...)`), or per non-generic `##` heading of an instructions-only `SKILL.md`; read-only verbs such as `doctor`/`validate`/`plan` get only `read`/`exec`; network scope is taken from URLs found, else `TODO(init)`.
 
 ## 15. Schemas
-- Contract: `schema/v0.8.json` (`$id` `https://kajisho5.github.io/skillpact/schema/v0.8.json`). Policy: `schema/policy-v0.8.json`. Published schema files are never edited in place.
+- Contract: `schema/v0.8.json` (`$id` `https://kajisho5.github.io/skillpact/schema/v0.8.json`). Policy: `schema/policy-v0.8.json`, with the revisions `schema/policy-v0.8-r1.json` (`policy_version` "0.8", erratum 0.8.x) and `schema/policy-v0.8-r2.json` (adds `compositions`, §13.3). Published schema files are never edited in place.
 
 ## 16. Conformance
 ### 16.1 Levels (of a contract)
@@ -310,7 +313,7 @@ Severity is fixed per code and version; new codes are added only through the pro
 | `SIGNATURE_INVALID` | error | §11 | a signature does not verify |
 | `SIGNATURE_ROLE_UNSIGNED` | warning | §11.1 | signature on a contract before 0.8; role not signed, no L3 (0.8.x) |
 | `DUP_SIGNATURE` | error | §11 | same key/identity signs twice |
-| `SIGSTORE_UNVERIFIED` | warn | §16.4 | implementation cannot verify Sigstore |
+| `SIGSTORE_UNVERIFIED` | warn | §11 | implementation cannot verify Sigstore |
 | `HIGH_RISK` | warn | §6 | spend/send with level any |
 | `UNKNOWN_SCOPE_TOKEN` | warn | §6 | undefined @token |
 | `UNKNOWN_VARIABLE` | warn | §6 | undefined $variable |

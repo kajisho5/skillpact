@@ -14,7 +14,7 @@ export const docSlugs = Object.keys(docs.en).sort();
 const ver = (s: string) => s.split(".").map(Number);
 const cmp = (a: string, b: string) => { const x = ver(a), y = ver(b); return x[0] - y[0] || x[1] - y[1]; };
 export const schemaFiles = Object.entries(schemas).map(([p, json]) => {
-  const file = p.split("/").pop()!; const m = file.match(/^(policy-)?v(\d+\.\d+)\.json$/)!;
+  const file = p.split("/").pop()!; const m = file.match(/^(policy-)?v(\d+\.\d+)(-r\d+)?\.json$/)!;
   return { file, kind: m[1] ? "policy" : "contract", version: m[2], json };
 }).sort((a, b) => cmp(b.version, a.version));
 export const latest = schemaFiles.find((s) => s.kind === "contract")!.version;

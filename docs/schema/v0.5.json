@@ -1,0 +1,820 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://kajisho5.github.io/skillpact/schema/v0.5.json",
+ "title": "SkillPact contract 0.3 (skill.contract.json, next to SKILL.md)",
+ "type": "object",
+ "required": [
+  "contract_version",
+  "skill",
+  "permissions",
+  "capabilities"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "$schema": {
+   "type": "string"
+  },
+  "contract_version": {
+   "enum": [
+    "0.1",
+    "0.2",
+    "0.3",
+    "0.4",
+    "0.5"
+   ]
+  },
+  "skill": {
+   "type": "object",
+   "required": [
+    "name",
+    "version"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string",
+     "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+     "maxLength": 64
+    },
+    "version": {
+     "type": "string",
+     "pattern": "^\\d+\\.\\d+\\.\\d+([-+][0-9A-Za-z.-]+)?$"
+    },
+    "license": {
+     "type": "string"
+    },
+    "homepage": {
+     "type": "string"
+    },
+    "source": {
+     "type": "string"
+    },
+    "authors": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "native_contract": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "cli": {
+       "$ref": "#/$defs/command"
+      },
+      "schema": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  },
+  "compat": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "agents": {
+     "type": "object",
+     "additionalProperties": {
+      "$ref": "#/$defs/agentCompat"
+     },
+     "propertyNames": {
+      "pattern": "^[a-z0-9-]+$"
+     }
+    },
+    "os": {
+     "type": "array",
+     "items": {
+      "enum": [
+       "linux",
+       "macos",
+       "windows",
+       "ios",
+       "android"
+      ]
+     }
+    },
+    "interfaces": {
+     "type": "array",
+     "items": {
+      "enum": [
+       "skill-md",
+       "cli",
+       "mcp-stdio",
+       "mcp-http"
+      ]
+     }
+    }
+   }
+  },
+  "requirements": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "binaries": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/binary"
+     }
+    },
+    "runtimes": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/binary"
+     }
+    },
+    "env": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "name"
+      ],
+      "properties": {
+       "name": {
+        "type": "string"
+       },
+       "required": {
+        "type": "boolean"
+       },
+       "secret": {
+        "type": "boolean"
+       },
+       "description": {
+        "type": "string"
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "skills": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "name": {
+        "type": "string"
+       },
+       "version": {
+        "type": "string"
+       },
+       "env": {
+        "type": "string",
+        "description": "env var the skill reads to locate it"
+       },
+       "optional": {
+        "type": "boolean"
+       },
+       "when": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "packages": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "ecosystem",
+       "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "ecosystem": {
+        "enum": [
+         "pypi",
+         "npm",
+         "cargo",
+         "go",
+         "gem"
+        ]
+       },
+       "name": {
+        "type": "string"
+       },
+       "version": {
+        "type": "string"
+       },
+       "import": {
+        "type": "string"
+       },
+       "optional": {
+        "type": "boolean"
+       }
+      }
+     }
+    }
+   }
+  },
+  "permissions": {
+   "$ref": "#/$defs/permissions"
+  },
+  "capabilities": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "$ref": "#/$defs/capability"
+   }
+  },
+  "tests": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "setup": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/command"
+     }
+    },
+    "cases": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/testCase"
+     }
+    }
+   }
+  },
+  "integrity": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "algorithm": {
+     "const": "sha256"
+    },
+    "files": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+     }
+    },
+    "signatures": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "type"
+      ],
+      "properties": {
+       "type": {
+        "enum": [
+         "ed25519",
+         "sigstore"
+        ]
+       },
+       "key": {
+        "type": "string"
+       },
+       "sig": {
+        "type": "string"
+       },
+       "signer": {
+        "type": "string"
+       },
+       "identity": {
+        "type": "string"
+       },
+       "issuer": {
+        "type": "string"
+       },
+       "bundle": {
+        "type": "object"
+       }
+      },
+      "allOf": [
+       {
+        "if": {
+         "properties": {
+          "type": {
+           "const": "ed25519"
+          }
+         }
+        },
+        "then": {
+         "required": [
+          "key",
+          "sig"
+         ]
+        }
+       },
+       {
+        "if": {
+         "properties": {
+          "type": {
+           "const": "sigstore"
+          }
+         }
+        },
+        "then": {
+         "required": [
+          "identity",
+          "issuer",
+          "bundle"
+         ]
+        }
+       }
+      ],
+      "additionalProperties": false
+     }
+    },
+    "canonicalization": {
+     "enum": [
+      "jcs",
+      "legacy-sorted"
+     ],
+     "description": "informative; verifiers derive it from contract_version (>=0.4: jcs, RFC 8785)"
+    }
+   }
+  },
+  "x": {
+   "type": "object",
+   "description": "vendor extensions: x.<vendor>.<key>",
+   "propertyNames": {
+    "pattern": "^[a-z0-9][a-z0-9-]*$"
+   }
+  },
+  "kind": {
+   "enum": [
+    "tool",
+    "instructions"
+   ],
+   "description": "instructions = SKILL.md-only skill with no executable entry"
+  }
+ },
+ "$defs": {
+  "agentCompat": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "status": {
+     "enum": [
+      "tested",
+      "expected",
+      "unsupported"
+     ]
+    },
+    "version": {
+     "type": "string"
+    },
+    "notes": {
+     "type": "string"
+    },
+    "tested_at": {
+     "type": "string"
+    }
+   }
+  },
+  "binary": {
+   "type": "object",
+   "required": [
+    "name"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "version": {
+     "type": "string"
+    },
+    "check": {
+     "$ref": "#/$defs/command"
+    },
+    "version_regex": {
+     "type": "string"
+    },
+    "optional": {
+     "type": "boolean"
+    },
+    "when": {
+     "type": "string"
+    },
+    "features_check": {
+     "type": "object",
+     "additionalProperties": {
+      "$ref": "#/$defs/command"
+     },
+     "description": "feature kind -> command whose output lists that kind (e.g. filter -> ffmpeg -filters)"
+    },
+    "alternatives": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "any one of these binaries satisfies the requirement (e.g. magick | sips)"
+    }
+   }
+  },
+  "level": {
+   "enum": [
+    "none",
+    "scoped",
+    "any"
+   ]
+  },
+  "permissions": {
+   "type": "object",
+   "required": [
+    "read",
+    "write",
+    "network",
+    "exec",
+    "spend",
+    "send"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "read": {
+     "$ref": "#/$defs/permEntry"
+    },
+    "write": {
+     "$ref": "#/$defs/permEntry"
+    },
+    "network": {
+     "$ref": "#/$defs/permEntry"
+    },
+    "exec": {
+     "$ref": "#/$defs/permEntry"
+    },
+    "spend": {
+     "$ref": "#/$defs/permEntry"
+    },
+    "send": {
+     "$ref": "#/$defs/permEntry"
+    }
+   }
+  },
+  "permEntry": {
+   "type": "object",
+   "required": [
+    "level"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "level": {
+     "$ref": "#/$defs/level"
+    },
+    "scope": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "paths ($INPUT, $OUTPUT, $WORKDIR, $SKILL_DIR), hosts, commands, or recipients"
+    },
+    "why": {
+     "type": "string"
+    },
+    "confirm": {
+     "enum": [
+      "never",
+      "each",
+      "session"
+     ]
+    }
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "level": {
+        "const": "scoped"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "scope"
+      ],
+      "properties": {
+       "scope": {
+        "minItems": 1
+       }
+      }
+     }
+    }
+   ]
+  },
+  "capability": {
+   "type": "object",
+   "required": [
+    "id",
+    "summary",
+    "effects"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^[a-z0-9]+([._-][a-z0-9]+)*$"
+    },
+    "summary": {
+     "type": "string",
+     "maxLength": 300
+    },
+    "entry": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "cli": {
+       "$ref": "#/$defs/command"
+      },
+      "mcp_tool": {
+       "type": "string"
+      },
+      "doc": {
+       "type": "string"
+      }
+     }
+    },
+    "effects": {
+     "type": "array",
+     "items": {
+      "enum": [
+       "read",
+       "write",
+       "network",
+       "exec",
+       "spend",
+       "send"
+      ]
+     },
+     "uniqueItems": true
+    },
+    "destructive": {
+     "type": "boolean"
+    },
+    "idempotent": {
+     "type": "boolean"
+    },
+    "dry_run": {
+     "type": "object",
+     "properties": {
+      "supported": {
+       "type": "boolean"
+      },
+      "flag": {
+       "type": "string"
+      },
+      "effects": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "inputs": {
+     "type": "object",
+     "description": "JSON Schema"
+    },
+    "outputs": {
+     "type": "object",
+     "description": "JSON Schema of the machine-readable result (e.g. --json stdout)"
+    },
+    "requires": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "description": "names from requirements.binaries/runtimes"
+    },
+    "requires_features": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+:[A-Za-z0-9_.-]+$"
+     }
+    },
+    "optional_features": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "feature"
+      ],
+      "properties": {
+       "feature": {
+        "type": "string"
+       },
+       "when": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "conditional_effects": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "effect",
+       "when"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "effect": {
+        "enum": [
+         "read",
+         "write",
+         "network",
+         "exec",
+         "spend",
+         "send"
+        ]
+       },
+       "when": {
+        "type": "string"
+       },
+       "scope": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       }
+      }
+     }
+    },
+    "role": {
+     "type": "string"
+    },
+    "mcp_annotations": {
+     "type": "object",
+     "description": "override of the derived MCP tool annotations",
+     "properties": {
+      "readOnlyHint": {
+       "type": "boolean"
+      },
+      "destructiveHint": {
+       "type": "boolean"
+      },
+      "idempotentHint": {
+       "type": "boolean"
+      },
+      "openWorldHint": {
+       "type": "boolean"
+      }
+     }
+    },
+    "x": {
+     "type": "object"
+    },
+    "effect_scopes": {
+     "type": "object",
+     "propertyNames": {
+      "enum": [
+       "read",
+       "write",
+       "network",
+       "exec",
+       "spend",
+       "send"
+      ]
+     },
+     "additionalProperties": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "description": "narrower per-capability scope; MUST be within permissions.<effect>.scope"
+    }
+   }
+  },
+  "command": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "string"
+   }
+  },
+  "testCase": {
+   "type": "object",
+   "required": [
+    "id",
+    "run",
+    "expect"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "type": "string"
+    },
+    "capability": {
+     "type": "string"
+    },
+    "run": {
+     "$ref": "#/$defs/command"
+    },
+    "timeout_s": {
+     "type": "number",
+     "exclusiveMinimum": 0
+    },
+    "network": {
+     "type": "boolean"
+    },
+    "expect": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "exit_code": {
+       "type": "integer"
+      },
+      "stdout_json_schema": {
+       "type": "object"
+      },
+      "stdout_json": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "required": [
+         "path"
+        ],
+        "properties": {
+         "path": {
+          "type": "string"
+         },
+         "equals": {},
+         "min": {
+          "type": "number"
+         },
+         "max": {
+          "type": "number"
+         },
+         "exists": {
+          "type": "boolean"
+         }
+        }
+       }
+      },
+      "stdout_contains": {
+       "type": "string"
+      },
+      "files": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "required": [
+         "path"
+        ],
+        "properties": {
+         "path": {
+          "type": "string"
+         },
+         "exists": {
+          "type": "boolean"
+         },
+         "min_bytes": {
+          "type": "integer"
+         }
+        }
+       }
+      },
+      "no_writes_outside": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "stderr_contains": {
+       "type": "string"
+      },
+      "validate_outputs": {
+       "type": "boolean",
+       "description": "validate stdout JSON against the capability's outputs schema"
+      },
+      "stdout_json_mode": {
+       "enum": [
+        "strict",
+        "last"
+       ],
+       "description": "last = parse the last top-level JSON value in stdout (tolerates leading log lines); strict is the default and the conformant behaviour"
+      }
+     }
+    },
+    "env": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     }
+    },
+    "skip_unless_env": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "tags": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

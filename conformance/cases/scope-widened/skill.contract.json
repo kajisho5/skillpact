@@ -1,0 +1,45 @@
+{
+  "contract_version": "0.5",
+  "kind": "instructions",
+  "skill": {
+    "name": "case",
+    "version": "1.0.0"
+  },
+  "permissions": {
+    "read": {
+      "level": "none"
+    },
+    "write": {
+      "level": "scoped",
+      "scope": [
+        "$OUTPUT"
+      ]
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "none"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "guide",
+      "summary": "guidance only",
+      "effects": [
+        "write"
+      ],
+      "effect_scopes": {
+        "write": [
+          "/etc/**"
+        ]
+      }
+    }
+  ]
+}

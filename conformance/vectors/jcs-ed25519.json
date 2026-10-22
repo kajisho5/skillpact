@@ -1,0 +1,223 @@
+{
+  "description": "SkillPact 0.4 known-answer vectors: signing input = RFC 8785 (JCS) of the contract with integrity.signatures removed. Test-only key, seed = sha256('skillpact-test-vector-key-DO-NOT-USE'). Never use for real signing.",
+  "test_public_key": "ed25519:h4z5ZqAU97RzV18w3J26PraX7BcDlTuQY+BUIXN99ag=",
+  "test_seed_hex": "16bbd280df4c3278e6aad60dee3878398ab96061be113f6cc3ad3a8ecca0bef6",
+  "vectors": [
+    {
+      "id": "basic",
+      "contract": {
+        "contract_version": "0.4",
+        "skill": {
+          "name": "vec",
+          "version": "1.0.0"
+        },
+        "permissions": {
+          "read": {
+            "level": "none"
+          },
+          "write": {
+            "level": "none"
+          },
+          "network": {
+            "level": "none"
+          },
+          "exec": {
+            "level": "none"
+          },
+          "spend": {
+            "level": "none"
+          },
+          "send": {
+            "level": "none"
+          }
+        },
+        "capabilities": []
+      },
+      "canonical_utf8": "{\"capabilities\":[],\"contract_version\":\"0.4\",\"permissions\":{\"exec\":{\"level\":\"none\"},\"network\":{\"level\":\"none\"},\"read\":{\"level\":\"none\"},\"send\":{\"level\":\"none\"},\"spend\":{\"level\":\"none\"},\"write\":{\"level\":\"none\"}},\"skill\":{\"name\":\"vec\",\"version\":\"1.0.0\"}}",
+      "canonical_sha256": "430209272e6d6000202433b8c63dd423afc30ebb5f351e4a70d34662c7b1a3e7",
+      "ed25519_sig": "tH7WNXM4/C7u0ayQFlC+rMCLgU9OwjInmY/oxFY1Jbj2dxv8tampsE/O8Vb08qJTcdblZ09Z0urxR7Hpeax9Ag==",
+      "legacy_0_3_differs": false
+    },
+    {
+      "id": "number-forms",
+      "contract": {
+        "contract_version": "0.4",
+        "skill": {
+          "name": "vec",
+          "version": "1.0.0"
+        },
+        "permissions": {
+          "read": {
+            "level": "none"
+          },
+          "write": {
+            "level": "none"
+          },
+          "network": {
+            "level": "none"
+          },
+          "exec": {
+            "level": "none"
+          },
+          "spend": {
+            "level": "none"
+          },
+          "send": {
+            "level": "none"
+          }
+        },
+        "capabilities": [],
+        "x": {
+          "v": {
+            "a": 1.0,
+            "b": 1e+21,
+            "c": -0.0,
+            "d": 0.1,
+            "e": 1e-07,
+            "f": 100
+          }
+        }
+      },
+      "canonical_utf8": "{\"capabilities\":[],\"contract_version\":\"0.4\",\"permissions\":{\"exec\":{\"level\":\"none\"},\"network\":{\"level\":\"none\"},\"read\":{\"level\":\"none\"},\"send\":{\"level\":\"none\"},\"spend\":{\"level\":\"none\"},\"write\":{\"level\":\"none\"}},\"skill\":{\"name\":\"vec\",\"version\":\"1.0.0\"},\"x\":{\"v\":{\"a\":1,\"b\":1e+21,\"c\":0,\"d\":0.1,\"e\":1e-7,\"f\":100}}}",
+      "canonical_sha256": "96a34441941ab7cbd34b5786c2baa5f5518760bc4da5c4a1fe982ea78e99917e",
+      "ed25519_sig": "10mumMGVGvIqDnawShTi3cEyZJ1A+WcvYUfM8PhadH0vytnoveBnxSyh1jPK/gIztjyLLNsN4n2gjAm4MW8wDA==",
+      "legacy_0_3_differs": true
+    },
+    {
+      "id": "unicode-and-escapes",
+      "contract": {
+        "contract_version": "0.4",
+        "skill": {
+          "name": "vec",
+          "version": "1.0.0"
+        },
+        "permissions": {
+          "read": {
+            "level": "none"
+          },
+          "write": {
+            "level": "none"
+          },
+          "network": {
+            "level": "none"
+          },
+          "exec": {
+            "level": "none"
+          },
+          "spend": {
+            "level": "none"
+          },
+          "send": {
+            "level": "none"
+          }
+        },
+        "capabilities": [],
+        "x": {
+          "v": {
+            "ja": "日本語",
+            "esc": "tab\t nl\n quote\" bs\\ ctl\u001f",
+            "emoji": "😀"
+          }
+        }
+      },
+      "canonical_utf8": "{\"capabilities\":[],\"contract_version\":\"0.4\",\"permissions\":{\"exec\":{\"level\":\"none\"},\"network\":{\"level\":\"none\"},\"read\":{\"level\":\"none\"},\"send\":{\"level\":\"none\"},\"spend\":{\"level\":\"none\"},\"write\":{\"level\":\"none\"}},\"skill\":{\"name\":\"vec\",\"version\":\"1.0.0\"},\"x\":{\"v\":{\"emoji\":\"😀\",\"esc\":\"tab\\t nl\\n quote\\\" bs\\\\ ctl\\u001f\",\"ja\":\"日本語\"}}}",
+      "canonical_sha256": "c19e9a565f80cb4bb47c03febe506d9e64e56698e20941281748c9adb15c49ba",
+      "ed25519_sig": "4ae9kHwpVYMukpjoteHo6I37WEslBTQF3Rgqo0IOiIk5VlYzm1rzWRipYcmLpsBLstWr/9x7Hi2zxYw0TNYXBA==",
+      "legacy_0_3_differs": false
+    },
+    {
+      "id": "key-order-utf16",
+      "contract": {
+        "contract_version": "0.4",
+        "skill": {
+          "name": "vec",
+          "version": "1.0.0"
+        },
+        "permissions": {
+          "read": {
+            "level": "none"
+          },
+          "write": {
+            "level": "none"
+          },
+          "network": {
+            "level": "none"
+          },
+          "exec": {
+            "level": "none"
+          },
+          "spend": {
+            "level": "none"
+          },
+          "send": {
+            "level": "none"
+          }
+        },
+        "capabilities": [],
+        "x": {
+          "v": {
+            "€": 1,
+            "\r": 2,
+            "דּ": 3,
+            "1": 4,
+            "😀": 5,
+            "": 6,
+            "ö": 7
+          }
+        }
+      },
+      "canonical_utf8": "{\"capabilities\":[],\"contract_version\":\"0.4\",\"permissions\":{\"exec\":{\"level\":\"none\"},\"network\":{\"level\":\"none\"},\"read\":{\"level\":\"none\"},\"send\":{\"level\":\"none\"},\"spend\":{\"level\":\"none\"},\"write\":{\"level\":\"none\"}},\"skill\":{\"name\":\"vec\",\"version\":\"1.0.0\"},\"x\":{\"v\":{\"\\r\":2,\"1\":4,\"\":6,\"ö\":7,\"€\":1,\"😀\":5,\"דּ\":3}}}",
+      "canonical_sha256": "edb168ec823ec47eee5aec1d3d44f8b82ebbc61dabab18a21fb463519677b4de",
+      "ed25519_sig": "zsRGgFeBapYQusDfuULiL2Py7gHyiAHemauv2gZx/Z5VPF+8BIqzX4mH+bWsxl0HiN7wxhaNUPmABERk0rouAQ==",
+      "legacy_0_3_differs": true
+    },
+    {
+      "id": "signatures-excluded",
+      "contract": {
+        "contract_version": "0.4",
+        "skill": {
+          "name": "vec",
+          "version": "1.0.0"
+        },
+        "permissions": {
+          "read": {
+            "level": "none"
+          },
+          "write": {
+            "level": "none"
+          },
+          "network": {
+            "level": "none"
+          },
+          "exec": {
+            "level": "none"
+          },
+          "spend": {
+            "level": "none"
+          },
+          "send": {
+            "level": "none"
+          }
+        },
+        "capabilities": [],
+        "integrity": {
+          "algorithm": "sha256",
+          "files": {
+            "SKILL.md": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          "signatures": [
+            {
+              "type": "ed25519",
+              "key": "ed25519:AAAA",
+              "sig": "AAAA"
+            }
+          ]
+        }
+      },
+      "canonical_utf8": "{\"capabilities\":[],\"contract_version\":\"0.4\",\"integrity\":{\"algorithm\":\"sha256\",\"files\":{\"SKILL.md\":\"0000000000000000000000000000000000000000000000000000000000000000\"}},\"permissions\":{\"exec\":{\"level\":\"none\"},\"network\":{\"level\":\"none\"},\"read\":{\"level\":\"none\"},\"send\":{\"level\":\"none\"},\"spend\":{\"level\":\"none\"},\"write\":{\"level\":\"none\"}},\"skill\":{\"name\":\"vec\",\"version\":\"1.0.0\"}}",
+      "canonical_sha256": "a23718b74fa2bc6c935b6db1dbb7e67c10dadebda08f7a9b52a9442ab2804b2a",
+      "ed25519_sig": "y9Lgyn5YwJ66Jad8nzNrvCR5LUIpuRjRpLXAq3EbF+d70a0dVuks7oAs5ommaTiCUUmVm+kBWktfJ1qX+XAKDw==",
+      "legacy_0_3_differs": false
+    }
+  ]
+}

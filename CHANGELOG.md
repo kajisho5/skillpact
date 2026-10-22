@@ -1,5 +1,20 @@
 # Changelog
-All notable changes to the SkillPact spec and reference implementation. Unreleased drafts until 1.0.
+All notable changes to the SkillPact spec and implementations. Drafts until 1.0.
+
+## 0.6 (draft, 2026-10-22)
+- Second, independent implementation: TypeScript verify-only (`ts/`), passes the full conformance suite and verifies all signed samples.
+- Three more example skills (subtitle-skill, thumbnail-skill, video-editing-skill), all 0.6 and L3; ffmpeg-skill migrated to 0.6 and re-signed (JCS).
+- Reference `hash` now includes `src/**`, `pyproject.toml`, `package.json`.
+- New warning `SIGSTORE_UNVERIFIED`. GOVERNANCE.md, MIGRATION.md, comparison with adjacent specs.
+- Packaging for one-command use (`pipx run skillpact`, `npx skillpact-verify`), a reusable GitHub Action, L1/L2/L3 badges, and a browser-only checker page.
+
+## 0.5
+- Implementation-independent conformance suite (`conformance/`), `migrate` command, completed security considerations and threat model, duplicate JSON keys rejected (`CONTRACT_JSON`).
+- Prepared (not enabled) GitHub Actions workflow for Sigstore keyless signing.
+
+## 0.4
+- Consolidated, normative (BCP 14) spec. Signing input switched to RFC 8785 (JCS) for contract_version ≥ 0.4; 0.1–0.3 verify with the legacy form. Known-answer vectors.
+- Unknown versions rejected (`CONTRACT_VERSION_UNSUPPORTED`), `SCOPE_EMPTY`, `UNKNOWN_VARIABLE`, L3 only with a trusted key, no L2 without network isolation.
 
 ## [0.3.0] - unreleased
 ### Added

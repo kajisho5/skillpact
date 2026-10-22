@@ -1,0 +1,283 @@
+{
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.6.json",
+  "contract_version": "0.6",
+  "kind": "tool",
+  "skill": {
+    "name": "subtitle-skill",
+    "version": "0.1.0",
+    "license": "Apache-2.0",
+    "source": "https://github.com/kajisho5/subtitle-skill",
+    "authors": [
+      "SEVENTHWELL"
+    ]
+  },
+  "compat": {
+    "agents": {
+      "claude-code": {
+        "status": "expected"
+      },
+      "cursor": {
+        "status": "expected"
+      },
+      "codex": {
+        "status": "expected"
+      }
+    },
+    "interfaces": [
+      "skill-md",
+      "cli"
+    ]
+  },
+  "requirements": {
+    "runtimes": [
+      {
+        "name": "python3",
+        "version": ">=3.9",
+        "check": [
+          "python3",
+          "--version"
+        ]
+      }
+    ],
+    "skills": [
+      {
+        "name": "ffmpeg-skill",
+        "version": ">=0.10.0",
+        "env": "FFMPEG_SKILL_DIR",
+        "optional": true,
+        "when": "render / extract-frame / editing operations"
+      }
+    ],
+    "binaries": [
+      {
+        "name": "ffmpeg",
+        "optional": true,
+        "when": "run.render",
+        "check": [
+          "ffmpeg",
+          "-version"
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "read": {
+      "level": "scoped",
+      "scope": [
+        "$INPUT",
+        "$SKILL_DIR/**"
+      ],
+      "why": "subtitle documents and, for render, the source video"
+    },
+    "write": {
+      "level": "scoped",
+      "scope": [
+        "$OUTPUT",
+        "~/.claude/skills/**",
+        "~/.cursor/skills/**",
+        "~/.codex/skills/**"
+      ],
+      "why": "writes the subtitle / rendered file; `install` places SKILL.md in agent skill folders"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "scoped",
+      "scope": [
+        "python3",
+        "ffmpeg",
+        "ffprobe"
+      ],
+      "why": "render delegates to ffmpeg-skill (python3) which runs ffmpeg; doctor checks versions"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "contract",
+      "summary": "Print the machine-readable native contract (JSON).",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "subtitle_skill.cli",
+          "contract",
+          "--json"
+        ]
+      },
+      "effects": [],
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "doctor",
+      "summary": "Report dependency / health status (ffmpeg-skill, ffmpeg).",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "subtitle_skill.cli",
+          "doctor"
+        ]
+      },
+      "effects": [
+        "exec"
+      ],
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "run.generate",
+      "summary": "Validate a typed subtitle document and write an SRT/VTT file (no video I/O).",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "subtitle_skill.cli",
+          "run"
+        ]
+      },
+      "effects": [
+        "read",
+        "write"
+      ],
+      "destructive": false,
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "run.render",
+      "summary": "Burn in or mux a subtitle into a video by delegating to ffmpeg-skill `caption`.",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "subtitle_skill.cli",
+          "run"
+        ]
+      },
+      "effects": [
+        "read",
+        "write",
+        "exec"
+      ],
+      "destructive": false,
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "install",
+      "summary": "Place SKILL.md where Claude Code / Cursor / Codex discover skills.",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "subtitle_skill.cli",
+          "install"
+        ]
+      },
+      "effects": [
+        "write"
+      ],
+      "destructive": false,
+      "requires": [
+        "python3"
+      ]
+    }
+  ],
+  "tests": {
+    "cases": [
+      {
+        "id": "contract-json",
+        "capability": "contract",
+        "run": [
+          "python3",
+          "-c",
+          "import sys;from subtitle_skill.cli import main;sys.argv=['x','contract','--json'];sys.exit(main())"
+        ],
+        "env": {
+          "PYTHONPATH": "$SKILL_DIR/src"
+        },
+        "timeout_s": 30,
+        "expect": {
+          "exit_code": 0,
+          "stdout_json": [
+            {
+              "path": "$.skill_id",
+              "equals": "subtitle-skill"
+            }
+          ]
+        }
+      },
+      {
+        "id": "help",
+        "capability": "contract",
+        "run": [
+          "python3",
+          "-c",
+          "import sys;from subtitle_skill.cli import main;sys.argv=['x','--help'];sys.exit(main())"
+        ],
+        "env": {
+          "PYTHONPATH": "$SKILL_DIR/src"
+        },
+        "timeout_s": 30,
+        "expect": {
+          "exit_code": 0
+        }
+      }
+    ]
+  },
+  "x": {
+    "seventhwell": {
+      "reviewed": "2026-10-22",
+      "source_commit": "a950b38",
+      "note": "hand-written from the skill's native contract; replaces the init draft"
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "files": {
+      "SKILL.md": "630c6979f96b428faa559d208f7e6cb5e83b75bc3cd991aa0feface4c6539007",
+      "scripts/check_vendor_drift.py": "fcc01cc9b5fe85bd1c0e4760b17a2178413b681e6bdafa062bcea668a9bd2e79",
+      "assets/logo.png": "effc1181552b95baa1e470af39ef6e2aa9a8d4c062f4e879a6e9db81a3308b0a",
+      "src/subtitle_skill/SKILL.md": "630c6979f96b428faa559d208f7e6cb5e83b75bc3cd991aa0feface4c6539007",
+      "src/subtitle_skill/__init__.py": "eb52b44b50ebe10ea78d6163b35b8f7945bd21e9e022a45f93621dec1fd165fa",
+      "src/subtitle_skill/__main__.py": "307299fda7b77d22c64cb51430ec75e5f59d78e9c948786afb3b2544fe45e4b7",
+      "src/subtitle_skill/cli.py": "ce6ab026e2ed91a7a34fd58c52bcbdb08543a89dd1828b6e0a62659d77e69f19",
+      "src/subtitle_skill/contract.py": "8b5c2852298bbe311fc7025b21373a3308e8d17000bbf9a1088eb8e13e9ef1c6",
+      "src/subtitle_skill/doctor.py": "5ec4afead4bbe7db084c3e7d118dd8940a0066d791f05ad9d46f788919de722d",
+      "src/subtitle_skill/engine.py": "e1a98671805a110cb73745e980087ed17e1f4fdf10b5091ab26f0e3df8b340a7",
+      "src/subtitle_skill/errors.py": "ad27a56ea562c543b314dd789b057ce1919513b3bb58e6fa1651e75fad9fb397",
+      "src/subtitle_skill/formats/__init__.py": "e49e5ee536c40a9bca1016558652a469f42b0eed5115ac2a69af48a8b22e34c5",
+      "src/subtitle_skill/formats/srt.py": "c3087b04ccccb2e503cff911117a2f938e96906dfadcfe54b0cc2d42a0d069a5",
+      "src/subtitle_skill/formats/vtt.py": "56ef973b0169eb84b64e41ab9aedbb2cc544dd88d9b94fe5789f7ec3d3e8fb59",
+      "src/subtitle_skill/installer.py": "b060223d2be582991baf5b8966ee0f828684da054b61b024d1e307cfc56a1a46",
+      "src/subtitle_skill/models.py": "1216c8a9c650c8d6ab682c0cc5871475765797b9d420b14fe82e74cf64d77bb8",
+      "src/subtitle_skill/operations.py": "de485f67fe12f1954f6c1fb3cc26a87395ec56f0f761ecf2263527324a0603c0",
+      "src/subtitle_skill/pathpolicy.py": "a606ff5717dcad2791ad8b135d22b4d02f00364fca652b91f4eb6eb025f6820c",
+      "src/subtitle_skill/provenance.py": "a44200e7ab7fa174f6904fd285d281ded59757594088fdcb07760a44aac4466e",
+      "src/subtitle_skill/security.py": "e13dd47ac2a9973694479f2b7c0ed8811f958d1997fac6122d5aca6b463a0a4d",
+      "src/subtitle_skill/validation.py": "8eb44619d500e4fe69264bcef6af2f1980f74610cc3f417d330851ec8c47008c",
+      "pyproject.toml": "0bb35f716cf3236d28698fba7c9b1abfbb4d169c1ed11b8e382d8d52e614b26d"
+    },
+    "signatures": [
+      {
+        "type": "ed25519",
+        "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
+        "sig": "5Yqw2U5FalAC73z7YECqcMFIhv9+nebDNC3znMrg95B3H0Y958a1LMoX83jKoKqFUH2Tky07PhZc9TjJBIhrBQ==",
+        "signer": "SEVENTHWELL"
+      }
+    ],
+    "canonicalization": "jcs"
+  }
+}

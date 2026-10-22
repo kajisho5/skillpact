@@ -1,0 +1,73 @@
+name: tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # a new ffmpeg-skill release lands on its main without a commit here; run daily so it is exercised
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch: {}
+jobs:
+  test:
+    name: test (${{ matrix.os }}, py${{ matrix.python }}, ffmpeg-skill ${{ matrix.ffmpeg_skill }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # ffmpeg-skill compatibility is detected at runtime (no version window), so the suite runs
+        # against ffmpeg-skill main everywhere, and once against the oldest commit it was verified
+        # against (0.12.2: no --overwrite, pre-2.0 layout) so both ends stay covered.
+        include:
+          - os: ubuntu-latest
+            python: "3.9"
+            ffmpeg_skill: main
+          - os: ubuntu-latest
+            python: "3.11"
+            ffmpeg_skill: main
+          - os: windows-latest
+            python: "3.11"
+            ffmpeg_skill: main
+          - os: macos-latest
+            python: "3.11"
+            ffmpeg_skill: main
+          - os: ubuntu-latest
+            python: "3.9"
+            ffmpeg_skill: 336e0c4d6311d2407daaa529ad71fee641f59b37
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install FFmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install a CJK font (Linux)
+        # macOS and Windows runners ship a CJK-capable font already (PingFang / Yu Gothic);
+        # a bare Ubuntu runner does not, and fonts.py never assumes one, so the `cjk` font_id
+        # would otherwise be MISSING_INPUT and the CJK-text tests would skip on Linux only.
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y fonts-wqy-zenhei
+      - name: Install FFmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+      - name: Install FFmpeg (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg -y --no-progress
+      - name: Fetch ffmpeg-skill ${{ matrix.ffmpeg_skill }} (video frame decoding only)
+        run: |
+          git clone https://github.com/kajisho5/ffmpeg-skill vendor/ffmpeg-skill
+          git -C vendor/ffmpeg-skill checkout "${{ matrix.ffmpeg_skill }}"
+          git -C vendor/ffmpeg-skill log --oneline -1
+        shell: bash
+      - run: ffprobe -version
+        shell: bash
+      - run: python -m pip install -e . pytest pyflakes
+      - run: python -m pyflakes src tests
+      - run: python -m pytest -q
+        env:
+          THUMBNAIL_SKILL_FFMPEG_SKILL_DIR: ${{ github.workspace }}/vendor/ffmpeg-skill
+      - run: thumbnail doctor --json --ffmpeg-skill vendor/ffmpeg-skill
+        shell: bash
+      - run: thumbnail skill --json > contract.json
+        shell: bash
+      - run: python -c "import json; json.load(open('contract.json'))"

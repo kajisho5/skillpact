@@ -11,6 +11,18 @@ POLICY_SCHEMA = json.loads((HERE / "policy_schema.json").read_text())
 EFFECTS = ["read", "write", "network", "exec", "spend", "send"]
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 CONTRACT_FILE = "skill.contract.json"
+KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6"]
+PATH_VARS = {"$INPUT", "$INPUT_DIR", "$OUTPUT", "$WORKDIR", "$SKILL_DIR", "$TMPDIR"}
+JCS_FROM = (0, 4)  # contract_version >= 0.4 signs RFC 8785 (JCS) bytes
+
+
+def version_status(v):
+    """'ok' | 'unknown_major' | 'unknown_minor' (spec 0.4 section 17)."""
+    if not isinstance(v, str) or not re.fullmatch(r"\d+\.\d+", v): return "unknown_major"
+    if v in KNOWN_VERSIONS: return "ok"
+    major = int(v.split(".")[0]); known_majors = {int(k.split(".")[0]) for k in KNOWN_VERSIONS}
+    if major == 0 or major not in known_majors: return "unknown_major"  # 0.x minors may break: treat as unknown major
+    return "unknown_minor"
 
 
 class Report:
@@ -31,7 +43,15 @@ def read_frontmatter(skill_md: Path):
 
 def load_contract(skill_dir: Path, contract_path: Path | None = None):
     p = contract_path or (skill_dir / CONTRACT_FILE)
-    return json.loads(Path(p).read_text(encoding="utf-8")), Path(p)
+    return json.loads(Path(p).read_text(encoding="utf-8"), object_pairs_hook=_no_dup_keys), Path(p)
+
+
+def _no_dup_keys(pairs):
+    d = {}
+    for k, v in pairs:
+        if k in d: raise json.JSONDecodeError(f"duplicate key {k!r}", "", 0)
+        d[k] = v
+    return d
 
 
 # ---------------- validate ----------------
@@ -55,6 +75,12 @@ def validate(skill_dir, contract_path=None) -> dict:
         r.err("CONTRACT_MISSING", f"{CONTRACT_FILE} not found"); return r.to_dict()
     except json.JSONDecodeError as e:
         r.err("CONTRACT_JSON", str(e)); return r.to_dict()
+    vs = version_status(c.get("contract_version") if isinstance(c, dict) else None)
+    if vs == "unknown_major":
+        r.err("CONTRACT_VERSION_UNSUPPORTED", f"contract_version {c.get('contract_version') if isinstance(c, dict) else None!r} is not supported (known: {', '.join(KNOWN_VERSIONS)})", "/contract_version"); return r.to_dict()
+    if vs == "unknown_minor":
+        r.warn("CONTRACT_VERSION_NEWER", f"contract_version {c['contract_version']!r} is newer than this validator; unknown fields may be ignored", "/contract_version")
+        c = {**c, "contract_version": KNOWN_VERSIONS[-1]}
     for e in sorted(Draft202012Validator(SCHEMA).iter_errors(c), key=lambda e: list(e.path)):
         r.err("SCHEMA", e.message, "/" + "/".join(map(str, e.path)))
     if not r.ok: return r.to_dict()
@@ -63,6 +89,11 @@ def validate(skill_dir, contract_path=None) -> dict:
     perms = c["permissions"]
     for eff in ("spend", "send"):
         if perms[eff]["level"] == "any": r.warn("HIGH_RISK", f"{eff}: level 'any' — harnesses will usually ask or deny", f"/permissions/{eff}")
+    for eff in EFFECTS:
+        if perms[eff]["level"] == "scoped" and not perms[eff].get("scope"): r.err("SCOPE_EMPTY", f"permissions.{eff}: level 'scoped' needs at least one scope", f"/permissions/{eff}")
+        for sc in perms[eff].get("scope", []):
+            for var in re.findall(r"\$[A-Z_]+", sc):
+                if var not in PATH_VARS: r.warn("UNKNOWN_VARIABLE", f"permissions.{eff}.scope uses undefined variable {var}", f"/permissions/{eff}")
     reqnames = {b["name"] for b in c.get("requirements", {}).get("binaries", []) + c.get("requirements", {}).get("runtimes", [])}
     ids = set()
     for i, cap in enumerate(c["capabilities"]):
@@ -119,7 +150,7 @@ def validate(skill_dir, contract_path=None) -> dict:
 def sha256(p: Path) -> str: return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 
-def hash_files(skill_dir, contract_path=None, include=("SKILL.md", "scripts/**", "references/**", "assets/**", "templates/**", "mcp/**")):
+def hash_files(skill_dir, contract_path=None, include=("SKILL.md", "scripts/**", "references/**", "assets/**", "templates/**", "mcp/**", "src/**", "pyproject.toml", "package.json")):
     skill_dir = Path(skill_dir).resolve(); c, cpath = load_contract(skill_dir, contract_path)
     files = {}
     for pat in include:
@@ -132,8 +163,21 @@ def hash_files(skill_dir, contract_path=None, include=("SKILL.md", "scripts/**",
     return len(files)
 
 
+def canonicalization_for(c):
+    """'jcs' (RFC 8785) for contract_version >= 0.4, else 'legacy-sorted' (0.1-0.3)."""
+    try: v = tuple(int(x) for x in str(c.get("contract_version", "0.1")).split("."))
+    except ValueError: return "jcs"
+    return "jcs" if v >= JCS_FROM else "legacy-sorted"
+
+
+def jcs(obj) -> bytes:
+    import rfc8785
+    return rfc8785.dumps(obj)
+
+
 def _canonical(c):
     c2 = json.loads(json.dumps(c)); c2.get("integrity", {}).pop("signatures", None)
+    if canonicalization_for(c) == "jcs": return jcs(c2)
     return json.dumps(c2, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
 
 
@@ -312,12 +356,13 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
     finally:
         after = _snapshot(skill_dir)
         shutil.rmtree(work, ignore_errors=True)
+    t_net = {t["id"]: bool(t.get("network")) for t in c.get("tests", {}).get("cases", [])}
     wrote = sorted(k for k in after if after[k] != before.get(k))
     scope = c["permissions"]["write"].get("scope", [])
     skill_dir_writes_allowed = any(s_.startswith("$SKILL_DIR") for s_ in scope)
     violations = [] if skill_dir_writes_allowed else wrote
     return {"ok": all(r["ok"] for r in results) and not violations, "requirements": reqs, "cases": results,
-            "skill_dir_writes": violations, "passed": sum(r["ok"] and not r.get("skipped") for r in results), "skipped": sum(bool(r.get("skipped")) for r in results), "total": len(results)}
+            "skill_dir_writes": violations, "network_isolated": bool(netbox) or all(r.get("skipped") or t_net.get(r["id"]) for r in results), "passed": sum(r["ok"] and not r.get("skipped") for r in results), "skipped": sum(bool(r.get("skipped")) for r in results), "total": len(results)}
 
 
 # ---------------- harness policy matching ----------------
@@ -433,7 +478,7 @@ def mcp_annotations(cap) -> dict:
 
 
 def mcp_list_tools(cmd, env=None, timeout=30):
-    msgs = [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "skillpact", "version": "0.3"}}},
+    msgs = [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "skillpact", "version": "0.6"}}},
             {"jsonrpc": "2.0", "method": "notifications/initialized"}, {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}]
     p = subprocess.run(cmd, input="".join(json.dumps(m) + "\n" for m in msgs), capture_output=True, text=True, timeout=timeout, env={**os.environ, **(env or {})})
     for line in p.stdout.splitlines():
@@ -465,3 +510,30 @@ def mcp_check(skill_dir, server_cmd, env=None, contract_path=None) -> dict:
     if unmapped: problems.append(f"served tools with no capability: {unmapped}")
     return {"ok": not problems, "tools_served": len(tools), "tools_mapped": len(rows), "problems": problems,
             "annotations_missing_on_server": sum(not r["annotations_served"] for r in rows), "tools": rows}
+
+
+# ---------------- migrate (0.x -> latest) ----------------
+LATEST = KNOWN_VERSIONS[-1]
+SCHEMA_URL = "https://kajisho5.github.io/skillpact/schema/v{}.json"
+
+
+def migrate(c: dict, to: str = None) -> tuple[dict, list]:
+    """Return (new_contract, changes). Pure function: never signs. Signatures over a changed contract are dropped."""
+    to = to or LATEST
+    if version_status(c.get("contract_version")) == "unknown_major": raise ValueError(f"cannot migrate from {c.get('contract_version')!r}")
+    if to not in KNOWN_VERSIONS: raise ValueError(f"unknown target {to!r}")
+    n = json.loads(json.dumps(c)); ch = []
+    old = n.get("contract_version")
+    if old != to: n["contract_version"] = to; ch.append(f"contract_version {old} -> {to}")
+    if "$schema" in n and n["$schema"] != SCHEMA_URL.format(to): n["$schema"] = SCHEMA_URL.format(to); ch.append("$schema updated")
+    for eff in EFFECTS:
+        pe = n.get("permissions", {}).get(eff, {})
+        if pe.get("level") == "scoped" and not pe.get("scope"): pe["scope"] = ["TODO(migrate)"]; ch.append(f"permissions.{eff}.scope was empty -> ['TODO(migrate)'] (SCOPE_EMPTY in >=0.4; confirm by hand)")
+    for t in n.get("tests", {}).get("cases", []):
+        if t.get("expect", {}).get("stdout_json_mode") == "last": ch.append(f"tests.{t['id']}: stdout_json_mode 'last' is legacy; prefer strict (not changed)")
+    integ = n.get("integrity")
+    if integ:
+        if old != to and (tuple(map(int, str(old).split("."))) < JCS_FROM <= tuple(map(int, to.split(".")))): integ["canonicalization"] = "jcs"
+        if integ.get("signatures") and ch:
+            integ["signatures"] = []; ch.append("integrity.signatures removed: contract changed (and canonicalization is JCS from 0.4); re-sign")
+    return n, ch

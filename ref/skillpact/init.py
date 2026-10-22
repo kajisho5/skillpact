@@ -56,7 +56,7 @@ def draft(skill_dir, from_native=None) -> dict:
         hit = bool(rx.search(text)) if rx else level != "none"
         if not hit: return {"level": "none"}
         unc.append(f"/permissions/{eff}")
-        return {"level": "scoped", "scope": scope or [], "why": f"{TODO}: heuristic match in SKILL.md/scripts"}
+        return {"level": "scoped", "scope": scope or ["TODO(init)"], "why": f"{TODO}: heuristic match in SKILL.md/scripts"}
     perms = {"read": {"level": "scoped", "scope": ["$INPUT", "$SKILL_DIR/**"], "why": f"{TODO}"} if kind == "tool" else {"level": "none"},
              "write": perm("scoped", WRITE, "write", ["$OUTPUT", "$WORKDIR/**"]) if kind == "tool" else {"level": "none"},
              "network": perm("scoped", NET, "network", ["TODO.example"]) if kind == "tool" else {"level": "none"},
@@ -79,7 +79,7 @@ def draft(skill_dir, from_native=None) -> dict:
     if not caps:
         caps = [{"id": "guide", "summary": (fm.get("description") or "instructions")[:300], "entry": {"doc": "SKILL.md"}, "effects": []}]
     unc.append("/capabilities")
-    c = {"contract_version": "0.3", "kind": kind,
+    c = {"contract_version": "0.6", "kind": kind,
          "skill": {"name": fm.get("name", d.name), "version": ver, **({"license": fm["license"]} if fm.get("license") else {})},
          "compat": {"agents": {a: {"status": "expected"} for a in ("claude-code", "cursor", "codex")}, "interfaces": ["skill-md"] + (["cli"] if kind == "tool" else [])},
          "requirements": {"binaries": [{"name": b, "check": [b, "--version"]} for b in bins if b not in ("python3",)],

@@ -1,6 +1,6 @@
 {
-  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.3.json",
-  "contract_version": "0.3",
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.6.json",
+  "contract_version": "0.6",
   "kind": "tool",
   "skill": {
     "name": "ffmpeg-skill",
@@ -19104,15 +19104,17 @@
       "templates/x.json": "f8d7936f365aea4a9a63e4b0ad419b1effc4836b47b0d491a82e436fac4379a9",
       "templates/youtube-shorts.json": "abf2c39ce09f5fc100730351b0340498e07f6e21c9d1bf7e3283c07f86b64951",
       "templates/youtube.json": "0221caab867bb9a0b28766af35cb9c9761e3d1dd7d0c080a105ae167daf5506a",
-      "mcp/server.py": "5af4357e18187666a4f32ac885ca83e6ef5b3713ba3267df68e58191fc04b66b"
+      "mcp/server.py": "5af4357e18187666a4f32ac885ca83e6ef5b3713ba3267df68e58191fc04b66b",
+      "package.json": "2c37ad20cce24c4e60c86bc00727d7d673c4d09763d23599e8212150f4d495a4"
     },
     "signatures": [
       {
         "type": "ed25519",
         "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
-        "sig": "ZA3vqnJZjzoTuoLCQo6XQGCHU/ZdlpFiPPM+nzoBFOYX2XcfWbkRlUwXYQhRXlSSaoT3tTLKP9um3FJURLW2AQ==",
+        "sig": "GffUt1PD6VW+Et9Y76/cP/wLT7LntHMyN4RRxp7SL6A7TGP4Six9buvSaOera85Oe8tbcpkPwwHnYhkzlvHNAQ==",
         "signer": "SEVENTHWELL"
       }
-    ]
+    ],
+    "canonicalization": "jcs"
   }
 }

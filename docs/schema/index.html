@@ -1,15 +1,15 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Schema reference v0.3 — SkillPact · SEVENTHWELL</title>
-<meta name="description" content="Field-by-field reference for skill.contract.json and harness policy (SkillPact v0.3).">
+<title>Schema reference v0.6 — SkillPact · SEVENTHWELL</title>
+<meta name="description" content="Field-by-field reference for skill.contract.json and harness policy (SkillPact v0.6).">
 <link rel="canonical" href="https://kajisho5.github.io/skillpact/schema/"><link rel="stylesheet" href="../assets/site.css">
 </head><body>
 <header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a>
 <nav><a href="../">Home</a><a href="#contract" >Contract</a><a href="#policy">Policy</a><a href="https://github.com/kajisho5/skillpact">GitHub</a></nav></div></header>
 <main class="wrap">
-<section class="hero sm"><p class="eyebrow">Schema reference · draft v0.3</p><h1>skill.contract.json &amp; harness policy</h1>
+<section class="hero sm"><p class="eyebrow">Schema reference · draft v0.6</p><h1>skill.contract.json &amp; harness policy</h1>
 <p class="lead">Every field, its type, whether it is required, and the allowed values — with real snippets from the signed <b>ffmpeg-skill</b> contract (42 capabilities, 78 tests).</p>
-<div class="pills"><a class="pill" href="v0.3.json">v0.3.json <small>contract</small></a><a class="pill" href="policy-v0.3.json">policy-v0.3.json <small>policy</small></a></div>
-<pre class="ids"><code>https://kajisho5.github.io/skillpact/schema/v0.3.json
+<div class="pills"><a class="pill" href="v0.6.json">v0.6.json <small>contract</small></a><a class="pill" href="v0.5.json">v0.5.json <small>older</small></a><a class="pill" href="v0.4.json">v0.4.json <small>older</small></a><a class="pill" href="v0.3.json">v0.3.json <small>older</small></a><a class="pill" href="policy-v0.3.json">policy-v0.3.json <small>policy</small></a></div>
+<pre class="ids"><code>https://kajisho5.github.io/skillpact/schema/v0.6.json
 https://kajisho5.github.io/skillpact/schema/policy-v0.3.json</code></pre></section>
 
 <section><h2 id="effects">The six effects</h2><p>Every contract declares a level for each effect (<code>none</code> · <code>scoped</code> · <code>any</code>); every capability lists the effects it may cause.</p>
@@ -28,7 +28,7 @@ https://kajisho5.github.io/skillpact/schema/policy-v0.3.json</code></pre></secti
 <section><h2 id="contract">Contract fields <small>skill.contract.json</small></h2>
 <details open><summary>Field table</summary><div class="tw"><table class="ft"><thead><tr><th>Field</th><th>Type</th><th>Req.</th><th>Description / allowed values</th></tr></thead><tbody>
 <tr class="d0" id="c-$schema"><td><code class="f">$schema</code></td><td><span class=t>string</span></td><td><span class=opt>optional</span></td><td>URL of the schema this file conforms to.</td></tr>
-<tr class="d0" id="c-contract_version"><td><code class="f">contract_version</code></td><td><span class=t>enum</span></td><td><span class=req>required</span></td><td>SkillPact contract version. New contracts should use &quot;0.3&quot;.<div class=vals><code class=v>&quot;0.1&quot;</code> <code class=v>&quot;0.2&quot;</code> <code class=v>&quot;0.3&quot;</code></div></td></tr>
+<tr class="d0" id="c-contract_version"><td><code class="f">contract_version</code></td><td><span class=t>enum</span></td><td><span class=req>required</span></td><td>SkillPact contract version. New contracts should use &quot;0.6&quot;.<div class=vals><code class=v>&quot;0.1&quot;</code> <code class=v>&quot;0.2&quot;</code> <code class=v>&quot;0.3&quot;</code> <code class=v>&quot;0.4&quot;</code> <code class=v>&quot;0.5&quot;</code> <code class=v>&quot;0.6&quot;</code></div></td></tr>
 <tr class="d0" id="c-skill"><td><code class="f">skill</code></td><td><span class=t>object</span></td><td><span class=req>required</span></td><td>Identity of the skill described by the neighbouring SKILL.md.</td></tr>
 <tr class="d1" id="c-skill.name"><td><code class="f">skill.name</code></td><td><span class=t>string</span></td><td><span class=req>required</span></td><td>Kebab-case skill name (≤ 64 chars), same as SKILL.md.<div class=x>pattern <code>^[a-z0-9]+(-[a-z0-9]+)*$</code> · max 64 chars</div></td></tr>
 <tr class="d1" id="c-skill.version"><td><code class="f">skill.version</code></td><td><span class=t>string</span></td><td><span class=req>required</span></td><td>SemVer version of the skill.<div class=x>pattern <code>^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$</code></div></td></tr>
@@ -161,12 +161,13 @@ https://kajisho5.github.io/skillpact/schema/policy-v0.3.json</code></pre></secti
 <tr class="d2" id="c-integrity.signatures.identity"><td><code class="f">integrity.signatures[].identity</code></td><td><span class=t>string</span></td><td><span class=opt>optional</span></td><td></td></tr>
 <tr class="d2" id="c-integrity.signatures.issuer"><td><code class="f">integrity.signatures[].issuer</code></td><td><span class=t>string</span></td><td><span class=opt>optional</span></td><td></td></tr>
 <tr class="d2" id="c-integrity.signatures.bundle"><td><code class="f">integrity.signatures[].bundle</code></td><td><span class=t>object</span></td><td><span class=opt>optional</span></td><td></td></tr>
+<tr class="d1" id="c-integrity.canonicalization"><td><code class="f">integrity.canonicalization</code></td><td><span class=t>enum</span></td><td><span class=opt>optional</span></td><td>informative; verifiers derive it from contract_version (&gt;=0.4: jcs, RFC 8785)<div class=vals><code class=v>&quot;jcs&quot;</code> <code class=v>&quot;legacy-sorted&quot;</code></div></td></tr>
 <tr class="d0" id="c-x"><td><code class="f">x</code></td><td><span class=t>object</span></td><td><span class=opt>optional</span></td><td>Vendor extensions, namespaced x.&lt;vendor&gt;.&lt;key&gt;.</td></tr>
 <tr class="d0" id="c-kind"><td><code class="f">kind</code></td><td><span class=t>enum</span></td><td><span class=opt>optional</span></td><td>tool = has executable entries; instructions = SKILL.md-only skill.<div class=vals><code class=v>&quot;tool&quot;</code> <code class=v>&quot;instructions&quot;</code></div></td></tr>
 </tbody></table></div></details>
 <h3>Examples from ffmpeg-skill</h3><figure class="code"><figcaption><span>Header &amp; identity</span><span class=src>samples/ffmpeg-skill/skill.contract.json</span><button class=cp type=button>Copy</button></figcaption><pre><code>{
-  &quot;$schema&quot;: &quot;https://kajisho5.github.io/skillpact/schema/v0.3.json&quot;,
-  &quot;contract_version&quot;: &quot;0.3&quot;,
+  &quot;$schema&quot;: &quot;https://kajisho5.github.io/skillpact/schema/v0.6.json&quot;,
+  &quot;contract_version&quot;: &quot;0.6&quot;,
   &quot;kind&quot;: &quot;tool&quot;,
   &quot;skill&quot;: {
     &quot;name&quot;: &quot;ffmpeg-skill&quot;,
@@ -396,13 +397,13 @@ https://kajisho5.github.io/skillpact/schema/policy-v0.3.json</code></pre></secti
   &quot;files&quot;: {
     &quot;SKILL.md&quot;: &quot;d6e50f4f7d5cd181bbb956303d5bb27371865eff17f273ac47e50536fe5a1477&quot;,
     &quot;scripts/_ass_overlay.py&quot;: &quot;01d98d2a07d28f78ec695479173fae2e4ee9382a1739a3a3c2e4f83bba29432e&quot;,
-    &quot;…&quot;: &quot;77 more files&quot;
+    &quot;…&quot;: &quot;78 more files&quot;
   },
   &quot;signatures&quot;: [
     {
       &quot;type&quot;: &quot;ed25519&quot;,
       &quot;key&quot;: &quot;ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=&quot;,
-      &quot;sig&quot;: &quot;ZA3vqnJZjzoTuoLCQo6XQGCHU/ZdlpFiPPM+nzoBFOYX2XcfWbkRlUwXYQhRXlSSaoT3tTLKP9um3FJURLW2AQ==&quot;,
+      &quot;sig&quot;: &quot;GffUt1PD6VW+Et9Y76/cP/wLT7LntHMyN4RRxp7SL6A7TGP4Six9buvSaOera85Oe8tbcpkPwwHnYhkzlvHNAQ==&quot;,
       &quot;signer&quot;: &quot;SEVENTHWELL&quot;
     }
   ]

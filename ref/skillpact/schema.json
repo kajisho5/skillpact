@@ -1,6 +1,6 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "https://kajisho5.github.io/skillpact/schema/v0.3.json",
+ "$id": "https://kajisho5.github.io/skillpact/schema/v0.6.json",
  "title": "SkillPact contract 0.3 (skill.contract.json, next to SKILL.md)",
  "type": "object",
  "required": [
@@ -18,7 +18,10 @@
    "enum": [
     "0.1",
     "0.2",
-    "0.3"
+    "0.3",
+    "0.4",
+    "0.5",
+    "0.6"
    ]
   },
   "skill": {
@@ -141,7 +144,8 @@
        "description": {
         "type": "string"
        }
-      }
+      },
+      "additionalProperties": false
      }
     },
     "skills": {
@@ -315,14 +319,25 @@
          ]
         }
        }
-      ]
+      ],
+      "additionalProperties": false
      }
+    },
+    "canonicalization": {
+     "enum": [
+      "jcs",
+      "legacy-sorted"
+     ],
+     "description": "informative; verifiers derive it from contract_version (>=0.4: jcs, RFC 8785)"
     }
    }
   },
   "x": {
    "type": "object",
-   "description": "vendor extensions: x.<vendor>.<key>"
+   "description": "vendor extensions: x.<vendor>.<key>",
+   "propertyNames": {
+    "pattern": "^[a-z0-9][a-z0-9-]*$"
+   }
   },
   "kind": {
    "enum": [
@@ -462,7 +477,28 @@
       "session"
      ]
     }
-   }
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "level": {
+        "const": "scoped"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "scope"
+      ],
+      "properties": {
+       "scope": {
+        "minItems": 1
+       }
+      }
+     }
+    }
+   ]
   },
   "capability": {
    "type": "object",

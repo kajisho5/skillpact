@@ -79,7 +79,7 @@ def native_to_contract(n: dict, skill_dir_name: str) -> dict:
                                                  "decoder": ["ffmpeg", "-hide_banner", "-decoders"], "muxer": ["ffmpeg", "-hide_banner", "-muxers"]}} if b == "ffmpeg" else {})})
     has_dl = any("conditional_effects" in c for c in caps)
     return {
-        "contract_version": "0.3", "kind": "tool",
+        "contract_version": "0.6", "kind": "tool",
         "skill": {"name": name, "version": sk.get("version", "0.0.0"), "license": sk.get("license", "MIT"),
                   "source": sk.get("repository", ""), "native_contract": {"cli": ["python3", "$SKILL_DIR/scripts/_contract.py", "contract", "--json"]}},
         "requirements": {"binaries": bins, "runtimes": [{"name": "python3", "version": _ver(req.get("python", ">=3.9")), "check": ["python3", "--version"]}]},

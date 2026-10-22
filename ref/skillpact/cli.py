@@ -20,6 +20,7 @@ def main(argv=None):
     p = sub.add_parser("sign-sigstore"); p.add_argument("skill_dir"); p.add_argument("--identity-token"); p.add_argument("--staging", action="store_true"); p.add_argument("--contract")
     p = sub.add_parser("convert"); p.add_argument("source"); p.add_argument("--to", choices=["mda", "autovault"]); p.add_argument("--from", dest="from_", choices=["mda", "autovault"]); p.add_argument("--contract"); p.add_argument("-o", "--output")
     p = sub.add_parser("owasp"); p.add_argument("skill_dir"); p.add_argument("--contract"); p.add_argument("--no-tests", action="store_true")
+    p = sub.add_parser("migrate"); p.add_argument("skill_dir"); p.add_argument("--contract"); p.add_argument("--to"); p.add_argument("--write", action="store_true")
     p = sub.add_parser("conformance"); p.add_argument("skill_dir"); p.add_argument("--contract"); p.add_argument("--trusted-key", nargs="*", default=[])
     a = ap.parse_args(argv)
     cp = Path(a.contract) if getattr(a, "contract", None) else None
@@ -71,15 +72,28 @@ def main(argv=None):
         from . import owasp
         c, _ = core.load_contract(Path(a.skill_dir), cp); t = None if a.no_tests else core.run_tests(a.skill_dir, cp)
         rows = owasp.assess(c, t, core.verify_signatures(c)); r = {"ok": True, "items": rows, "addressed": sum(x["status"] == "addressed" for x in rows)}
+    elif a.cmd == "migrate":
+        c, cpath = core.load_contract(Path(a.skill_dir), cp)
+        try: n, ch = core.migrate(c, a.to)
+        except ValueError as e: r = {"ok": False, "error": str(e)}
+        else:
+            if a.write and ch: cpath.write_text(json.dumps(n, ensure_ascii=False, indent=2) + "\n")
+            r = {"ok": True, "from": c.get("contract_version"), "to": n["contract_version"], "changes": ch, "written": bool(a.write and ch),
+                 "needs_resign": any("re-sign" in x for x in ch)}
     elif a.cmd == "conformance":
-        v = core.validate(a.skill_dir, cp); level = "none"; t = None
+        v = core.validate(a.skill_dir, cp); level = "none"; t = None; note = None
         if v["ok"]:
             level = "L1-declared"; t = core.run_tests(a.skill_dir, cp)
-            if t["ok"]:
+            if t["ok"] and not t.get("network_isolated", True):
+                level = "L1-declared"; note = "tests passed but network isolation was unavailable: L2 not granted (spec 0.4 s10)"
+            elif t["ok"]:
                 level = "L2-tested"; c, _ = core.load_contract(Path(a.skill_dir), cp); sig = core.verify_signatures(c)
-                if sig and all(sig.values()) and "integrity" in c and (not a.trusted_key or any(k in a.trusted_key for k in sig)): level = "L3-signed"
+                if sig and all(sig.values()) and "integrity" in c:
+                    if any(k in a.trusted_key for k in sig): level = "L3-signed"
+                    else: note = "signature is valid but no --trusted-key matched: L3 not granted (spec 0.4 s11)"
         r = {"ok": level != "none", "level": level, "validate_errors": v["errors"], "warnings": v["warnings"],
              "tests": {"passed": t["passed"], "total": t["total"], "skipped": t.get("skipped", 0)} if t else None}
+        if note: r["note"] = note
     print(json.dumps(r, ensure_ascii=False, indent=2))
     return 0 if r.get("ok") else 1
 

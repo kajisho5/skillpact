@@ -4,11 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skillpact"
-version = "0.3.0.dev0"
+version = "0.6.0b1"
 description = "SkillPact: machine-readable contracts for Agent Skills (reference implementation)"
 license = "Apache-2.0"
 requires-python = ">=3.11"
-dependencies = ["jsonschema>=4.20", "PyYAML>=6", "cryptography>=42"]
+dependencies = ["jsonschema>=4.20", "PyYAML>=6", "cryptography>=42", "rfc8785>=0.1.4"]
+readme = "README.md"
+authors = [{ name = "shogo kajiyama (SEVENTHWELL)" }]
+keywords = ["agent-skills", "skill-md", "security", "supply-chain", "claude-code", "codex", "cursor"]
+classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3"]
+
+[project.urls]
+Homepage = "https://kajisho5.github.io/skillpact/"
+Source = "https://github.com/kajisho5/skillpact"
 
 [project.optional-dependencies]
 sigstore = ["sigstore>=4"]

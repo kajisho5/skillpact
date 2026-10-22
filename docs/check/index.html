@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checker — SkillPact · SEVENTHWELL</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:">
+<link rel="stylesheet" href="../assets/site.css">
+<style>textarea{width:100%;min-height:260px;font-family:ui-monospace,monospace;font-size:13px}.res{margin-top:1rem}.err{color:#b91c1c}.warn{color:#b45309}.ok{color:#047857}.box{border:1px solid #ddd;border-radius:8px;padding:12px;margin:8px 0}</style>
+</head><body>
+<header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav><a href="../">Home</a><a href="../schema/">Schema</a><a href="../badges/">Badges</a><a href="https://github.com/kajisho5/skillpact">GitHub</a></nav></div></header>
+<main class="wrap"><section class="hero sm"><p class="eyebrow">Checker · runs in your browser</p><h1>Check a skill.contract.json</h1>
+<p class="lead">Paste a contract. Schema validation, cross-checks, risky effects and ed25519 signatures are checked <b>locally in this page</b> (the TypeScript implementation compiled for the browser). Nothing is uploaded: the page's security policy only allows loading files from this site (e.g. the example), never sending your input.</p></section>
+<p><label>Contract JSON<br><textarea id="c" spellcheck="false" placeholder='{"contract_version": "0.6", ...}'></textarea></label></p>
+<p><label>Trusted keys (one per line, optional)<br><textarea id="k" style="min-height:60px" placeholder="ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ="></textarea></label></p>
+<p><button id="go">Check</button> <button id="ex">Load example (thumbnail-skill, signed)</button></p>
+<div id="out" class="res"></div>
+<p><small>Not checked here: files listed in <code>integrity.files</code> (the page only sees the contract), conformance tests (L2), Sigstore bundles. Use <code>pipx run skillpact conformance &lt;dir&gt;</code> or the GitHub Action for the full level.</small></p>
+</main>
+<script src="skillpact-check.js"></script>
+<script src="check-ui.js"></script>
+</body></html>

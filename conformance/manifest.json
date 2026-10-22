@@ -1,0 +1,246 @@
+{
+  "suite": "skillpact-conformance",
+  "spec_version": "0.5",
+  "test_public_key": "ed25519:h4z5ZqAU97RzV18w3J26PraX7BcDlTuQY+BUIXN99ag=",
+  "cases": [
+    {
+      "id": "valid-minimal",
+      "description": "最小の有効な契約",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "valid-old-0.1",
+      "description": "旧版 0.1 も有効",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "valid-old-0.2",
+      "description": "旧版 0.2 も有効",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "valid-old-0.3",
+      "description": "旧版 0.3 も有効",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "valid-old-0.4",
+      "description": "旧版 0.4 も有効",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "version-unknown-major",
+      "description": "知らない major 版は拒否",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "CONTRACT_VERSION_UNSUPPORTED"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "version-unknown-0x",
+      "description": "知らない 0.x 版は拒否",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "CONTRACT_VERSION_UNSUPPORTED"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "schema-unknown-top-key",
+      "description": "x 以外の未知キーは拒否",
+      "expect": {
+        "valid": false,
+        "warnings_include": [],
+        "errors_any": [
+          "SCHEMA"
+        ]
+      }
+    },
+    {
+      "id": "x-extension-ignored",
+      "description": "x.<vendor> は無視して有効",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "x-bad-vendor-name",
+      "description": "vendor 名の形式違反",
+      "expect": {
+        "valid": false,
+        "warnings_include": [],
+        "errors_any": [
+          "SCHEMA"
+        ]
+      }
+    },
+    {
+      "id": "scope-empty",
+      "description": "scoped で scope 空",
+      "expect": {
+        "valid": false,
+        "warnings_include": [],
+        "errors_any": [
+          "SCHEMA",
+          "SCOPE_EMPTY"
+        ]
+      }
+    },
+    {
+      "id": "unknown-variable",
+      "description": "未定義の $ 変数は警告",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [
+          "UNKNOWN_VARIABLE"
+        ]
+      }
+    },
+    {
+      "id": "undeclared-effect",
+      "description": "effects に none の区分",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "UNDECLARED_EFFECT"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "dup-capability",
+      "description": "capability id の重複",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "DUP_CAPABILITY"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "high-risk-send-any",
+      "description": "send:any は警告",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [
+          "HIGH_RISK"
+        ]
+      }
+    },
+    {
+      "id": "scope-widened",
+      "description": "capability ごとの範囲が上限を超える",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "SCOPE_WIDENED"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "unknown-requirement",
+      "description": "存在しない requirement",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "UNKNOWN_REQUIREMENT"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "test-unknown-capability",
+      "description": "テストが未知の capability を参照",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "TEST_UNKNOWN_CAPABILITY"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "name-mismatch",
+      "description": "skill.name と SKILL.md の不一致",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "NAME_MISMATCH"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "signed-jcs-valid",
+      "description": "JCS 署名（テスト鍵）が有効",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "signed-jcs-tampered",
+      "description": "署名後に改ざん",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "SIGNATURE_INVALID"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "integrity-mismatch",
+      "description": "ハッシュ不一致",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "INTEGRITY_MISMATCH"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "json-duplicate-key",
+      "description": "重複キーを含む JSON は拒否",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "CONTRACT_JSON"
+        ]
+      }
+    }
+  ]
+}

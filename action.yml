@@ -1,0 +1,53 @@
+name: "SkillPact verify"
+description: "Validate a skill.contract.json (SkillPact) and report its conformance level (L1 / L2 / L3)."
+author: "SEVENTHWELL"
+branding: { icon: "shield", color: "purple" }
+inputs:
+  path:
+    description: "Skill directory (contains SKILL.md and skill.contract.json)"
+    default: "."
+  trusted-key:
+    description: "Space-separated trusted signer keys (ed25519:<b64> or sigstore:<issuer>|<identity>) required for L3"
+    default: ""
+  run-tests:
+    description: "Run the declared conformance tests (needed for L2/L3). Set false for a quick L1 check."
+    default: "true"
+  min-level:
+    description: "Fail the job if the level is below this (L1, L2 or L3)"
+    default: "L1"
+outputs:
+  level:
+    description: "Achieved level: none, L1-declared, L2-tested or L3-signed"
+    value: ${{ steps.check.outputs.level }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with: { python-version: "3.13" }
+    - name: install skillpact (from this action's checkout)
+      shell: bash
+      run: python -m pip install -q "${{ github.action_path }}/ref"
+    - name: allow network-isolated tests (unshare -rn)
+      if: inputs.run-tests == 'true' && runner.os == 'Linux'
+      shell: bash
+      run: sudo sysctl -q -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+    - id: check
+      shell: bash
+      env:
+        SP_PATH: ${{ inputs.path }}
+        SP_KEYS: ${{ inputs.trusted-key }}
+        SP_TESTS: ${{ inputs.run-tests }}
+        SP_MIN: ${{ inputs.min-level }}
+      run: |
+        set -euo pipefail
+        if [ "$SP_TESTS" = "true" ]; then
+          set +e; python -m skillpact.cli conformance "$SP_PATH" ${SP_KEYS:+--trusted-key $SP_KEYS} > sp.json; set -e
+          level=$(python -c "import json;print(json.load(open('sp.json'))['level'])")
+        else
+          set +e; python -m skillpact.cli validate "$SP_PATH" > sp.json; set -e
+          level=$(python -c "import json;print('L1-declared' if json.load(open('sp.json'))['ok'] else 'none')")
+        fi
+        echo "level=$level" >> "$GITHUB_OUTPUT"
+        { echo "### SkillPact: \`$level\`"; echo; echo '```json'; cat sp.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        rank() { case "$1" in L3*) echo 3;; L2*) echo 2;; L1*) echo 1;; *) echo 0;; esac; }
+        if [ "$(rank "$level")" -lt "$(rank "$SP_MIN")" ]; then echo "::error::SkillPact level $level is below $SP_MIN"; exit 1; fi

@@ -1,0 +1,264 @@
+{
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.6.json",
+  "contract_version": "0.6",
+  "kind": "tool",
+  "skill": {
+    "name": "video-editing-skill",
+    "version": "0.2.0",
+    "license": "Apache-2.0",
+    "source": "https://github.com/kajisho5/video-editing-skill",
+    "authors": [
+      "SEVENTHWELL"
+    ]
+  },
+  "compat": {
+    "agents": {
+      "claude-code": {
+        "status": "expected"
+      },
+      "cursor": {
+        "status": "expected"
+      },
+      "codex": {
+        "status": "expected"
+      }
+    },
+    "interfaces": [
+      "skill-md",
+      "cli"
+    ]
+  },
+  "requirements": {
+    "runtimes": [
+      {
+        "name": "python3",
+        "version": ">=3.9",
+        "check": [
+          "python3",
+          "--version"
+        ]
+      }
+    ],
+    "skills": [
+      {
+        "name": "ffmpeg-skill",
+        "version": ">=0.10.0",
+        "env": "FFMPEG_SKILL_DIR",
+        "optional": true,
+        "when": "render / extract-frame / editing operations"
+      }
+    ]
+  },
+  "permissions": {
+    "read": {
+      "level": "scoped",
+      "scope": [
+        "$INPUT",
+        "$SKILL_DIR/**"
+      ],
+      "why": "edit request and media inside the --allowed-input roots"
+    },
+    "write": {
+      "level": "scoped",
+      "scope": [
+        "$WORKDIR/**",
+        "$OUTPUT"
+      ],
+      "why": "writes outputs only inside --workspace"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "scoped",
+      "scope": [
+        "python3",
+        "ffmpeg",
+        "ffprobe"
+      ],
+      "why": "every media operation is a subprocess call to ffmpeg-skill, which runs ffmpeg"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "contract",
+      "summary": "Print the manifest / contract (JSON).",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "video_editing_skill",
+          "contract",
+          "--json"
+        ]
+      },
+      "effects": [],
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "validate",
+      "summary": "Validate an EditRequest against the workspace and allowed inputs.",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "video_editing_skill",
+          "validate"
+        ]
+      },
+      "effects": [
+        "read"
+      ],
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "plan",
+      "summary": "Dry run: compile the edit graph without touching media.",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "video_editing_skill",
+          "plan"
+        ]
+      },
+      "effects": [
+        "read"
+      ],
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "run",
+      "summary": "Execute the edit through ffmpeg-skill inside the workspace.",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "video_editing_skill",
+          "run"
+        ]
+      },
+      "effects": [
+        "read",
+        "write",
+        "exec"
+      ],
+      "destructive": false,
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "doctor",
+      "summary": "Report dependency status (ffmpeg-skill).",
+      "entry": {
+        "cli": [
+          "python3",
+          "-m",
+          "video_editing_skill",
+          "doctor"
+        ]
+      },
+      "effects": [
+        "exec"
+      ],
+      "requires": [
+        "python3"
+      ]
+    }
+  ],
+  "tests": {
+    "cases": [
+      {
+        "id": "contract-json",
+        "capability": "contract",
+        "run": [
+          "python3",
+          "-c",
+          "import sys;from video_editing_skill.cli import main;sys.argv=['x','contract','--json'];sys.exit(main())"
+        ],
+        "env": {
+          "PYTHONPATH": "$SKILL_DIR/src"
+        },
+        "timeout_s": 30,
+        "expect": {
+          "exit_code": 0,
+          "stdout_json": [
+            {
+              "path": "$.skill_id",
+              "equals": "video-editing"
+            }
+          ]
+        }
+      },
+      {
+        "id": "help",
+        "capability": "contract",
+        "run": [
+          "python3",
+          "-c",
+          "import sys;from video_editing_skill.cli import main;sys.argv=['x','--help'];sys.exit(main())"
+        ],
+        "env": {
+          "PYTHONPATH": "$SKILL_DIR/src"
+        },
+        "timeout_s": 30,
+        "expect": {
+          "exit_code": 0
+        }
+      }
+    ]
+  },
+  "x": {
+    "seventhwell": {
+      "reviewed": "2026-10-22",
+      "source_commit": "2656d9e",
+      "note": "hand-written from the skill's native contract; replaces the init draft"
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "files": {
+      "SKILL.md": "dcc477859907569c476b491964b3e238b5228c93b7ccc6e24490efbdb954c716",
+      "src/video_editing_skill/__init__.py": "c392cd8b3e50fe085e32b16619fe619d854bb28d5ffa4561362e1adc69b335d3",
+      "src/video_editing_skill/__main__.py": "7afeadd4522552160b4980dc798d62c6351e23026023c4dc3f40ef0a286a8f3d",
+      "src/video_editing_skill/canonical.py": "ea4c4288e034e0444abfbcb0dc5eaff60a33fe2548db69df9517a411e8f90128",
+      "src/video_editing_skill/cli.py": "b0f736b16a81b1ac04a01987c42addec566ccb142206f40f925b88f776729058",
+      "src/video_editing_skill/compiler.py": "4efe5a7fe193456e734d76c2d7bf9cbf6f40dd65ecdaee2f1f4cfe41e35ddf8a",
+      "src/video_editing_skill/contract.py": "8779743b0784d52ce3341f15117f1154a4dc1993baeb76e1af2d01ae57b90d3e",
+      "src/video_editing_skill/contract_check.py": "e296e3834cfb992e73b8130d09d4e47ba1d403e4ca4cdeb9cb9a052fa570f68b",
+      "src/video_editing_skill/doctor.py": "8b67cb38e25f2f3f2e1a352ff4ae0b05818708177dd488018cf2cbc0dd4812cd",
+      "src/video_editing_skill/errors.py": "5270b1d9a5092825760162e1e831c0941710f37c25092891a796b3e54cdf58cb",
+      "src/video_editing_skill/executor.py": "fe2c1d1a2344706eeb40f0181119e68def2f0ac2655fc3887ab0ee3c1ecddbaa",
+      "src/video_editing_skill/ffmpeg_skill.py": "b6a12626c56d12c284ac9cb798066d283c08d84eca83dfe48de3c0a072901dff",
+      "src/video_editing_skill/operations.py": "4be3c1491abafd59a51ed5cfa25fc8c644cc8299f2094e21fbe97056a1983293",
+      "src/video_editing_skill/paths.py": "0bc6fc57437d07a46d7a2f0c331c614922503805d508de1f8f9f531efdb5ab35",
+      "src/video_editing_skill/project.py": "b7c383b0eacfef94926f09e16db4b9a927e91ab41d3daddf777b41d315ca2b83",
+      "src/video_editing_skill/response.py": "74dc8a3e90980cbeef4216e01307ba1b251e67423a7d4fb07f2b378ba7bb4c82",
+      "src/video_editing_skill/timebase.py": "53ec04e84fd26d04e88741650c23f5a0802522a624a69a8c43bcb05da0cd7bfd",
+      "src/video_editing_skill/timeline.py": "e6d01aeec040ce0d66cff43c31c0b900b626b26663c7d09226485a2910396343",
+      "pyproject.toml": "731c76fd875a4993d385ab4297e23cad51b313aeb7040c116db5c01f7c130ac0"
+    },
+    "signatures": [
+      {
+        "type": "ed25519",
+        "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
+        "sig": "sgP4RVOb39VaSstVMlSrcYMVKeOaaw6cXLqfZwVF1TNht4fltc82BIEn2XE93C39BkxUqe9lc37qJgPXFHEmBQ==",
+        "signer": "SEVENTHWELL"
+      }
+    ],
+    "canonicalization": "jcs"
+  }
+}

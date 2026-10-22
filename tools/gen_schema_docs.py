@@ -4,7 +4,9 @@ Run from repo root:  python3 tools/gen_schema_docs.py   (stdlib only)."""
 import json, html, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BASE = "https://kajisho5.github.io/skillpact/"
-C = json.loads((ROOT / "docs/schema/v0.3.json").read_text())
+VERSIONS = sorted((q.stem[1:] for q in (ROOT / "docs/schema").glob("v*.json")), key=lambda v: tuple(map(int, v.split("."))))
+VER = VERSIONS[-1]  # latest published contract schema
+C = json.loads((ROOT / f"docs/schema/v{VER}.json").read_text())
 P = json.loads((ROOT / "docs/schema/policy-v0.3.json").read_text())
 SAMPLE = json.loads((ROOT / "samples/ffmpeg-skill/skill.contract.json").read_text())
 POL = {p.stem: json.loads(p.read_text()) for p in sorted((ROOT / "examples/policies").glob("*.json"))}
@@ -12,7 +14,7 @@ EFFECTS = ["read", "write", "network", "exec", "spend", "send"]
 
 DESC = {
  "$schema": "URL of the schema this file conforms to.",
- "contract_version": "SkillPact contract version. New contracts should use \"0.3\".",
+ "contract_version": "SkillPact contract version. New contracts should use \"" + VER + "\".",
  "kind": "tool = has executable entries; instructions = SKILL.md-only skill.",
  "skill": "Identity of the skill described by the neighbouring SKILL.md.",
  "skill.name": "Kebab-case skill name (≤ 64 chars), same as SKILL.md.",
@@ -147,17 +149,18 @@ def main():
     eff_desc = {"read": "Reads files or data", "write": "Creates or modifies files", "network": "Talks to hosts over the network",
                 "exec": "Runs other programs", "spend": "Spends money / paid quota", "send": "Sends messages to people or services"}
     eff_cards = "".join(f'<div class="eff e-{e}"><b>{e}</b><span>{eff_desc[e]}</span><small>ffmpeg-skill: {esc(SAMPLE["permissions"][e]["level"])}</small></div>' for e in EFFECTS)
+    OLDER = "".join(f'<a class="pill" href="v{v}.json">v{v}.json <small>older</small></a>' for v in reversed(VERSIONS[:-1]))
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Schema reference v0.3 — SkillPact · SEVENTHWELL</title>
-<meta name="description" content="Field-by-field reference for skill.contract.json and harness policy (SkillPact v0.3).">
+<title>Schema reference v{VER} — SkillPact · SEVENTHWELL</title>
+<meta name="description" content="Field-by-field reference for skill.contract.json and harness policy (SkillPact v{VER}).">
 <link rel="canonical" href="{BASE}schema/"><link rel="stylesheet" href="../assets/site.css">
 </head><body>
 <header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a>
 <nav><a href="../">Home</a><a href="#contract" >Contract</a><a href="#policy">Policy</a><a href="https://github.com/kajisho5/skillpact">GitHub</a></nav></div></header>
 <main class="wrap">
-<section class="hero sm"><p class="eyebrow">Schema reference · draft v0.3</p><h1>skill.contract.json &amp; harness policy</h1>
+<section class="hero sm"><p class="eyebrow">Schema reference · draft v{VER}</p><h1>skill.contract.json &amp; harness policy</h1>
 <p class="lead">Every field, its type, whether it is required, and the allowed values — with real snippets from the signed <b>ffmpeg-skill</b> contract ({len(caps)} capabilities, {len(SAMPLE['tests']['cases'])} tests).</p>
-<div class="pills"><a class="pill" href="v0.3.json">v0.3.json <small>contract</small></a><a class="pill" href="policy-v0.3.json">policy-v0.3.json <small>policy</small></a></div>
+<div class="pills"><a class="pill" href="v{VER}.json">v{VER}.json <small>contract</small></a>{OLDER}<a class="pill" href="policy-v0.3.json">policy-v0.3.json <small>policy</small></a></div>
 <pre class="ids"><code>{esc(C['$id'])}
 {esc(P['$id'])}</code></pre></section>
 

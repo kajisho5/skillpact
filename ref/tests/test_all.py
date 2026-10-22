@@ -303,3 +303,143 @@ def test_owasp_flags_unscoped():
     c = C(SAMPLE); c["permissions"]["exec"] = {"level": "any"}
     r = {x["id"]: x for x in owasp.assess(c, None, {})}
     assert r["AST03"]["status"] == "partial" and "exec" in r["AST03"]["gap"] and r["AST08"]["status"] == "partial"
+
+
+# ---------------- v0.4 ----------------
+def test_v04_contract_version_accepted():
+    import json, pathlib, jsonschema
+    s = json.loads((pathlib.Path(__file__).parent.parent / "skillpact" / "schema.json").read_text())
+    assert "0.4" in s["properties"]["contract_version"]["enum"]
+    assert s["$id"].endswith("/schema/v0.6.json")
+    jsonschema.Draft202012Validator.check_schema(s)
+
+
+# ---------------- v0.4 MUSTs ----------------
+import copy as _copy, shutil as _shutil, base64 as _b64
+
+def _mini(tmp_path, mutate=None, version="0.4"):
+    d = tmp_path / "mini"; d.mkdir()
+    (d / "SKILL.md").write_text("---\nname: mini\ndescription: tiny test skill\n---\nbody\n")
+    c = {"contract_version": version, "kind": "instructions", "skill": {"name": "mini", "version": "1.0.0"},
+         "permissions": {e: {"level": "none"} for e in core.EFFECTS}, "capabilities": [{"id": "guide", "summary": "guidance only", "effects": []}]}
+    if mutate: mutate(c)
+    (d / "skill.contract.json").write_text(json.dumps(c))
+    return d
+
+def _codes(r): return {f["code"] for f in r["findings"]}
+
+def test_v04_unknown_major_rejected(tmp_path):
+    r = core.validate(_mini(tmp_path, version="2.0"))
+    assert not r["ok"] and _codes(r) == {"CONTRACT_VERSION_UNSUPPORTED"}
+
+def test_v04_unknown_0x_minor_rejected(tmp_path):
+    assert "CONTRACT_VERSION_UNSUPPORTED" in _codes(core.validate(_mini(tmp_path, version="0.9")))
+
+def test_v04_version_status_future_minor_is_warning():
+    old = core.KNOWN_VERSIONS[:]
+    try:
+        core.KNOWN_VERSIONS[:] = old + ["3.0"]
+        assert core.version_status("3.4") == "unknown_minor" and core.version_status("4.0") == "unknown_major"
+    finally: core.KNOWN_VERSIONS[:] = old
+
+def test_v04_old_versions_still_valid(tmp_path):
+    for v in ("0.1", "0.2", "0.3", "0.4"):
+        d = _mini(tmp_path / v, version=v) if (tmp_path / v).mkdir() is None else None
+        assert core.validate(d)["ok"], v
+
+def test_v04_scoped_without_scope_is_error(tmp_path):
+    def m(c): c["permissions"]["read"] = {"level": "scoped"}
+    assert not core.validate(_mini(tmp_path, m))["ok"]
+
+def test_v04_unknown_variable_warns(tmp_path):
+    def m(c): c["permissions"]["read"] = {"level": "scoped", "scope": ["$HOME/**"]}
+    r = core.validate(_mini(tmp_path, m)); assert r["ok"] and "UNKNOWN_VARIABLE" in _codes(r)
+
+def test_v04_unknown_x_extension_ignored_but_must_be_vendor_object(tmp_path):
+    def ok(c): c["x"] = {"acme": {"anything": [1, 2]}}
+    assert core.validate(_mini(tmp_path, ok))["ok"]
+    def bad(c): c["x"] = {"Bad Vendor!": 5}
+    (tmp_path / "b").mkdir(); assert not core.validate(_mini(tmp_path / "b", bad))["ok"]
+
+def test_v04_extra_top_level_key_rejected(tmp_path):
+    def m(c): c["vendor_field"] = 1
+    assert "SCHEMA" in _codes(core.validate(_mini(tmp_path, m)))
+
+def test_v04_jcs_vectors():
+    doc = json.loads((ROOT.parent / "conformance/vectors/jcs-ed25519.json").read_text())
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    pk = Ed25519PublicKey.from_public_bytes(_b64.b64decode(doc["test_public_key"].split(":", 1)[1]))
+    for v in doc["vectors"]:
+        b = core._canonical(v["contract"])
+        assert b.decode() == v["canonical_utf8"], v["id"]
+        pk.verify(_b64.b64decode(v["ed25519_sig"]), b)
+    assert any(v["legacy_0_3_differs"] for v in doc["vectors"])
+
+def test_v04_canonicalization_selected_by_version():
+    assert core.canonicalization_for({"contract_version": "0.3"}) == "legacy-sorted"
+    assert core.canonicalization_for({"contract_version": "0.4"}) == "jcs"
+
+def test_v04_sample_resigned_with_jcs():
+    c = C(SAMPLE); assert c["contract_version"] == core.LATEST
+    res = core.verify_signatures(c); assert res and all(res.values())
+
+def test_v04_untrusted_signature_not_L3(capsys):
+    assert cli.main(["conformance", str(SAMPLE), "--trusted-key", "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="]) == 0
+    out = json.loads(capsys.readouterr().out); assert out["level"] == "L2-tested" and "trusted" in out["note"]
+
+def test_v04_no_isolation_no_L2(monkeypatch, tmp_path):
+    monkeypatch.setattr(core.shutil, "which", lambda n: None if n == "unshare" else _shutil.which(n))
+    def m(c):
+        c["kind"] = "tool"; c["permissions"]["exec"] = {"level": "scoped", "scope": ["true"]}
+        c["capabilities"] = [{"id": "noop", "summary": "noop", "effects": ["exec"], "entry": {"cli": ["true"]}}]
+        c["tests"] = {"cases": [{"id": "t", "capability": "noop", "run": ["true"], "expect": {"exit_code": 0}}]}
+    t = core.run_tests(_mini(tmp_path, m)); assert t["ok"] and t["network_isolated"] is False
+
+
+# ---------------- v0.5 ----------------
+def test_v05_conformance_suite_passes_with_reference_impl():
+    sys.path.insert(0, str(ROOT.parent / "conformance"))
+    import run as conf_run
+    r = conf_run.run(f"{sys.executable} -m skillpact.cli validate {{dir}}")
+    assert r["ok"] and r["total"] >= 20, [c for c in r["cases"] if not c["ok"]]
+
+def test_v05_migrate_from_03_fills_empty_scope_and_drops_signatures():
+    c = {"contract_version": "0.3", "$schema": "https://kajisho5.github.io/skillpact/schema/v0.3.json", "skill": {"name": "a", "version": "1.0.0"},
+         "permissions": {e: {"level": "none"} for e in core.EFFECTS}, "capabilities": [],
+         "integrity": {"algorithm": "sha256", "files": {}, "signatures": [{"type": "ed25519", "key": "ed25519:x", "sig": "y"}]}}
+    c["permissions"]["send"] = {"level": "scoped", "scope": []}
+    n, ch = core.migrate(c)
+    assert n["contract_version"] == "0.6" and n["$schema"].endswith("v0.6.json")
+    assert n["permissions"]["send"]["scope"] == ["TODO(migrate)"] and n["integrity"]["signatures"] == []
+    assert n["integrity"]["canonicalization"] == "jcs" and any("re-sign" in x for x in ch)
+    assert c["contract_version"] == "0.3"  # input untouched
+
+def test_v05_migrate_noop_and_rejects_unknown():
+    n, ch = core.migrate({"contract_version": "0.6", "permissions": {}})
+    assert ch == []
+    with pytest.raises(ValueError): core.migrate({"contract_version": "7.0"})
+
+def test_v05_migrate_cli_dry_run(capsys, tmp_path):
+    dst = tmp_path / "ffmpeg-skill"; shutil.copytree(SAMPLE, dst)
+    c = C(dst); c["contract_version"] = "0.4"; (dst / "skill.contract.json").write_text(json.dumps(c))
+    assert cli.main(["migrate", str(dst)]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["from"] == "0.4" and out["to"] == core.LATEST and out["written"] is False and out["needs_resign"]
+
+def test_v05_migrated_ffmpeg_contract_validates(tmp_path):
+    dst = tmp_path / "ffmpeg-skill"; shutil.copytree(SAMPLE, dst)
+    assert cli.main(["migrate", str(dst), "--write"]) == 0
+    r = core.validate(dst); assert r["ok"], [f for f in r["findings"] if f["level"] == "error"]
+
+
+# ---------------- v0.6 ----------------
+PUB = "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ="
+
+@pytest.mark.parametrize("name", ["subtitle-skill", "thumbnail-skill", "video-editing-skill"])
+def test_v06_example_skills_signed_latest(name):
+    d = ROOT.parent / "samples" / name; c = C(d)
+    assert c["contract_version"] == core.LATEST and core.validate(d)["ok"]
+    res = core.verify_signatures(c); assert res.get(PUB) is True
+
+def test_v06_hash_includes_src():
+    assert any(k.startswith("src/") for k in C(ROOT.parent / "samples" / "subtitle-skill")["integrity"]["files"])

@@ -83,7 +83,7 @@ def from_mda(frontmatter_or_requires, name="unnamed-skill", version="0.0.0"):
         m = re.match(r"([A-Za-z0-9_.-]+)(.*)", r_); reqs["runtimes"].append({"name": m.group(1), **({"version": m.group(2)} if m.group(2) else {})})
     effects = [e for e in ("read", "write", "network", "exec", "spend", "send") if perms[e]["level"] != "none"]
     extra = {k: v for k, v in req.items() if k not in ("tools", "network", "packages", "runtime", "cost-hints")}
-    c = {"contract_version": "0.3", "kind": "tool", "skill": {"name": name, "version": version},
+    c = {"contract_version": "0.6", "kind": "tool", "skill": {"name": name, "version": version},
          "requirements": reqs, "permissions": perms,
          "capabilities": [{"id": "skill", "summary": "whole skill (MDA declares at skill level only)", "role": "execution", "effects": effects}],
          "x": {"import": {"source": "mda-1.0", "uncertain": unc + ["capabilities: single whole-skill capability; split per tool by hand", "tests: none (add before claiming L2)"]}}}
@@ -116,7 +116,7 @@ def from_autovault(fm, name=None, version=None):
         if perms[e]["level"] == "any": unc.append(f"permissions.{e}: AutoVault has no scopes, imported as level=any")
     if fm.get("requires-secrets"): unc.append("requires-secrets: kept as requirements.env (required=true)")
     effects = [e for e in ("read", "write", "network", "exec", "spend", "send") if perms[e]["level"] != "none"]
-    return {"contract_version": "0.3", "kind": "tool",
+    return {"contract_version": "0.6", "kind": "tool",
             "skill": {"name": name or fm.get("name", "unnamed-skill"), "version": str(version or fm.get("version", "0.0.0")), **({"license": fm["license"]} if fm.get("license") else {})},
             "requirements": {"env": [{"name": s["name"], "required": bool(s.get("required", True)), "description": s.get("description", "")} for s in fm.get("requires-secrets", [])]},
             "permissions": perms,

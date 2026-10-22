@@ -1,0 +1,49 @@
+{
+  "contract_version": "0.5",
+  "kind": "instructions",
+  "skill": {
+    "name": "case",
+    "version": "1.0.1"
+  },
+  "permissions": {
+    "read": {
+      "level": "none"
+    },
+    "write": {
+      "level": "none"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "none"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "guide",
+      "summary": "guidance only",
+      "effects": []
+    }
+  ],
+  "integrity": {
+    "algorithm": "sha256",
+    "files": {
+      "SKILL.md": "4a4d1171ead50507fda5782e0aa9c465f1dc72d50c315427a5e3f27fdd125ec3"
+    },
+    "signatures": [
+      {
+        "type": "ed25519",
+        "key": "ed25519:h4z5ZqAU97RzV18w3J26PraX7BcDlTuQY+BUIXN99ag=",
+        "sig": "p3YD6lzE4bLh6u7ZcGVqQaXHrxKWJyTHZN/XEnR/bQWZloZzqNXBUu+9osLNZOu2Wc/345uVWLKaIXfU3ye5AQ==",
+        "signer": "test"
+      }
+    ]
+  }
+}

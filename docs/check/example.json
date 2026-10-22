@@ -1,0 +1,266 @@
+{
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.6.json",
+  "contract_version": "0.6",
+  "kind": "tool",
+  "skill": {
+    "name": "thumbnail-skill",
+    "version": "0.1.0",
+    "license": "Apache-2.0",
+    "source": "https://github.com/kajisho5/thumbnail-skill",
+    "authors": [
+      "SEVENTHWELL"
+    ]
+  },
+  "compat": {
+    "agents": {
+      "claude-code": {
+        "status": "expected"
+      },
+      "cursor": {
+        "status": "expected"
+      },
+      "codex": {
+        "status": "expected"
+      }
+    },
+    "interfaces": [
+      "skill-md",
+      "cli"
+    ]
+  },
+  "requirements": {
+    "runtimes": [
+      {
+        "name": "python3",
+        "version": ">=3.9",
+        "check": [
+          "python3",
+          "--version"
+        ]
+      }
+    ],
+    "skills": [
+      {
+        "name": "ffmpeg-skill",
+        "version": ">=0.10.0",
+        "env": "FFMPEG_SKILL_DIR",
+        "optional": true,
+        "when": "render / extract-frame / editing operations"
+      }
+    ],
+    "packages": [
+      {
+        "ecosystem": "pypi",
+        "name": "Pillow",
+        "import": "PIL"
+      }
+    ]
+  },
+  "permissions": {
+    "read": {
+      "level": "scoped",
+      "scope": [
+        "$INPUT",
+        "$SKILL_DIR/**"
+      ],
+      "why": "thumbnail document, image assets, fonts, and (extract-frame) the source video"
+    },
+    "write": {
+      "level": "scoped",
+      "scope": [
+        "$OUTPUT"
+      ],
+      "why": "writes the rendered PNG/JPEG"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "scoped",
+      "scope": [
+        "python3",
+        "ffmpeg"
+      ],
+      "why": "extract-frame delegates to ffmpeg-skill, which runs ffmpeg"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "contract",
+      "summary": "Print the Skill / Capability / Tool contract (JSON).",
+      "entry": {
+        "cli": [
+          "python3",
+          "-c",
+          "import sys;from thumbnail_skill.cli import main;sys.exit(main())",
+          "contract",
+          "--json"
+        ]
+      },
+      "effects": [],
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "validate",
+      "summary": "Validate a ThumbnailDocument structurally; touches no file system.",
+      "entry": {
+        "cli": [
+          "python3",
+          "-c",
+          "import sys;from thumbnail_skill.cli import main;sys.exit(main())",
+          "validate"
+        ]
+      },
+      "effects": [],
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "render",
+      "summary": "Render a ThumbnailDocument to a PNG/JPEG artifact (Pillow).",
+      "entry": {
+        "cli": [
+          "python3",
+          "-c",
+          "import sys;from thumbnail_skill.cli import main;sys.exit(main())",
+          "render"
+        ]
+      },
+      "effects": [
+        "read",
+        "write"
+      ],
+      "destructive": false,
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "extract-frame",
+      "summary": "Extract a still frame from a video through ffmpeg-skill.",
+      "entry": {
+        "cli": [
+          "python3",
+          "-c",
+          "import sys;from thumbnail_skill.cli import main;sys.exit(main())",
+          "extract-frame"
+        ]
+      },
+      "effects": [
+        "read",
+        "write",
+        "exec"
+      ],
+      "destructive": false,
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "id": "doctor",
+      "summary": "Diagnose fonts, ffmpeg-skill and path policy.",
+      "entry": {
+        "cli": [
+          "python3",
+          "-c",
+          "import sys;from thumbnail_skill.cli import main;sys.exit(main())",
+          "doctor"
+        ]
+      },
+      "effects": [
+        "read",
+        "exec"
+      ],
+      "requires": [
+        "python3"
+      ]
+    }
+  ],
+  "tests": {
+    "cases": [
+      {
+        "id": "contract-json",
+        "capability": "contract",
+        "run": [
+          "python3",
+          "-c",
+          "import sys;from thumbnail_skill.cli import main;sys.argv=['x','contract','--json'];sys.exit(main())"
+        ],
+        "env": {
+          "PYTHONPATH": "$SKILL_DIR/src"
+        },
+        "timeout_s": 30,
+        "expect": {
+          "exit_code": 0,
+          "stdout_json": [
+            {
+              "path": "$.skill_id",
+              "equals": "thumbnail-skill"
+            }
+          ]
+        }
+      },
+      {
+        "id": "help",
+        "capability": "contract",
+        "run": [
+          "python3",
+          "-c",
+          "import sys;from thumbnail_skill.cli import main;sys.argv=['x','--help'];sys.exit(main())"
+        ],
+        "env": {
+          "PYTHONPATH": "$SKILL_DIR/src"
+        },
+        "timeout_s": 30,
+        "expect": {
+          "exit_code": 0
+        }
+      }
+    ]
+  },
+  "x": {
+    "seventhwell": {
+      "reviewed": "2026-10-22",
+      "source_commit": "e9fc134",
+      "note": "hand-written from the skill's native contract; replaces the init draft"
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "files": {
+      "SKILL.md": "50c2b6db6ee915a7cb4fc45d7a3d8c363f6b3d122037a9cb6fc6ff3cdebbe9c6",
+      "src/thumbnail_skill/__init__.py": "c0e0df9035eb0a03094355ab436856005e3bb1039dcd43ad9dd0a615b0e9db13",
+      "src/thumbnail_skill/adapter.py": "a7990bd4fc2044b946631565a3001fbbb75fdb3418d7b74305611b59fed21a8d",
+      "src/thumbnail_skill/canonical.py": "64db39ba5c3b411acb948f8567957139e0db27199371c9d3763bf66142d7bd41",
+      "src/thumbnail_skill/cli.py": "8b4a82581ec8f020c49e981e9840ac1afeeb269cea1120a1cad2b130c63995c1",
+      "src/thumbnail_skill/contract.py": "e88f18e230c0e66b6c18445373da496daa7082d4a37e74c0d6f308d3ba9d0b44",
+      "src/thumbnail_skill/doctor.py": "eada96db373737c86f26603c273872e8e36779324d4aee91527e85ceff279871",
+      "src/thumbnail_skill/errors.py": "0964c3d89dd51ce28688df730a2b3a4c05b11b01ba89b01512fcea42de7bee0c",
+      "src/thumbnail_skill/executor.py": "61cd26e2fb0277f599eb411c797a24eb580962a0aa47ebbc05054f983dc399bb",
+      "src/thumbnail_skill/fonts.py": "6e6e4b0b8f28cebb01e066035b8cde9cb187198dcac35de9c4cebf0dbec8fc17",
+      "src/thumbnail_skill/model.py": "735ddf13501f16ef5bdf8d27d3119450de4c2ca04bdbdffe681a9cb3cd44e010",
+      "src/thumbnail_skill/renderer.py": "8798ad99e667366b990cc081ca593d25db634c16acf1cfba5165c3c2aa88582b",
+      "src/thumbnail_skill/security.py": "eb3460c2a9a0ad468d17cd6d71254dace66dd56f7017e130cb6f36a1f19b91fe",
+      "src/thumbnail_skill/skill.py": "7a0f812ae904aa6e669b8c952291ab8f3b17525950673cd78d8cd04abed55fa2",
+      "pyproject.toml": "d8bead57e904d8642227b8cae5a36966181515647e18c74bd6229a6f79651eab"
+    },
+    "signatures": [
+      {
+        "type": "ed25519",
+        "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
+        "sig": "at56JZgm+m1x8z8jfCs3nvbWDssuvTNFU3QeaUvpgBdFcq0I70XmeKTEm43dExC93ep3+n0Jt8WBdknNUo44Aw==",
+        "signer": "SEVENTHWELL"
+      }
+    ],
+    "canonicalization": "jcs"
+  }
+}

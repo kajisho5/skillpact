@@ -49,7 +49,7 @@ PROTECTED = ("SKILL.md", "**/SKILL.md", "**/CLAUDE.md", "**/AGENTS.md", "**/GEMI
              ".claude/**", ".cursor/**", ".codex/**", ".gemini/**", ".agents/**", "hooks/**", "package.json", "pyproject.toml")
 # 0.8 errata: code and bytecode can never be excluded either (an excluded module could be imported or sourced by a listed entry)
 CODE_PROTECTED = tuple(f"**/*.{e}" for e in ("py", "pyc", "pyo", "pyd", "sh", "bash", "zsh", "fish", "js", "mjs", "cjs", "ts", "mts", "cts", "rb", "pl", "pm",
-                       "php", "lua", "ps1", "psm1", "bat", "cmd", "exe", "so", "dylib", "dll", "jar", "class", "wasm"))
+                       "php", "lua", "ps1", "psm1", "bat", "cmd", "exe", "so", "dylib", "dll", "jar", "class", "wasm", "pth"))
 PROTECTED = PROTECTED + CODE_PROTECTED
 BYTECODE = ("**/__pycache__/**", "**/*.pyc", "**/*.pyo")
 PATH_EFFECTS = ("read", "write")
@@ -500,6 +500,40 @@ def _ver_ok(found, spec):
     return {">=": f >= want, ">": f > want, "==": f[:len(want)] == want, "<=": f <= want, "<": f < want}[op]
 
 
+PKG_CLAUSE = re.compile(r"^\s*(==|!=|>=|<=|~=|>|<)?\s*(\d+(?:\.\d+)*)\s*$")
+
+
+def _pkg_version_ok(found, spec):
+    """0.8.x erratum: requirements.packages[].version, e.g. '==1.106.2' or '>=1.0,<2'. Every comma-separated clause must hold;
+    a clause that cannot be parsed fails (a pin that is not understood must not pass silently)."""
+    f = _ver_tuple(found)
+    for clause in spec.split(","):
+        m = PKG_CLAUSE.match(clause)
+        if not m: return False
+        op, want = m.group(1) or "==", _ver_tuple(m.group(2))
+        if op == "~=":
+            if len(want) < 2 or f < want or f[:len(want) - 1] != want[:-1]: return False
+        elif op == "!=":
+            if f[:len(want)] == want: return False
+        elif not _ver_ok(found, op + m.group(2)): return False
+    return True
+
+
+STARTUP_HOOKS = ("sitecustomize.py", "usercustomize.py")
+
+
+def _dist(name):
+    import importlib.metadata as md
+    try: return md.distribution(name)
+    except md.PackageNotFoundError: return None
+
+
+def startup_hooks(dist) -> list:
+    """Files a distribution installs at the top of site-packages that Python runs at start-up (*.pth, sitecustomize.py,
+    usercustomize.py): the litellm 1.107.0 payload (2026-10-21) used both, so it ran without being imported."""
+    return sorted(str(f) for f in (dist.files or []) if "/" not in str(f) and (str(f).endswith(".pth") or str(f) in STARTUP_HOOKS))
+
+
 def check_requirements(c) -> list:
     out = []
     for b in c.get("requirements", {}).get("binaries", []) + c.get("requirements", {}).get("runtimes", []):
@@ -528,8 +562,16 @@ def check_requirements(c) -> list:
     import importlib.util
     for pk in c.get("requirements", {}).get("packages", []):
         if pk["ecosystem"] == "pypi":
-            ok = importlib.util.find_spec(pk.get("import") or pk["name"].replace("-", "_").lower()) is not None
-            out.append({"name": f"pypi:{pk['name']}", "ok": ok or pk.get("optional", False), "found": ok, "kind": "package"})
+            found = importlib.util.find_spec(pk.get("import") or pk["name"].replace("-", "_").lower()) is not None
+            d = _dist(pk["name"]) if found else None
+            res = {"name": f"pypi:{pk['name']}", "found": found, "kind": "package", "required": pk.get("version"), "version": d.version if d else None}
+            ok = found
+            if found and pk.get("version"):   # 0.8.x erratum: an installed package must match its pin, even when optional
+                if not d: ok, res["reason"] = False, "installed version unknown (no distribution metadata)"
+                elif not _pkg_version_ok(d.version, pk["version"]): ok, res["reason"] = False, f"installed {d.version} does not satisfy {pk['version']}"
+            if d and startup_hooks(d): res["startup_hooks"] = startup_hooks(d)
+            res["ok"] = ok or (not found and pk.get("optional", False))
+            out.append(res)
     return out
 
 

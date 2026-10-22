@@ -119,6 +119,11 @@ def main(argv=None):
         r = {"ok": level != "none", "level": level, "validate_errors": v["errors"], "warnings": v["warnings"],
              "tests": {k: t.get(k) for k in ("passed", "total", "skipped", "network_cases", "sandbox", "fs_isolated", "error") if t.get(k) is not None} if t else None, **r_extra}
         if note: r["note"] = note
+        if t:   # 0.8.x erratum: say which requirement failed, and which declared packages install start-up hooks
+            bad = [f"{x['name']}: {x.get('reason', 'not found')}" for x in t.get("requirements", []) if not x["ok"]]
+            hooks = {x["name"]: x["startup_hooks"] for x in t.get("requirements", []) if x.get("startup_hooks")}
+            if bad: r["requirements_failed"] = bad
+            if hooks: r["package_startup_hooks"] = hooks
     print(json.dumps(r, ensure_ascii=False, indent=2))
     return 0 if r.get("ok") else 1
 

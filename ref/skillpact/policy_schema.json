@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://kajisho5.github.io/skillpact/schema/policy-v0.8-r1.json",
+  "$id": "https://kajisho5.github.io/skillpact/schema/policy-v0.8-r2.json",
   "title": "Harness policy 0.8",
   "type": "object",
   "required": [
@@ -213,6 +213,34 @@
       "type": "string",
       "pattern": "^\\d+\\.\\d+$",
       "description": "deny contracts older than this contract_version (spec 0.8 s13.1); e.g. \"0.8\" so that roles are signed and integrity covers every file"
+    },
+    "compositions": {
+      "type": "object",
+      "description": "Optional (0.8.x additive): decision when an installed skill set forms a dangerous combination (spec s13.3).",
+      "additionalProperties": false,
+      "properties": {
+        "exfiltration": {
+          "enum": [
+            "allow",
+            "ask",
+            "deny"
+          ]
+        },
+        "persistence": {
+          "enum": [
+            "allow",
+            "ask",
+            "deny"
+          ]
+        },
+        "spend_untrusted": {
+          "enum": [
+            "allow",
+            "ask",
+            "deny"
+          ]
+        }
+      }
     }
   },
   "$defs": {

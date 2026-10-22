@@ -178,6 +178,22 @@ All implementations MUST match globs exactly as follows; `fnmatch` or shell glob
 - When a target cannot express a deny or ask, the output MUST be at least as strict as the decision (e.g. Codex `approval_policy: on-request`, never `never`). Compiled settings follow `decision_worst_case`, including conditional effects (erratum 0.8.x).
 - `export --format hushspec|rego` emits runtime policy documents.
 
+### 13.3 Composition (0.8.x, additive)
+Installed skills share one agent. Data that one skill reads can reach another skill through the agent's context, so isolating each skill does not prevent flows between them. This section is OPTIONAL and does not change the level or policy result of any single contract.
+- The **effective effect set** of a skill set is the union of all declared effects, including conditional effects (worst case), with each effect's scopes and contributing skills.
+- **Dangerous combinations** ("paths"). A tool that claims composition support MUST detect at least the following and name the skills that contribute to each role:
+
+| Path | Formed when the set contains | Severity |
+|---|---|---|
+| `exfiltration` | read of a sensitive scope (e.g. `~/.ssh`, `.env`, credentials, tokens, keys), a broad scope (`/**`, `~/**`) or `level: any`, **and** network other than `@local`, or any send | high |
+| `persistence` | write outside `$WORKDIR`/`$OUTPUT`/`$TMPDIR` (or `level: any`) **and** exec | medium |
+| `spend_untrusted` | spend **and** at least one skill without a trusted author signature (sets of two or more) | high |
+
+  The roles may come from one skill or from different skills (`cross_skill`). The sensitive-scope patterns are listed in the reference implementation and vectors: `conformance/vectors/compose.json`.
+- Policy: the optional `compositions` object (schema `policy-v0.8-r2.json`) maps a path id to `allow`, `ask` or `deny`. A matcher given several contracts returns the per-skill results unchanged, plus one entry per detected path that has a decision; the set decision is the most restrictive of all. Without `compositions` the result is the same as checking each skill alone.
+- Compilation: harness settings are per tool and cannot express conditions across skills. When a set forms a path with `ask` or `deny`, the compiler MUST emit at least `ask` for each contributing effect of each contributing skill, and MUST report the path in `lossy`.
+- Reference CLI: `skillpact compose <dir>...`, `policy-check <dir>... <policy>`, `policy-compile <dir>... <policy> --target T`.
+
 ## 14. Conversion and drafts
 - `convert` maps to and from MDA Open Spec `requires` and AutoVault `capabilities`; exports list `lossy` items and point back to the contract with its sha256.
 - Imports and `init` drafts list guesses in `x.import.uncertain` / `x.init.uncertain`, and may use `TODO(...)` strings. Such a contract is an unconfirmed draft: `UNCONFIRMED_DRAFT` (error from 0.8). A person must confirm and remove the markers. Erratum 0.8.x (informative, reference `init`): one capability per CLI subcommand (argparse `add_parser` in console-script modules and `scripts/`), per MCP tool (`@*.tool` functions, `Tool(name=...)`), or per non-generic `##` heading of an instructions-only `SKILL.md`; read-only verbs such as `doctor`/`validate`/`plan` get only `read`/`exec`; network scope is taken from URLs found, else `TODO(init)`.

@@ -11,8 +11,9 @@ def main(argv=None):
         if n == "test": p.add_argument("--only", nargs="*"); p.add_argument("--no-net-sandbox", action="store_true"); p.add_argument("--skills-path", nargs="*"); p.add_argument("--pass-env", nargs="*", default=[], help="environment variables a case may receive through skip_unless_env (default: none)")
     p = sub.add_parser("keygen"); p.add_argument("key_path")
     p = sub.add_parser("sign"); p.add_argument("skill_dir"); p.add_argument("key_path"); p.add_argument("--signer", default=""); p.add_argument("--contract"); p.add_argument("--role", default="author", choices=["author", "reviewer", "scanner"])
-    p = sub.add_parser("policy-check"); p.add_argument("skill_dir"); p.add_argument("policy"); p.add_argument("--contract")
-    p = sub.add_parser("policy-compile"); p.add_argument("skill_dir"); p.add_argument("policy"); p.add_argument("--target", required=True, choices=["claude-code", "cursor", "codex", "gemini-cli"]); p.add_argument("--contract"); p.add_argument("--mcp-server"); p.add_argument("--render", action="store_true")
+    p = sub.add_parser("policy-check"); p.add_argument("skill_dir", nargs="+", help="one or more skill dirs, then the policy"); p.add_argument("policy"); p.add_argument("--contract")
+    p = sub.add_parser("policy-compile"); p.add_argument("skill_dir", nargs="+"); p.add_argument("policy"); p.add_argument("--target", required=True, choices=["claude-code", "cursor", "codex", "gemini-cli"]); p.add_argument("--contract"); p.add_argument("--mcp-server"); p.add_argument("--render", action="store_true")
+    p = sub.add_parser("compose", help="union of effects and dangerous combinations for a skill set"); p.add_argument("skill_dirs", nargs="+"); p.add_argument("--trusted-key", nargs="*", default=[])
     p = sub.add_parser("init"); p.add_argument("skill_dir"); p.add_argument("-o", "--output"); p.add_argument("--force", action="store_true"); p.add_argument("--from-native", nargs="+")
     p = sub.add_parser("mcp-check"); p.add_argument("skill_dir"); p.add_argument("--contract"); p.add_argument("server", nargs="+")
     p = sub.add_parser("mcp-annotations"); p.add_argument("skill_dir"); p.add_argument("--contract")
@@ -32,10 +33,20 @@ def main(argv=None):
     elif a.cmd == "verify":
         c, _ = core.load_contract(Path(a.skill_dir), cp); res = core.verify_signatures(c); v = core.validate(a.skill_dir, cp)
         r = {"ok": bool(res) and all(res.values()) and v["ok"], "signatures": res, "integrity_ok": v["ok"]}
+    elif a.cmd in ("policy-check", "policy-compile") and len(a.skill_dir) > 1:
+        from . import compose as _co
+        pol = json.loads(Path(a.policy).read_text()); ents = [(core.load_contract(Path(d), None)[0], d, None) for d in a.skill_dir]
+        if a.cmd == "policy-check": r = _co.match_policy_set(ents, pol); r["ok"] = r["decision"] != "deny"
+        else: r = _co.compile_set(ents, pol, a.target); r["ok"] = True; r["target"] = a.target
+    elif a.cmd == "compose":
+        from . import compose as _co
+        cs = [core.load_contract(Path(d), None)[0] for d in a.skill_dirs]
+        tr = {c["skill"]["name"] for c in cs if c.get("integrity") and core.trusted_author(c, set(a.trusted_key))}
+        r = _co.compose([(c["skill"]["name"], c) for c in cs], tr); r["ok"] = not r["paths"]
     elif a.cmd == "policy-check":
-        c, _ = core.load_contract(Path(a.skill_dir), cp); r = core.match_policy(c, json.loads(Path(a.policy).read_text()), a.skill_dir, cp); r["ok"] = r["decision"] != "deny"
+        a.skill_dir = a.skill_dir[0]; c, _ = core.load_contract(Path(a.skill_dir), cp); r = core.match_policy(c, json.loads(Path(a.policy).read_text()), a.skill_dir, cp); r["ok"] = r["decision"] != "deny"
     elif a.cmd == "policy-compile":
-        c, _ = core.load_contract(Path(a.skill_dir), cp); comp = core.compile_native(c, json.loads(Path(a.policy).read_text()), a.target, a.mcp_server, a.skill_dir, cp); cfg = comp["config"]
+        a.skill_dir = a.skill_dir[0]; c, _ = core.load_contract(Path(a.skill_dir), cp); comp = core.compile_native(c, json.loads(Path(a.policy).read_text()), a.target, a.mcp_server, a.skill_dir, cp); cfg = comp["config"]
         from . import harness as _h
         fn, text = _h.render(a.target, cfg); errs = _h.validate_native(a.target, text)
         r = {"ok": not errs, "target": a.target, "file": fn, "schema_errors": errs, "config": cfg, "lossy": comp["lossy"]}

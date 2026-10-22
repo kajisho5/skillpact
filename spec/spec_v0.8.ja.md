@@ -178,6 +178,22 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - 変換先が deny や ask を表せない場合、出力は判定と同じかそれより厳しくなければなりません（MUST）（例：Codex は `approval_policy: on-request`。`never` にはしない）。変換した設定は条件付きの効果を含む `decision_worst_case` に従います（0.8.x 正誤）。
 - `export --format hushspec|rego` は実行時ポリシーの文書を出力します。
 
+### 13.3 組み合わせ（0.8.x、追加）
+入れたスキルは、同じエージェントの中で動きます。あるスキルが読んだデータは、エージェントの文脈を通って別のスキルに渡りえます。スキルを一つずつ隔離しても、この流れは止まりません。この節は任意（OPTIONAL）で、単独の契約のレベルやポリシーの結果は変えません。
+- スキルの組の**実際の効果**は、宣言されたすべての効果の和集合です。条件付きの効果も含め（最悪の場合）、効果ごとに scope と、それを持つスキルを示します。
+- **危険な組み合わせ**（パス）。組み合わせに対応すると言うツールは、少なくとも次を検出し、それぞれの役割を担うスキルを示さなければなりません（MUST）。
+
+| パス | 組に含まれるもの | 重大度 |
+|---|---|---|
+| `exfiltration`（持ち出し） | 秘密の scope（`~/.ssh`、`.env`、認証情報、トークン、鍵など）、広い scope（`/**`、`~/**`）、`level: any` のどれかの read、**かつ** `@local` 以外の network か send | 高 |
+| `persistence`（居座り） | `$WORKDIR`・`$OUTPUT`・`$TMPDIR` の外への write（または `level: any`）、**かつ** exec | 中 |
+| `spend_untrusted` | spend、**かつ** 信頼済みの author 署名がないスキル（2 つ以上の組） | 高 |
+
+  役割は 1 つのスキルが担うことも、別々のスキルが担うこともあります（`cross_skill`）。秘密の scope のパターンは参照実装とベクトル `conformance/vectors/compose.json` にあります。
+- ポリシー：任意の `compositions`（スキーマ `policy-v0.8-r2.json`）で、パスごとに `allow`・`ask`・`deny` を決めます。照合器に複数の契約を渡すと、スキルごとの結果はそのままで、判定のあるパスごとに 1 件を足します。組の判定は、その中でいちばん厳しいものです。`compositions` がなければ、スキルを一つずつ確かめた結果と同じです。
+- 変換：ハーネスの設定はツールごとなので、スキルをまたぐ条件は書けません。組が `ask` か `deny` のパスを作るときは、そのパスに関わるスキルの効果をすべて `ask` 以上で出力し（MUST）、そのパスを `lossy` に挙げなければなりません（MUST）。
+- 参照 CLI：`skillpact compose <dir>...`、`policy-check <dir>... <policy>`、`policy-compile <dir>... <policy> --target T`。
+
 ## 14. 変換と下書き
 - `convert` は MDA Open Spec の `requires`、AutoVault の `capabilities` と相互に変換します。書き出しは `lossy` と、元の契約とその sha256 を示します。
 - 取り込みや `init` の下書きは、推測した箇所を `x.import.uncertain` / `x.init.uncertain` に挙げ、`TODO(...)` を使うことがあります。こうした契約は未確認の下書きで、`UNCONFIRMED_DRAFT`（0.8 からエラー）になります。人が確認して印を消す必要があります。0.8.x 正誤（参考、参照実装の `init`）：capability は CLI のサブコマンドごと（console script のモジュールと `scripts/` の argparse の `add_parser`）、MCP のツールごと（`@*.tool` の関数、`Tool(name=...)`）、指示だけのスキルなら `SKILL.md` の一般的でない `##` 見出しごとに作ります。`doctor`・`validate`・`plan` などの読むだけの動詞は `read`・`exec` だけにし、network の scope は見つかった URL から、なければ `TODO(init)` にします。

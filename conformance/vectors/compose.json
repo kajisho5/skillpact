@@ -1,0 +1,499 @@
+{
+ "description": "Composition vectors (spec s13.3, 0.8.x additive): skills -> expected path ids (sorted). trusted lists skills with a trusted author signature.",
+ "cases": [
+  {
+   "id": "secret-read+network",
+   "skills": {
+    "a": {
+     "read": {
+      "level": "scoped",
+      "scope": [
+       "~/.ssh/**"
+      ]
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    },
+    "b": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "scoped",
+      "scope": [
+       "api.example.com"
+      ]
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    }
+   },
+   "expect": [
+    "exfiltration"
+   ],
+   "cross_skill": {
+    "exfiltration": true
+   }
+  },
+  {
+   "id": "broad-read+send",
+   "skills": {
+    "a": {
+     "read": {
+      "level": "any"
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    },
+    "b": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "scoped",
+      "scope": [
+       "slack"
+      ]
+     }
+    }
+   },
+   "expect": [
+    "exfiltration"
+   ]
+  },
+  {
+   "id": "narrow-read+network",
+   "skills": {
+    "a": {
+     "read": {
+      "level": "scoped",
+      "scope": [
+       "$INPUT"
+      ]
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    },
+    "b": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "scoped",
+      "scope": [
+       "api.example.com"
+      ]
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    }
+   },
+   "expect": []
+  },
+  {
+   "id": "secret-read+local-only",
+   "skills": {
+    "a": {
+     "read": {
+      "level": "scoped",
+      "scope": [
+       "**/.env"
+      ]
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    },
+    "b": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "scoped",
+      "scope": [
+       "@local"
+      ]
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    }
+   },
+   "expect": []
+  },
+  {
+   "id": "single-skill-exfil",
+   "skills": {
+    "a": {
+     "read": {
+      "level": "scoped",
+      "scope": [
+       "~/.aws/credentials"
+      ]
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "scoped",
+      "scope": [
+       "x.example"
+      ]
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    }
+   },
+   "expect": [
+    "exfiltration"
+   ],
+   "cross_skill": {
+    "exfiltration": false
+   }
+  },
+  {
+   "id": "durable-write+exec",
+   "skills": {
+    "a": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "scoped",
+      "scope": [
+       "~/.bashrc"
+      ]
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    },
+    "b": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "scoped",
+      "scope": [
+       "sh"
+      ]
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    }
+   },
+   "expect": [
+    "persistence"
+   ]
+  },
+  {
+   "id": "workdir-write+exec",
+   "skills": {
+    "a": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "scoped",
+      "scope": [
+       "$WORKDIR/**"
+      ]
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    },
+    "b": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "scoped",
+      "scope": [
+       "sh"
+      ]
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    }
+   },
+   "expect": []
+  },
+  {
+   "id": "spend+untrusted",
+   "skills": {
+    "a": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "scoped",
+      "scope": [
+       "stripe"
+      ]
+     },
+     "send": {
+      "level": "none"
+     }
+    },
+    "b": {
+     "read": {
+      "level": "scoped",
+      "scope": [
+       "$INPUT"
+      ]
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    }
+   },
+   "expect": [
+    "spend_untrusted"
+   ]
+  },
+  {
+   "id": "spend+trusted",
+   "skills": {
+    "a": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "scoped",
+      "scope": [
+       "stripe"
+      ]
+     },
+     "send": {
+      "level": "none"
+     }
+    },
+    "b": {
+     "read": {
+      "level": "scoped",
+      "scope": [
+       "$INPUT"
+      ]
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "none"
+     },
+     "send": {
+      "level": "none"
+     }
+    }
+   },
+   "trusted": [
+    "a",
+    "b"
+   ],
+   "expect": []
+  },
+  {
+   "id": "spend-alone",
+   "skills": {
+    "a": {
+     "read": {
+      "level": "none"
+     },
+     "write": {
+      "level": "none"
+     },
+     "network": {
+      "level": "none"
+     },
+     "exec": {
+      "level": "none"
+     },
+     "spend": {
+      "level": "scoped",
+      "scope": [
+       "stripe"
+      ]
+     },
+     "send": {
+      "level": "none"
+     }
+    }
+   },
+   "expect": []
+  }
+ ]
+}

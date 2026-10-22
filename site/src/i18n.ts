@@ -8,6 +8,7 @@ export const nav: { slug: string; en: string; ja: string }[] = [
   { slug: "spec", en: "Specification", ja: "仕様" },
   { slug: "why", en: "Why", ja: "なぜ必要か" },
   { slug: "guides", en: "Guides", ja: "導入ガイド" },
+  { slug: "composition", en: "Composition", ja: "組み合わせ" },
   { slug: "schema", en: "Schema", ja: "スキーマ" },
   { slug: "check", en: "Checker", ja: "チェッカー" },
   { slug: "badges", en: "Badges", ja: "バッジ" },

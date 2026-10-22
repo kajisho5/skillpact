@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kajisho5.github.io/skillpact/schema/policy-v0.8-r2.json",
+  "title": "Harness policy 0.8",
+  "type": "object",
+  "required": [
+    "policy_version",
+    "defaults"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "policy_version": {
+      "enum": [
+        "0.8",
+        "0.1"
+      ],
+      "description": "\"0.8\" (current). \"0.1\" is the legacy name of the same format and is still accepted (erratum 0.8.x)."
+    },
+    "defaults": {
+      "type": "object",
+      "required": [
+        "read",
+        "write",
+        "network",
+        "exec",
+        "spend",
+        "send"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "read": {
+          "$ref": "#/$defs/d"
+        },
+        "write": {
+          "$ref": "#/$defs/d"
+        },
+        "network": {
+          "$ref": "#/$defs/d"
+        },
+        "exec": {
+          "$ref": "#/$defs/d"
+        },
+        "spend": {
+          "$ref": "#/$defs/d"
+        },
+        "send": {
+          "$ref": "#/$defs/d"
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "effect",
+          "decision"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "effect": {
+            "enum": [
+              "read",
+              "write",
+              "network",
+              "exec",
+              "spend",
+              "send"
+            ]
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "glob patterns matched against the contract's declared scope"
+          },
+          "decision": {
+            "$ref": "#/$defs/d"
+          }
+        }
+      }
+    },
+    "skills": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deny": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "require_signature": {
+      "type": "boolean"
+    },
+    "trusted_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ask_on_destructive": {
+      "type": "boolean"
+    },
+    "allowlist_overrides_ask": {
+      "type": "boolean"
+    },
+    "never_auto_allow_any": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_turns": {
+          "type": "integer"
+        },
+        "max_tool_calls": {
+          "type": "integer"
+        },
+        "max_wall_seconds": {
+          "type": "integer"
+        },
+        "max_cost_usd": {
+          "type": "number"
+        },
+        "max_tokens": {
+          "type": "integer"
+        }
+      }
+    },
+    "sandbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filesystem": {
+          "enum": [
+            "read-only",
+            "workdir",
+            "repo",
+            "any"
+          ]
+        },
+        "network": {
+          "enum": [
+            "off",
+            "allowlist",
+            "on"
+          ]
+        },
+        "egress_allowlist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pre_action": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "post_action": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "properties": {
+        "otel_genai": {
+          "type": "boolean"
+        },
+        "log_path": {
+          "type": "string"
+        }
+      }
+    },
+    "x": {
+      "type": "object"
+    },
+    "min_contract_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$",
+      "description": "deny contracts older than this contract_version (spec 0.8 s13.1); e.g. \"0.8\" so that roles are signed and integrity covers every file"
+    },
+    "compositions": {
+      "type": "object",
+      "description": "Optional (0.8.x additive): decision when an installed skill set forms a dangerous combination (spec s13.3).",
+      "additionalProperties": false,
+      "properties": {
+        "exfiltration": {
+          "enum": [
+            "allow",
+            "ask",
+            "deny"
+          ]
+        },
+        "persistence": {
+          "enum": [
+            "allow",
+            "ask",
+            "deny"
+          ]
+        },
+        "spend_untrusted": {
+          "enum": [
+            "allow",
+            "ask",
+            "deny"
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "d": {
+      "enum": [
+        "allow",
+        "ask",
+        "deny"
+      ]
+    }
+  }
+}

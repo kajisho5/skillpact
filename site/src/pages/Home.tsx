@@ -44,6 +44,7 @@ const docDesc: Record<string, { en: string; ja: string }> = {
   spec: { en: "The normative text: MUST, SHOULD, MAY.", ja: "規定の本文。MUST・SHOULD・MAY で書かれています。" },
   why: { en: "The problem, who benefits, what it does not guarantee.", ja: "解決する問題、得をする人、保証しないこと。" },
   guides: { en: "Adopting SkillPact as an author, harness or organisation.", ja: "作者・ハーネス・組織それぞれの導入手順。" },
+  composition: { en: "Risks that appear only when skills are installed together.", ja: "スキルを一緒に入れたときにだけ生まれる危険。" },
   schema: { en: "Every field, type and allowed value; JSON Schema files.", ja: "すべての項目・型・値と、JSON Schema のファイル。" },
   check: { en: "Check a contract in your browser. Nothing is uploaded.", ja: "ブラウザの中で契約を確認。何も送信しません。" },
   badges: { en: "L1, L2 and L3 badges for a README.", ja: "README に貼る L1・L2・L3 のバッジ。" },

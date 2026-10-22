@@ -6,7 +6,7 @@ def _scoped(c, e): return c.get("permissions", {}).get(e, {}).get("level", "none
 
 def assess(c, test_result=None, sig_result=None, coverage_ok=False):
     perms = c.get("permissions", {}); caps = c.get("capabilities", [])
-    signed = bool(sig_result) and all(sig_result.values()); hashed = bool(c.get("integrity", {}).get("files"))
+    signed = bool(sig_result) and all(v is True for v in sig_result.values()); hashed = bool(c.get("integrity", {}).get("files"))
     tested = bool(test_result and test_result.get("ok")); ntests = len(c.get("tests", []))
     scoped_all = all(_scoped(c, e) for e in ("read", "write", "network", "exec"))
     R = lambda id_, name, status, evidence, gap="": {"id": id_, "name": name, "status": status, "evidence": evidence, "gap": gap}

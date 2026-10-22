@@ -9,6 +9,7 @@ from skillpact import core, cli
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = ROOT.parent / "samples" / "ffmpeg-skill"
 POL = lambda n: json.loads((ROOT / "policies" / f"{n}.json").read_text())
+SAMPLE_CI_SIGNER = "sigstore:https://token.actions.githubusercontent.com|https://github.com/kajisho5/skillpact/.github/workflows/sigstore-sign.yml@refs/heads/main"   # keys/public/README.txt
 
 @pytest.fixture
 def skill(tmp_path):
@@ -38,7 +39,7 @@ def test_flagship_mcp_server_matches_contract():
     assert r["tools_served"] == r["tools_mapped"] == 42
 
 def test_flagship_is_L3():
-    assert cli.main(["conformance", str(SAMPLE), "--trusted-key", (ROOT.parent / "keys/public/seventhwell-skill-signing.pub").read_text().strip()]) == 0
+    assert cli.main(["conformance", str(SAMPLE), "--trusted-key", (ROOT.parent / "keys/public/seventhwell-skill-signing.pub").read_text().strip(), SAMPLE_CI_SIGNER]) == 0
 
 def test_undeclared_effect(skill):
     c = C(skill); c["capabilities"][0]["effects"].append("send"); W(skill, c)

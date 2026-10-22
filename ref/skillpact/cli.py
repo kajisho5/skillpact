@@ -32,7 +32,7 @@ def main(argv=None):
     elif a.cmd == "sign": r = {"ok": True, "public_key": core.sign(a.skill_dir, a.key_path, a.signer, cp, a.role)}
     elif a.cmd == "verify":
         c, _ = core.load_contract(Path(a.skill_dir), cp); res = core.verify_signatures(c); v = core.validate(a.skill_dir, cp)
-        r = {"ok": bool(res) and all(res.values()) and v["ok"], "signatures": res, "integrity_ok": v["ok"]}
+        r = {"ok": bool(res) and all(x is True for x in res.values()) and v["ok"], "signatures": res, "integrity_ok": v["ok"]}
     elif a.cmd in ("policy-check", "policy-compile") and len(a.skill_dir) > 1:
         from . import compose as _co
         if a.contract: print(json.dumps({"ok": False, "error": "--contract names one contract; with several skill directories each must contain its skill.contract.json"})); return 1
@@ -116,10 +116,11 @@ def main(argv=None):
                 sig = core.verify_signatures(c); roles = core.signature_roles(c)
                 if "integrity" not in c: pass
                 elif unl: note = f"integrity does not cover every skill file ({len(unl)} problem(s), e.g. {unl[0]}): L3 not granted (spec 0.8 s11.2)"
-                elif sig and all(sig.values()):
+                elif sig and not any(x is False for x in sig.values()):
                     r_ok = [k for k, ok in sig.items() if ok and k in a.trusted_key]
                     if core.trusted_author(c, set(a.trusted_key)): level = "L3-signed"
                     elif core._vt(c.get("contract_version", "0.1")) < core.V08: note = "contract_version < 0.8: the signer role is not signed, so L3 is not granted (0.8 errata); migrate and re-sign"
+                    elif any(sig.get(k) is None for k in a.trusted_key): note = "the trusted Sigstore signature could not be verified here (install skillpact[sigstore]; the trust root needs network): L3 not granted"
                     elif r_ok: note = "only reviewer/scanner signatures are trusted: L3 needs a trusted author signature (spec 0.8 s11)"
                     else: note = "signature is valid but no --trusted-key matched: L3 not granted (spec 0.8 s11)"
                 r_extra["attestations"] = [{"key": k, "role": roles.get(k, "author"), "trusted": k in a.trusted_key} for k, ok in sig.items() if ok and roles.get(k, "author") != "author"]

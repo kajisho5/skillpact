@@ -24,7 +24,10 @@ for (const n of ["ffmpeg-skill", "subtitle-skill", "thumbnail-skill", "video-edi
   test(`sample ${n}: valid and signed by trusted key`, () => {
     const r = verifyLevel(ROOT + "samples/" + n, ["ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ="]);
     assert.equal(r.validate.ok, true, JSON.stringify(r.validate.findings.filter(f => f.level === "error")));
-    assert.equal((r as any).signature_trusted, true);
+    // the TypeScript verifier cannot check Sigstore: a sample signed only by the repository's CI must carry that entry (Python verifies it)
+    const c = JSON.parse(readFileSync(ROOT + "samples/" + n + "/skill.contract.json", "utf8"));
+    const ci = (c.integrity.signatures || []).some((s: any) => s.type === "sigstore" && `sigstore:${s.issuer}|${s.identity}` === "sigstore:https://token.actions.githubusercontent.com|https://github.com/kajisho5/skillpact/.github/workflows/sigstore-sign.yml@refs/heads/main" && !s.instance);
+    assert.ok((r as any).signature_trusted === true || ci, "neither the SEVENTHWELL key nor the CI signer");
   });
 }
 

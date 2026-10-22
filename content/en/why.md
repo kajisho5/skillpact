@@ -46,6 +46,19 @@ The summary is one line per non-`none` effect with its scopes (script: `review/t
 
 Details and sources: [comparison](https://github.com/kajisho5/skillpact/blob/main/spec/comparison.md).
 
+## What the tests check
+The tests are where a declaration meets reality: the runner starts the skill in a sandbox and fails a case that does something the contract does not declare. During the public review the editor found that 0.8 checked less than it said, and proposed fixes. Until they are merged, the right-hand column is a proposal, not the current behaviour.
+
+| Check during `skillpact test` | 0.8 (current) | Proposed in the review |
+|---|---|---|
+| Network for a case without `network: true` | blocked | blocked |
+| Hosts for a case with `network: true` | any host | only declared hosts, through a proxy; others fail ([#6](https://github.com/kajisho5/skillpact/pull/6)) |
+| Programs a case starts (`exec`) | not checked | every program recorded from outside the sandbox; undeclared ones fail ([#5](https://github.com/kajisho5/skillpact/pull/5)) |
+| Files outside the skill and `$WORKDIR` | read-only with bubblewrap | same; and without bubblewrap no L2/L3 ([#3](https://github.com/kajisho5/skillpact/pull/3)) |
+| Dependency versions (`requirements.packages`) | not checked | pinned versions must match before tests run; start-up hooks reported ([#4](https://github.com/kajisho5/skillpact/pull/4)) |
+
+The first exec check already found two undeclared programs in the flagship sample (`fc-match`, and `ffmpeg` in `media.check`). All of this happens **in the tests**: it shows whether the declaration is complete for what the tests exercise. It is still not run-time enforcement. Review log: [#1](https://github.com/kajisho5/skillpact/issues/1).
+
 ## What SkillPact does not guarantee
 - A contract is the author's **claim**. L1 means it is consistent, not true.
 - Tests check what they exercise, nothing more. A skill can behave differently outside its tests.

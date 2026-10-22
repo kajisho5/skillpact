@@ -46,6 +46,19 @@
 
 詳細と出典：[比較](https://github.com/kajisho5/skillpact/blob/main/spec/comparison.md)。
 
+## テストが確かめること
+宣言が実際の動きと突き合わされるのはテストです。ランナーは skill をサンドボックスで動かし、契約にないことをしたケースを不合格にします。公開レビューの中で、編集者は 0.8 が説明より少ししか確かめていないことを見つけ、修正を提案しました。マージされるまで、右の列は提案であって現在の動作ではありません。
+
+| `skillpact test` での確認 | 0.8（現在） | レビューでの提案 |
+|---|---|---|
+| `network: true` でないケースの通信 | 遮断 | 遮断 |
+| `network: true` のケースの通信先 | どのホストでも可 | 宣言したホストだけ（プロキシ経由）。それ以外は不合格（[#6](https://github.com/kajisho5/skillpact/pull/6)） |
+| ケースが起動するプログラム（`exec`） | 確認なし | サンドボックスの外からすべて記録し、宣言にないものは不合格（[#5](https://github.com/kajisho5/skillpact/pull/5)） |
+| skill と `$WORKDIR` 以外のファイル | bubblewrap では読み取り専用 | 同じ。bubblewrap がなければ L2/L3 にしない（[#3](https://github.com/kajisho5/skillpact/pull/3)） |
+| 依存パッケージの版（`requirements.packages`） | 確認なし | 固定した版と一致しなければテストを実行しない。起動フックを報告（[#4](https://github.com/kajisho5/skillpact/pull/4)） |
+
+最初の exec の確認で、見本のスキルに宣言漏れが 2 つ見つかりました（`fc-match` と、`media.check` の `ffmpeg`）。これらはすべて**テストの中**の話で、テストで動かした範囲について宣言に漏れがないかを示します。実行時の制御ではありません。レビューの記録：[#1](https://github.com/kajisho5/skillpact/issues/1)。
+
 ## SkillPact が保証しないこと
 - 契約は作者の**申告**です。L1 は矛盾がないことを示すだけで、正しいことは示しません。
 - テストで確かめられるのは、試した範囲だけです。テストの外では違う振る舞いをするかもしれません。

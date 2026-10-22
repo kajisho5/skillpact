@@ -35,13 +35,23 @@ def main(argv=None):
         r = {"ok": bool(res) and all(res.values()) and v["ok"], "signatures": res, "integrity_ok": v["ok"]}
     elif a.cmd in ("policy-check", "policy-compile") and len(a.skill_dir) > 1:
         from . import compose as _co
+        if a.contract: print(json.dumps({"ok": False, "error": "--contract names one contract; with several skill directories each must contain its skill.contract.json"})); return 1
+        if getattr(a, "render", False): print(json.dumps({"ok": False, "error": "--render writes one file; with several skills use the JSON output (configs per skill)"})); return 1
+        mcp = {}
+        for pair in filter(None, (getattr(a, "mcp_server", None) or "").split(",")):
+            if "=" not in pair: print(json.dumps({"ok": False, "error": "with several skills, --mcp-server takes skill=server pairs, e.g. a=srv-a,b=srv-b"})); return 1
+            k, v = pair.split("=", 1); mcp[k.strip()] = v.strip()
         pol = json.loads(Path(a.policy).read_text()); ents = [(core.load_contract(Path(d), None)[0], d, None) for d in a.skill_dir]
         if a.cmd == "policy-check": r = _co.match_policy_set(ents, pol); r["ok"] = r["decision"] != "deny"
-        else: r = _co.compile_set(ents, pol, a.target); r["ok"] = True; r["target"] = a.target
+        else:
+            from . import harness as _h
+            r = _co.compile_set(ents, pol, a.target, mcp); r["target"] = a.target
+            r["schema_errors"] = {n_: e_ for n_, cfg in r["configs"].items() if (e_ := _h.validate_native(a.target, _h.render(a.target, cfg)[1]))}
+            r["ok"] = not r["schema_errors"]
     elif a.cmd == "compose":
         from . import compose as _co
         cs = [core.load_contract(Path(d), None)[0] for d in a.skill_dirs]
-        tr = {c["skill"]["name"] for c in cs if c.get("integrity") and core.trusted_author(c, set(a.trusted_key))}
+        tr = {c["skill"]["name"] for c, d in zip(cs, a.skill_dirs) if core.trusted_files(c, d, None, set(a.trusted_key))}
         r = _co.compose([(c["skill"]["name"], c) for c in cs], tr); r["ok"] = not r["paths"]
     elif a.cmd == "policy-check":
         a.skill_dir = a.skill_dir[0]; c, _ = core.load_contract(Path(a.skill_dir), cp); r = core.match_policy(c, json.loads(Path(a.policy).read_text()), a.skill_dir, cp); r["ok"] = r["decision"] != "deny"

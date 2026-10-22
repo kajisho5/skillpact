@@ -90,7 +90,7 @@ def match_policy_set(entries, policy) -> dict:
     """entries: [(contract, skill_dir, contract_path)]. Per-skill decisions are unchanged; policy.compositions adds
     set-level decisions (optional, additive)."""
     per = [core.match_policy(c, policy, d, cp) for c, d, cp in entries]
-    trusted = {r["skill"] for r, (c, d, cp) in zip(per, entries) if c.get("integrity") and core.trusted_author(c, set(policy.get("trusted_keys", [])))}
+    trusted = {r["skill"] for r, (c, d, cp) in zip(per, entries) if core.trusted_files(c, d, cp, set(policy.get("trusted_keys", [])))}
     comp = compose([(c["skill"]["name"], c) for c, _, _ in entries], trusted)
     rules = policy.get("compositions", {})
     found = []
@@ -101,7 +101,7 @@ def match_policy_set(entries, policy) -> dict:
     return {"decision": overall, "skills": per, "compositions": found, "union": comp["union"], "paths": comp["paths"]}
 
 
-def compile_set(entries, policy, target) -> dict:
+def compile_set(entries, policy, target, mcp_servers=None) -> dict:
     """Compile each skill; for a set path the policy marks deny/ask, contributing effects become at least ask."""
     res = match_policy_set(entries, policy)
     bump, lossy = {}, []
@@ -118,6 +118,6 @@ def compile_set(entries, policy, target) -> dict:
             for e in bump[n]: pol["defaults"][e] = max(policy["defaults"][e], "ask", key=core.ORDER.get)
             for r in policy.get("rules", []):
                 pol["rules"].append({**r, "decision": "ask"} if r["effect"] in bump[n] and r["decision"] == "allow" else r)
-        comp = core.compile_native(c, pol, target, None, d, cp)
+        comp = core.compile_native(c, pol, target, (mcp_servers or {}).get(n), d, cp)
         out[n] = comp["config"]; lossy += [f"{n}: {x}" for x in comp["lossy"]]
     return {"decision": res["decision"], "configs": out, "lossy": lossy, "compositions": res["compositions"]}

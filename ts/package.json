@@ -30,8 +30,10 @@
   "files": [
     "dist/*.js",
     "dist/*.d.ts",
+    "!dist/test.*",
     "dist/schema.json",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "repository": {
     "type": "git",

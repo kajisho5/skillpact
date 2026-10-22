@@ -28,6 +28,7 @@ jobs:
         run: cd ref && python ../conformance/run.py --cmd "python -m skillpact.cli validate {dir}" > /dev/null
       - name: example skills reach L3
         run: |
+          pip install -q Pillow   # thumbnail-skill requirement (requirements.packages)
           cd ref
           for s in subtitle-skill thumbnail-skill video-editing-skill; do
             python -m skillpact.cli conformance ../samples/$s --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=" | python -c "import json,sys; r=json.load(sys.stdin); print('$s', r['level']); assert r['level']=='L3-signed'"

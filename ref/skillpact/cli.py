@@ -92,7 +92,7 @@ def main(argv=None):
                     if any(k in a.trusted_key for k in sig): level = "L3-signed"
                     else: note = "signature is valid but no --trusted-key matched: L3 not granted (spec 0.4 s11)"
         r = {"ok": level != "none", "level": level, "validate_errors": v["errors"], "warnings": v["warnings"],
-             "tests": {"passed": t["passed"], "total": t["total"], "skipped": t.get("skipped", 0)} if t else None}
+             "tests": {"passed": t.get("passed", 0), "total": t.get("total", 0), "skipped": t.get("skipped", 0), **({"error": t["error"]} if t.get("error") else {})} if t else None}
         if note: r["note"] = note
     print(json.dumps(r, ensure_ascii=False, indent=2))
     return 0 if r.get("ok") else 1

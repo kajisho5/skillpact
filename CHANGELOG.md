@@ -14,6 +14,7 @@ From the second adversarial self-review (review/self_review_v0.8.md in the works
 - macOS Seatbelt (experimental): host Unix sockets denied even for `network: true` cases (DNS resolver excepted); Mach/XPC (launchd, `open`) escape documented; Linux bwrap is the only full L2-grade mode. CI checks the socket block on macOS.
 - `init`: capabilities per CLI subcommand, MCP tool and `SKILL.md` heading; read-only verbs get read/exec only; network scope from URLs instead of `TODO.example`. Output is still an unconfirmed draft. On shogo's subtitle / thumbnail / video-editing skills: 4 / 5 / 4 capabilities (was 1 each).
 - Policy format: `policy_version` "0.8" ("0.1" still accepted as legacy name); new schema `schema/policy-v0.8-r1.json` (published `policy-v0.8.json` unchanged); bundled policies use "0.8".
+- bwrap: only the resolved directories of programs the contract needs (and their virtualenv root) are re-exposed under the masked home/tmp; other PATH entries and parent directories such as `~/.local` are no longer visible (`SKILLPACT_SANDBOX_KEEP` to add paths).
 - Docs: why / README / OWASP mapping no longer overstate tamper protection and isolation; guides mention bytecode and `--pass-env`.
 
 ## Unreleased (0.8 follow-up)

@@ -590,21 +590,36 @@ def _masked_roots():
     return roots
 
 
-def _keep_paths(extra=()):
-    """Paths re-exposed read-only under a masked root: PATH entries (and the directory above each, for venvs and tool
-    caches), located dependency skills, and SKILLPACT_SANDBOX_KEEP (colon separated)."""
+def _keep_paths(extra=(), programs=()):
+    """Paths re-exposed read-only under a masked root (0.8.x erratum): only the resolved directories of the programs the
+    contract needs (exec scope, requirements, test and setup commands) plus their virtualenv root, located dependency
+    skills, the skill itself, and SKILLPACT_SANDBOX_KEEP (colon separated). Other PATH entries (e.g. ~/.local/bin) and
+    their parents stay hidden. System directories (/usr, /lib, /opt ...) are never masked."""
     masked = _masked_roots(); out = []
     def under(p_): return any(p_ == m or p_.startswith(m.rstrip("/") + "/") for m in masked)
-    cands = [e for e in os.environ.get("PATH", "").split(":") if e] + [e for e in os.environ.get("SKILLPACT_SANDBOX_KEEP", "").split(":") if e] + list(extra)
-    for e in cands:
-        r_ = os.path.realpath(e)
-        if not os.path.isdir(r_) or not under(r_): continue
-        parent = os.path.dirname(r_)
-        for q_ in ([parent] if parent not in masked and under(parent) else []) + [r_]:
-            if q_ not in out: out.append(q_)
+    def add(q_):
+        if q_ and os.path.isdir(q_) and under(q_) and q_ not in out: out.append(q_)
+    for e in [e for e in os.environ.get("SKILLPACT_SANDBOX_KEEP", "").split(":") if e] + list(extra): add(os.path.realpath(e))
+    for prog in programs:
+        if not prog or "$" in prog: continue
+        w_ = shutil.which(prog) if "/" not in prog else (prog if os.path.isfile(prog) else None)
+        if not w_: continue
+        for b_ in dict.fromkeys([os.path.dirname(os.path.abspath(w_)), os.path.dirname(os.path.realpath(w_))]):
+            root = os.path.dirname(b_)
+            add(root if os.path.isfile(os.path.join(root, "pyvenv.cfg")) else b_)
     for r_ in ("/run/systemd/resolve",):   # DNS for network: true cases
         if os.path.isdir(r_) and r_ not in out: out.append(r_)
     return out
+
+
+def _programs(c):
+    """Program names a contract's tests may start (for _keep_paths)."""
+    t = c.get("tests") or {}; perm = (c.get("permissions") or {}).get("exec") or {}
+    names = [x for x in perm.get("scope", []) if isinstance(x, str)]
+    for r in (c.get("requirements") or {}).get("binaries", []) + (c.get("requirements") or {}).get("runtimes", []): names.append(r.get("name", ""))
+    for cmd in list(t.get("setup", [])) + [x.get("run", []) for x in t.get("cases", [])]:
+        if cmd and isinstance(cmd[0], str): names.append(cmd[0])
+    return [n_ for n_ in dict.fromkeys(names) if n_ and not any(ch in n_ for ch in "*?")]
 
 
 def _seatbelt_profile(work, rw_skill, net, keep=()):
@@ -623,19 +638,19 @@ def _seatbelt_profile(work, rw_skill, net, keep=()):
     return "\n".join(prof)
 
 
-def _wrap(cmd, mode, net, work, rw_skill, ro=()):
+def _wrap(cmd, mode, net, work, rw_skill, ro=(), programs=()):
     """ro: paths to re-expose read-only under the masked roots (the skill directory, dependency skills)."""
     if mode == "bwrap":
         w = ["bwrap", "--die-with-parent", "--new-session", "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--unshare-cgroup-try",
              "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc"]
         for m in _masked_roots(): w += ["--tmpfs", m]
-        for k in _keep_paths(ro): w += ["--ro-bind", k, k]
+        for k in _keep_paths(ro, list(programs) + cmd[:1]): w += ["--ro-bind", k, k]
         w += ["--bind", str(work), str(work)]
         if rw_skill: w += ["--bind", rw_skill, rw_skill]
         if not net: w += ["--unshare-net"]
         return w + ["--chdir", str(work), "--"] + cmd
     if mode == "unshare" and not net: return ["unshare", "-rn"] + cmd
-    if mode == "seatbelt": return [SEATBELT, "-p", _seatbelt_profile(work, rw_skill, net, _keep_paths(ro)), "--"] + cmd
+    if mode == "seatbelt": return [SEATBELT, "-p", _seatbelt_profile(work, rw_skill, net, _keep_paths(ro, list(programs) + cmd[:1])), "--"] + cmd
     return cmd
 
 
@@ -656,7 +671,8 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
     env.update({**skill_env, "SKILL_DIR": str(skill_dir), "WORKDIR": str(work), "HOME": str(work / ".home"), "TMPDIR": str(work / ".tmp"),
                 "PYTHONDONTWRITEBYTECODE": "1", "LANG": env.get("LANG", "C.UTF-8")})
     ro = [str(skill_dir)] + list(skill_env.values()) + ([str(Path(contract_path).resolve().parent)] if contract_path else [])
-    wrap = lambda cmd, net=False: _wrap(cmd, mode, net, work, str(skill_dir) if skill_dir_writes_allowed else None, ro)
+    progs = _programs(c)
+    wrap = lambda cmd, net=False: _wrap(cmd, mode, net, work, str(skill_dir) if skill_dir_writes_allowed else None, ro, progs)
     results = []
     watch = [skill_dir] + ([] if mode in ("bwrap", "seatbelt") else [skill_dir.parent])
     before = {str(d): _snapshot(d) for d in watch}

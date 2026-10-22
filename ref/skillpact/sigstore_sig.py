@@ -54,19 +54,33 @@ def cert_identity(cert):
 
 
 def verify_entry(c, entry, verifier=None, offline=False):
-    """True/False for one sigstore entry; the expected identity+issuer are the ones recorded in the entry,
+    """True / False for one sigstore entry, None when it cannot be verified here; the expected identity+issuer are the ones recorded in the entry,
     so callers must additionally check them against a trusted-identity list (see core.verify_signatures(trusted=...))."""
     payload = core._canonical(c, entry.get("role"))
     if verifier is not None: return bool(verifier(payload, entry))
+    v = _verifier(offline, entry.get("instance") == "staging")
+    if v is None: return None   # cannot verify here (sigstore not installed, or trust root unreachable): unverified, not invalid
     try:
-        verify_bytes(payload, entry["bundle"], entry["identity"], entry["issuer"], offline, staging=entry.get("instance") == "staging"); return True
+        _verify_with(v, payload, entry["bundle"], entry["identity"], entry["issuer"]); return True
     except Exception:
         return False
 
 
+def _verifier(offline=False, staging=False):
+    try:
+        from sigstore.verify import Verifier
+        return Verifier.staging(offline=offline) if staging else Verifier.production(offline=offline)
+    except Exception:
+        return None
+
+
+def _verify_with(v, payload, bundle_json, identity, issuer):
+    from sigstore.verify import policy
+    b = _bundle_cls().from_json(bundle_json if isinstance(bundle_json, (str, bytes)) else json.dumps(bundle_json))
+    v.verify_artifact(payload, b, policy.Identity(identity=identity, issuer=issuer))
+
+
 def verify_bytes(payload: bytes, bundle_json, identity, issuer, offline=False, staging=False):
     """Raise on failure. Plain Sigstore verification of `payload` (used for contracts and in integration tests)."""
-    from sigstore.verify import Verifier, policy
-    b = _bundle_cls().from_json(bundle_json if isinstance(bundle_json, (str, bytes)) else json.dumps(bundle_json))
-    v = Verifier.staging(offline=offline) if staging else Verifier.production(offline=offline)
-    v.verify_artifact(payload, b, policy.Identity(identity=identity, issuer=issuer))
+    from sigstore.verify import Verifier
+    _verify_with(Verifier.staging(offline=offline) if staging else Verifier.production(offline=offline), payload, bundle_json, identity, issuer)

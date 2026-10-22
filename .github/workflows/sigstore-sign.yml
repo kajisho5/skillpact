@@ -1,50 +1,87 @@
-# Approved for STAGING runs only (2026-10-22). Production signing needs a separate approval before v1.0.
-# Keyless Sigstore signing of the flagship sample contract. Manual trigger only; never commits.
+# Keyless Sigstore signing of the sample contracts (production approved by the editor 2026-10-22).
+# Dispatch it on main; it checks out the `target` branch, signs the named samples and pushes the signed contracts there,
+# then starts CI on that branch (pushes made with GITHUB_TOKEN do not start workflows by themselves).
 # Signer identity (SAN):  https://github.com/kajisho5/skillpact/.github/workflows/sigstore-sign.yml@refs/heads/main
 # Issuer:                 https://token.actions.githubusercontent.com
+# Trust entry:            sigstore:https://token.actions.githubusercontent.com|<SAN>   (see keys/public/README.txt)
+# Anyone who can dispatch this workflow on main can obtain this signature for a branch of this repository, so the identity
+# means "signed by kajisho5/skillpact's own CI", not "reviewed by a person".
 name: sigstore-sign
 on:
   workflow_dispatch:
     inputs:
+      target:
+        description: "Branch whose samples are signed and pushed"
+        required: true
+        default: main
+      samples:
+        description: "Space-separated sample directory names"
+        default: "ffmpeg-skill"
       staging:
-        description: "Use Sigstore staging (try this first)"
+        description: "Use Sigstore staging instead of production"
         type: boolean
-        default: true
+        default: false
 permissions:
-  contents: read
+  contents: write   # push the signed contracts to the target branch
+  actions: write    # start CI on the target branch
   id-token: write   # OIDC token for keyless signing
 jobs:
   sign:
-    if: github.repository == 'kajisho5/skillpact' && github.ref == 'refs/heads/main' && inputs.staging  # production disabled until approved
+    if: github.repository == 'kajisho5/skillpact' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       SAN: https://github.com/${{ github.repository }}/.github/workflows/sigstore-sign.yml@${{ github.ref }}
       ISSUER: https://token.actions.githubusercontent.com
       STAGING: ${{ inputs.staging }}
+      TARGET: ${{ inputs.target }}
+      SAMPLES: ${{ inputs.samples }}
     steps:
+      - name: check inputs
+        run: |
+          [[ "$TARGET" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "::error::bad target branch"; exit 1; }
+          [[ "$SAMPLES" =~ ^[a-z0-9-]+( [a-z0-9-]+)*$ ]] || { echo "::error::bad sample list"; exit 1; }
       - uses: actions/checkout@v4
+        with: { ref: "${{ inputs.target }}" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.13" }
       - run: cd ref && pip install -e .[sigstore]
-      - name: sign (keyless, ambient GitHub OIDC)
+      - name: sign (keyless, ambient GitHub OIDC), replacing an earlier signature by the same identity
         run: |
           cd ref
-          python -m skillpact.cli sign-sigstore ../samples/ffmpeg-skill ${{ inputs.staging && '--staging' || '' }}
-      - name: verify signature against the expected identity (no tests; signature only)
+          for s in $SAMPLES; do
+            test -f "../samples/$s/skill.contract.json" || { echo "::error::no sample $s"; exit 1; }
+            python - "../samples/$s/skill.contract.json" <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          p = Path(sys.argv[1]); c = json.loads(p.read_text())
+          inst = "staging" if os.environ["STAGING"] == "true" else None
+          keep = [x for x in c["integrity"].get("signatures", []) if not (x.get("type") == "sigstore" and x.get("identity") == os.environ["SAN"]
+                  and x.get("issuer") == os.environ["ISSUER"] and x.get("instance") == inst)]
+          c["integrity"]["signatures"] = keep; p.write_text(json.dumps(c, ensure_ascii=False, indent=2) + "\n")
+          PY
+            python -m skillpact.cli sign-sigstore "../samples/$s" $([ "$STAGING" = true ] && echo --staging)
+          done
+      - name: verify each signature against the expected identity
         run: |
           cd ref
           python - <<'PY'
           import json, os
           from pathlib import Path
           from skillpact import core
-          c = json.loads(Path("../samples/ffmpeg-skill/skill.contract.json").read_text())
-          res = core.verify_signatures(c)
           pre = "sigstore-staging" if os.environ["STAGING"] == "true" else "sigstore"
           key = f"{pre}:{os.environ['ISSUER']}|{os.environ['SAN']}"
-          print(json.dumps(res, indent=2))
-          assert res.get(key) is True, f"no valid signature for {key}"
+          for s in os.environ["SAMPLES"].split():
+              d = Path("../samples") / s; c = json.loads((d / "skill.contract.json").read_text())
+              res = core.verify_signatures(c); print(s, json.dumps(res))
+              assert res.get(key) is True, f"{s}: no valid signature for {key}"
+              assert core.validate(d)["ok"], f"{s}: contract or files do not verify"
           PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: signed-contract-${{ inputs.staging && 'staging' || 'production' }}
-          path: samples/ffmpeg-skill/skill.contract.json
+      - name: push the signed contracts and start CI on the target branch
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          git config user.name "skillpact-sigstore[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for s in $SAMPLES; do git add "samples/$s/skill.contract.json"; done
+          git commit -m "samples: Sigstore signature by sigstore-sign.yml@main ($SAMPLES)"
+          git push origin "HEAD:$TARGET"
+          gh workflow run ci.yml --ref "$TARGET"

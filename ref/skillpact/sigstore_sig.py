@@ -24,11 +24,11 @@ def sign(skill_dir, identity_token=None, contract_path=None, signer=None, stagin
         from sigstore.models import ClientTrustConfig
         tok = identity_token or detect_credential()
         if tok is None:
-            tok = Issuer.production().identity_token()  # interactive browser flow
+            tok = (Issuer.staging() if staging else Issuer.production()).identity_token()  # interactive browser flow
         tok = tok if isinstance(tok, IdentityToken) else IdentityToken(tok)
         ctx = SigningContext.from_trust_config(ClientTrustConfig.staging() if staging else ClientTrustConfig.production())
         with ctx.signer(tok) as s: bundle = s.sign_artifact(payload)
-        identity, issuer, bjson = tok.identity, tok.issuer, json.loads(bundle.to_json())
+        identity, issuer, bjson = cert_identity(bundle.signing_certificate) or tok.identity, tok.issuer, json.loads(bundle.to_json())
     else:
         identity, issuer, bjson = signer(payload)
     entry = {"type": "sigstore", "identity": identity, "issuer": issuer, "bundle": bjson}
@@ -36,6 +36,20 @@ def sign(skill_dir, identity_token=None, contract_path=None, signer=None, stagin
     c["integrity"].setdefault("signatures", []).append(entry)
     cpath.write_text(json.dumps(c, ensure_ascii=False, indent=2) + "\n")
     return {"identity": identity, "issuer": issuer}
+
+
+def cert_identity(cert):
+    """The identity Sigstore verifies against: the certificate SAN (URI or email), not the token `sub`.
+    For GitHub Actions this is the workflow URL, e.g. https://github.com/<o>/<r>/.github/workflows/<f>@refs/heads/main."""
+    from cryptography.x509 import SubjectAlternativeName, UniformResourceIdentifier, RFC822Name
+    try:
+        san = cert.extensions.get_extension_for_class(SubjectAlternativeName).value
+    except Exception:
+        return None
+    for t in (UniformResourceIdentifier, RFC822Name):
+        v = san.get_values_for_type(t)
+        if v: return v[0]
+    return None
 
 
 def verify_entry(c, entry, verifier=None, offline=False):

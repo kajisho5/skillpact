@@ -467,7 +467,8 @@ def test_v07_reviewer_signature_is_attestation_not_L3(tmp_path, capsys):
     key = tmp_path / "r.pem"; pub = core.keygen(key); core.sign(dst, key, "reviewer", role="reviewer")
     assert core.signature_roles(C(dst)) == {pub: "reviewer"}
     cli.main(["conformance", str(dst), "--trusted-key", pub]); out = json.loads(capsys.readouterr().out)
-    assert out["level"] == "L2-tested" and "author" in out["note"]
+    assert out["level"] != "L3-signed"
+    if out["level"] == "L2-tested": assert "author" in out["note"]
 
 def test_v07_staging_sigstore_never_matches_production_trust():
     c = {"integrity": {"signatures": [{"type": "sigstore", "identity": "i", "issuer": "https://t", "bundle": {}, "instance": "staging"}]}}

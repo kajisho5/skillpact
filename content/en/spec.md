@@ -97,7 +97,7 @@ Each effect has `level` (`none` | `scoped` | `any`), `scope` (array), `why`, `co
 - Path variables: `$INPUT` `$INPUT_DIR` `$OUTPUT` `$WORKDIR` `$SKILL_DIR` `$TMPDIR`. Other `$` variables SHOULD produce `UNKNOWN_VARIABLE`.
 - A `scoped` effect MUST have at least one scope (`SCOPE_EMPTY`). The skill-level scope MUST cover every case, including conditional ones.
 - `level: any` for spend or send MUST produce `HIGH_RISK`.
-- Scopes starting with `@` are reserved tokens. 0.8 defines `@local` for network: loopback, private networks and `*.local` (Appendix C). Unknown tokens SHOULD produce `UNKNOWN_SCOPE_TOKEN`. When writing harness or runtime policy, `@local` MUST be expanded to host patterns; what cannot be expressed (IPv6 unique-local) MUST be reported as lossy.
+- Scopes starting with `@` are reserved tokens. 0.8 defines `@local` for network: loopback, private and link-local IP literals and `localhost`; DNS names never match (Appendix C). Unknown tokens SHOULD produce `UNKNOWN_SCOPE_TOKEN`. When writing harness or runtime policy, `@local` MUST be expanded to host patterns; what cannot be expressed (IPv6 ranges; DNS names that host globs may match) MUST be reported as lossy.
 
 ### 6.1 Globs and paths (normative)
 All implementations MUST match globs exactly as follows; `fnmatch` or shell glob semantics MUST NOT be used.
@@ -328,7 +328,7 @@ A tool with a test:
 Full signed examples: `samples/` (four skills at L3). Test vectors: `conformance/vectors/`. Conformance cases: `conformance/cases/`.
 
 ## Appendix C. `@local` expansion
-`localhost`, `127.*.*.*`, `::1`, `10.*.*.*`, `172.16.*.*` … `172.31.*.*`, `192.168.*.*`, `*.local`. IPv6 unique-local (`fc00::/7`) is reported as lossy. The patterns are host globs, so they also match DNS names such as `10.0.0.com`; harnesses SHOULD apply them to IP literals only (open question in public review).
+Erratum 0.8.x: `@local` matches only `localhost` and IP literals: IPv4 `127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16` (dotted decimal, no leading zeros) and IPv6 `::1`, `fe80::/10`, `fc00::/7` (optionally in brackets; zone ids and embedded IPv4 do not match). DNS names never match (`*.local`, `10.0.0.com`, `127.0.0.1.example.com`). Vectors: `conformance/vectors/local-hosts.json`. When compiled to harness host globs (`127.*.*.*` …) the result can also match DNS names and IPv6 ranges cannot be written; this is reported in `lossy`.
 
 ## Appendix D. Media type and file naming (registration note)
 - File name: `skill.contract.json`, fixed, next to `SKILL.md`.

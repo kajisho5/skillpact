@@ -1,6 +1,6 @@
 """SkillPact reference implementation (spec 0.8): validate, hash, sign/verify, run declared tests, match against a harness policy."""
 from __future__ import annotations
-import base64, hashlib, json, math, os, re, shutil, subprocess, tempfile, time
+import base64, ipaddress, hashlib, json, math, os, re, shutil, subprocess, tempfile, time
 from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator
@@ -16,8 +16,26 @@ PATH_VARS = {"$INPUT", "$INPUT_DIR", "$OUTPUT", "$WORKDIR", "$SKILL_DIR", "$TMPD
 JCS_FROM = (0, 4)
 SCOPE_TOKENS = {"network": ("@local",)}  # @local = loopback + private networks (spec 0.7)
 # @local expanded to host patterns with label semantics (spec 0.8 s6.2): '*' never crosses a dot.
-LOCAL_HOSTS = ["localhost", "127.*.*.*", "::1", "10.*.*.*"] + [f"172.{n}.*.*" for n in range(16, 32)] + ["192.168.*.*", "*.local"]
-LOCAL_LOSSY = "IPv6 unique-local addresses (fc00::/7) cannot be written as host patterns"
+LOCAL_HOSTS = ["localhost", "127.*.*.*", "::1", "10.*.*.*"] + [f"172.{n}.*.*" for n in range(16, 32)] + ["192.168.*.*", "169.254.*.*"]
+_V4 = re.compile(r"(0|[1-9][0-9]{0,2})(\.(0|[1-9][0-9]{0,2})){3}")
+
+
+def is_local_host(h: str) -> bool:
+    """0.8.x erratum: @local = 'localhost' or an IP literal in 127/8, 10/8, 172.16/12, 192.168/16, 169.254/16, ::1, fe80::/10, fc00::/7.
+    DNS names never match. IPv6 may be bracketed; zone ids and embedded IPv4 are rejected."""
+    h = h.lower()
+    if h == "localhost": return True
+    if h.startswith("[") and h.endswith("]"): h = h[1:-1]
+    if _V4.fullmatch(h):
+        o = [int(x) for x in h.split(".")]
+        if max(o) > 255: return False
+        return o[0] in (127, 10) or (o[0] == 172 and 16 <= o[1] <= 31) or o[:2] in ([192, 168], [169, 254])
+    if ":" not in h or "." in h or "%" in h or not re.fullmatch(r"[0-9a-f:]+", h): return False
+    try: a = ipaddress.IPv6Address(h)
+    except ValueError: return False
+    n = int(a)
+    return n == 1 or (n >> 118) == (0xfe80 >> 6) or (n >> 121) == (0xfc00 >> 9)
+LOCAL_LOSSY = "IPv6 link-local and unique-local addresses (fe80::/10, fc00::/7) cannot be written as host patterns"
 SIGNATURE_ROLES = ("author", "reviewer", "scanner")
 V08 = (0, 8)
 SAFE_INT = 2 ** 53 - 1
@@ -273,6 +291,7 @@ def _glob_re(p: str) -> str:
 
 
 def _host_match(h: str, p: str) -> bool:
+    if p == "@local": return h == "@local" or is_local_host(h)
     h, p = h.lower().rstrip("."), p.lower().rstrip(".")
     if p == "*": return True
     hl, pl = h.split("."), p.split(".")
@@ -786,7 +805,7 @@ def compile_native(contract, policy, target, mcp_server=None, skill_dir=None, co
     lvl = lambda e: perms[e]["level"]
     scope = lambda e: perms[e].get("scope", []) if lvl(e) == "scoped" else []
     cmds, hosts = scope("exec"), expand_scope(scope("network"))
-    if "@local" in scope("network"): lossy.append(f"network @local: {LOCAL_LOSSY}; IPv4 patterns such as 10.*.*.* also match DNS names like 10.0.0.example.com in harness host rules")
+    if "@local" in scope("network"): lossy.append(f"network @local: {LOCAL_LOSSY}; harness host globs such as 10.*.*.* can also match DNS names, while @local itself matches IP literals and localhost only")
     worst = {}
     for c_ in m["capabilities"]:
         for e in c_["effects"] + c_.get("conditional", []): worst[e["effect"]] = max(worst.get(e["effect"], "allow"), e["decision"], key=ORDER.get)  # 0.8 errata: conditional too

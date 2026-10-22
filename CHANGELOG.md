@@ -10,6 +10,7 @@ From the second adversarial self-review (review/self_review_v0.8.md in the works
 - Policy: a rule without `scope` matches every scope; `policy-compile` follows the worst case including conditional effects (e.g. Codex `on-request` instead of `never`).
 - `migrate` across 0.8 tells you to re-run `skillpact hash`; `@local` lossy note documents the DNS-name caveat.
 - Conformance: 48 cases (+ bytecode-unlisted, exclude-code, legacy-role-unsigned); Python and TypeScript pass all.
+- `@local` matches only `localhost` and IP literals (127/8, 10/8, 172.16/12, 192.168/16, 169.254/16, ::1, fe80::/10, fc00::/7); DNS names, including `*.local`, never match. Vectors `conformance/vectors/local-hosts.json`; Python and TypeScript agree.
 - Docs: why / README / OWASP mapping no longer overstate tamper protection and isolation; guides mention bytecode and `--pass-env`.
 
 ## Unreleased (0.8 follow-up)

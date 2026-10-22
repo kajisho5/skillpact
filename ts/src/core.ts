@@ -54,7 +54,27 @@ function globRe(p: string): string {
   });
   return out;
 }
+function v6(h: string): bigint | null {
+  if (!/^[0-9a-f:]+$/.test(h)) return null;
+  const parts = h.split("::"); if (parts.length > 2) return null;
+  const a = parts[0] ? parts[0].split(":") : [], b = parts.length === 2 && parts[1] ? parts[1].split(":") : [];
+  if ([...a, ...b].some(x => x.length < 1 || x.length > 4)) return null;
+  const fill = 8 - a.length - b.length; if (parts.length === 2 ? fill < 1 : fill !== 0) return null;
+  let n = 0n; for (const x of [...a, ...Array(fill).fill("0"), ...b]) n = (n << 16n) | BigInt(parseInt(x, 16)); return n;
+}
+export function isLocalHost(h0: string): boolean {
+  let h = h0.toLowerCase(); if (h === "localhost") return true;
+  if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
+  if (/^(0|[1-9][0-9]{0,2})(\.(0|[1-9][0-9]{0,2})){3}$/.test(h)) {
+    const o = h.split(".").map(Number); if (Math.max(...o) > 255) return false;
+    return o[0] === 127 || o[0] === 10 || (o[0] === 172 && o[1] >= 16 && o[1] <= 31) || (o[0] === 192 && o[1] === 168) || (o[0] === 169 && o[1] === 254);
+  }
+  if (!h.includes(":")) return false;
+  const n = v6(h); if (n === null) return false;
+  return n === 1n || (n >> 118n) === (0xfe80n >> 6n) || (n >> 121n) === (0xfc00n >> 9n);
+}
 function hostMatch(h0: string, p0: string): boolean {
+  if (p0 === "@local") return h0 === "@local" || isLocalHost(h0);
   const h = h0.toLowerCase().replace(/\.+$/, ""), p = p0.toLowerCase().replace(/\.+$/, "");
   if (p === "*") return true;
   const hl = h.split("."), pl = p.split(".");

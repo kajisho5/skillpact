@@ -97,7 +97,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - パス変数：`$INPUT` `$INPUT_DIR` `$OUTPUT` `$WORKDIR` `$SKILL_DIR` `$TMPDIR`。それ以外の `$` 変数には `UNKNOWN_VARIABLE` を出すべきです（SHOULD）。
 - `scoped` の効果は scope を 1 つ以上持たなければなりません（MUST、`SCOPE_EMPTY`）。スキル全体の scope は条件付きを含むすべての場合を含まなければなりません（MUST）。
 - spend・send が `any` なら `HIGH_RISK` を出さなければなりません（MUST）。
-- `@` で始まる scope は予約トークンです。0.8 で定めるのは network の `@local`（ループバック、プライベートネットワーク、`*.local`。付録 C）だけです。未知のトークンには `UNKNOWN_SCOPE_TOKEN` を出すべきです（SHOULD）。ハーネスや実行時ポリシーに書き出すときは `@local` をホストのパターンに展開しなければならず（MUST）、表せないもの（IPv6 のユニークローカル）は lossy として報告しなければなりません（MUST）。
+- `@` で始まる scope は予約トークンです。0.8 で定めるのは network の `@local`（ループバック・プライベート・リンクローカルの IP アドレスと `localhost`。DNS 名は当てはまらない。付録 C）だけです。未知のトークンには `UNKNOWN_SCOPE_TOKEN` を出すべきです（SHOULD）。ハーネスや実行時ポリシーに書き出すときは `@local` をホストのパターンに展開しなければならず（MUST）、表せないもの（IPv6 の範囲や、ホストの glob が当たりうる DNS 名）は lossy として報告しなければなりません（MUST）。
 
 ### 6.1 glob とパス（規範）
 すべての実装は glob を次のとおりに照合しなければなりません（MUST）。`fnmatch` やシェルの glob の意味を使ってはなりません（MUST NOT）。
@@ -328,7 +328,7 @@ L1 は整合性しか示しません。ハーネスは L1 だけを根拠に、�
 署名済みの完全な例：`samples/`（L3 の 4 スキル）。テストベクトル：`conformance/vectors/`。適合ケース：`conformance/cases/`。
 
 ## 付録 C. `@local` の展開
-`localhost`、`127.*.*.*`、`::1`、`10.*.*.*`、`172.16.*.*`〜`172.31.*.*`、`192.168.*.*`、`*.local`。IPv6 のユニークローカル（`fc00::/7`）は lossy として報告します。これらはホストの glob なので `10.0.0.com` のような DNS 名にも当てはまります。ハーネスは IP アドレスの表記にだけ使うべきです（SHOULD。公開レビュー中の未決事項）。
+0.8.x 正誤：`@local` に当てはまるのは `localhost` と IP アドレスの表記だけです。IPv4 は `127.0.0.0/8`、`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`169.254.0.0/16`（10 進のドット表記、先頭ゼロなし）、IPv6 は `::1`、`fe80::/10`、`fc00::/7`（角かっこは可。ゾーン ID や IPv4 埋め込みは不可）。DNS 名は決して当てはまりません（`*.local`、`10.0.0.com`、`127.0.0.1.example.com`）。ベクトル：`conformance/vectors/local-hosts.json`。ハーネスのホスト glob（`127.*.*.*` など）に変換すると DNS 名にも当たりうるうえ IPv6 の範囲は書けないため、`lossy` で報告します。
 
 ## 付録 D. メディアタイプとファイル名（登録についての注記）
 - ファイル名：`skill.contract.json`（固定、`SKILL.md` の隣）。

@@ -32,3 +32,9 @@ test("tampered contract fails", () => {
   const r = validate(ROOT + "conformance/cases/signed-jcs-tampered"); assert.equal(r.ok, false);
   assert.ok(r.findings.some(f => f.code === "SIGNATURE_INVALID"));
 });
+
+test("@local vectors (erratum 0.8.x: IP literals and localhost only)", async () => {
+  const { isLocalHost, globMatch } = await import("./core.js");
+  const doc = JSON.parse(readFileSync(ROOT + "conformance/vectors/local-hosts.json", "utf8"));
+  for (const [h, want] of doc.cases) { assert.equal(isLocalHost(h), !!want, h); assert.equal(globMatch(h, "@local", "host"), !!want, h); }
+});

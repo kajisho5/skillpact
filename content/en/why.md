@@ -47,9 +47,9 @@ The summary is one line per non-`none` effect with its scopes (script: `review/t
 Details and sources: [comparison](https://github.com/kajisho5/skillpact/blob/main/spec/comparison.md).
 
 ## What the tests check
-The tests are where a declaration meets reality: the runner starts the skill in a sandbox and fails a case that does something the contract does not declare. During the public review the editor found that 0.8 checked less than it said, and proposed fixes. Until they are merged, the right-hand column is a proposal, not the current behaviour.
+The tests are where a declaration meets reality: the runner starts the skill in a sandbox and fails a case that does something the contract does not declare. During the public review the editor found that 0.8 checked less than it said; the fixes below were discussed on #1 and merged.
 
-| Check during `skillpact test` | 0.8 (current) | Proposed in the review |
+| Check during `skillpact test` | 0.8 as first published | Now (0.8.x errata) |
 |---|---|---|
 | Network for a case without `network: true` | blocked | blocked |
 | Hosts for a case with `network: true` | any host | only declared hosts, through a proxy; others fail ([#6](https://github.com/kajisho5/skillpact/pull/6)) |

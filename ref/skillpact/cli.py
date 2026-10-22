@@ -129,6 +129,8 @@ def main(argv=None):
         r = {"ok": level != "none", "level": level, "validate_errors": v["errors"], "warnings": v["warnings"],
              "tests": {k: t.get(k) for k in ("passed", "total", "skipped", "network_cases", "sandbox", "fs_isolated", "exec_audit", "error") if t.get(k) is not None} if t else None, **r_extra}
         if note: r["note"] = note
+        if t and t.get("sandbox") == "seatbelt" and level in ("L2-tested", "L3-signed"):   # proposal #11 (0.8.x): L2 with a mark
+            r["runner_warnings"] = [{"code": "RUNNER_PARTIAL_ISOLATION", "message": "Seatbelt (macOS, experimental) still allows Mach/XPC lookups, so a case can ask launchd services to act outside the sandbox; harnesses and registries may require sandbox: bwrap for L2 / L3 (spec 0.8 s10)"}]
         if t:   # 0.8.x erratum: say which requirement failed, and which declared packages install start-up hooks
             bad = [f"{x['name']}: {x.get('reason', 'not found')}" for x in t.get("requirements", []) if not x["ok"]]
             hooks = {x["name"]: x["startup_hooks"] for x in t.get("requirements", []) if x.get("startup_hooks")}

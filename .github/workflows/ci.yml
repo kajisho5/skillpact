@@ -51,3 +51,28 @@ jobs:
         run: cd ts && python3 ../conformance/run.py --cmd "node dist/cli.js validate {dir}" > /dev/null
       - name: browser checker bundle is up to date
         run: cd ts && npx esbuild src/browser.ts --bundle --format=iife --minify --target=es2022 --outfile=../docs/check/skillpact-check.js && git diff --exit-code ../docs/check/skillpact-check.js
+
+  macos-sandbox:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: cd ref && pip install -e .
+      - name: Seatbelt sandbox blocks network and writes outside $WORKDIR (experimental runner mode)
+        run: |
+          python - <<'PY'
+          import json, shutil, sys, tempfile, pathlib
+          sys.path.insert(0, "ref"); from skillpact import core
+          tmp = pathlib.Path(tempfile.mkdtemp()); d = tmp / "v08-valid-signed"
+          shutil.copytree("conformance/cases/v08-valid-signed", d)
+          c = json.loads((d / "skill.contract.json").read_text())
+          c["tests"]["setup"] = [["sh", "-c", "echo x > $SKILL_DIR/../escaped.txt; true"]]
+          c["tests"]["cases"].append({"id": "net", "capability": "hello", "run": ["sh", "-c", "curl -sS -m 5 https://example.com >/dev/null && echo LEAK || echo blocked"], "expect": {"exit_code": 0, "stdout_contains": "blocked"}})
+          c["tests"]["cases"].append({"id": "tamper", "capability": "hello", "run": ["sh", "-c", "echo t >> $SKILL_DIR/SKILL.md 2>/dev/null; echo hi"], "expect": {"exit_code": 0}})
+          (d / "skill.contract.json").write_text(json.dumps(c))
+          r = core.run_tests(d); print(json.dumps({k: r[k] for k in ("ok", "sandbox", "fs_isolated", "network_isolated", "passed", "total")}))
+          print([x for x in r["cases"] if not x["ok"]])
+          assert r["sandbox"] == "seatbelt" and r["fs_isolated"] and r["network_isolated"] and r["ok"], r
+          assert not (tmp / "escaped.txt").exists() and "\nt\n" not in (d / "SKILL.md").read_text()
+          PY

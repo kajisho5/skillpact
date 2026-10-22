@@ -11,6 +11,7 @@ def inline(t):
     t = html.escape(t, quote=False); codes = []
     t = re.sub(r"`([^`]+)`", lambda m: codes.append(m.group(1)) or f"\x00{len(codes)-1}\x00", t)
     t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+    t = re.sub(r"!\[([^\]]*)\]\(([^)\s]+)\)", lambda m: f'<img src="{m.group(2)}" alt="{m.group(1)}">', t)
     t = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", lambda m: f'<a href="{m.group(2)}">{m.group(1)}</a>', t)
     return re.sub(r"\x00(\d+)\x00", lambda m: f"<code>{codes[int(m.group(1))]}</code>", t)
 
@@ -67,7 +68,7 @@ def page(slug, lang):
             f'<main id="main" class="wrap doc">\n{nav}\n<article>\n{body}\n</article></main>\n<footer class="wrap foot">{foot}</footer></body></html>\n')
 
 def build():
-    slugs = sorted(p.stem for p in (SRC / "en").glob("*.md"))
+    slugs = sorted({p.stem for p in (SRC / "en").glob("*.md")} | {p.stem for p in (SRC / "ja").glob("*.md")})
     for slug in slugs:
         for lang in ("en", "ja"):
             if not (SRC / lang / f"{slug}.md").exists(): continue

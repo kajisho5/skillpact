@@ -1,13 +1,21 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Badges — SkillPact · SEVENTHWELL</title><link rel="stylesheet" href="../assets/site.css"></head><body>
-<a class="skip" href="#main">Skip to content</a><header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav aria-label="Main"><a href="../">Home</a><a href="../why/">Why</a><a href="../spec/">Spec</a><a href="../guides/">Guides</a><a href="../schema/">Schema</a><a href="../check/">Checker</a><a href="../badges/" aria-current="page">Badges</a><a href="../about/">About</a><a href="https://github.com/kajisho5/skillpact">GitHub</a><a class="lang" href="../ja/" lang="ja" hreflang="ja">日本語</a></nav></div></header>
-<main id="main" class="wrap"><section class="hero sm"><p class="eyebrow">Badges</p><h1>Show your skill's SkillPact level</h1>
-<p class="lead">Static SVGs served from this site. Use the badge for the level your skill actually reaches with <code>skillpact conformance</code> (or the GitHub Action). Badges are a claim, not proof: readers can re-check with the checker or the Action.</p></section>
-<table><tr><td><img src="skillpact-L1.svg" alt="SkillPact L1"></td><td><code>[![SkillPact L1](https://kajisho5.github.io/skillpact/badges/skillpact-L1.svg)](https://kajisho5.github.io/skillpact/)</code></td></tr><tr><td><img src="skillpact-L2.svg" alt="SkillPact L2"></td><td><code>[![SkillPact L2](https://kajisho5.github.io/skillpact/badges/skillpact-L2.svg)](https://kajisho5.github.io/skillpact/)</code></td></tr><tr><td><img src="skillpact-L3.svg" alt="SkillPact L3"></td><td><code>[![SkillPact L3](https://kajisho5.github.io/skillpact/badges/skillpact-L3.svg)](https://kajisho5.github.io/skillpact/)</code></td></tr></table>
-<h2>Markdown</h2><pre><code>[![SkillPact L3](https://kajisho5.github.io/skillpact/badges/skillpact-L3.svg)](https://kajisho5.github.io/skillpact/)</code></pre>
-<h2>Keep it honest in CI</h2><pre><code>- uses: kajisho5/skillpact@main
-  with:
-    path: .
-    min-level: L2</code></pre>
-<p>Levels: <b>L1</b> contract valid · <b>L2</b> + offline conformance tests pass · <b>L3</b> + integrity and a signature from a key you trust.</p>
-</main></body></html>
+<title>Badges — SkillPact</title><meta name="description" content="Show your skill&#x27;s SkillPact level. Static SVGs served from this site. Use the badge for the level your skill actually reaches with skillpact conformance (or the GitHub Action). A badge is a claim, n">
+<link rel="canonical" href="https://kajisho5.github.io/skillpact/badges/"><link rel="alternate" hreflang="en" href="https://kajisho5.github.io/skillpact/badges/"><link rel="alternate" hreflang="ja" href="https://kajisho5.github.io/skillpact/ja/badges/">
+<link rel="stylesheet" href="../assets/site.css"></head><body>
+<a class="skip" href="#main">Skip to content</a><header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav aria-label="Main"><a href="../">Home</a><a href="../why/">Why</a><a href="../spec/">Spec</a><a href="../guides/">Guides</a><a href="../schema/">Schema</a><a href="../check/">Checker</a><a href="../badges/" aria-current="page">Badges</a><a href="../about/">About</a><a href="https://github.com/kajisho5/skillpact">GitHub</a><a class="lang" href="../ja/badges/" lang="ja" hreflang="ja">日本語</a></nav></div></header>
+<main id="main" class="wrap doc">
+
+<article>
+<h1 id="badges">Badges</h1>
+<p>Show your skill's SkillPact level. Static SVGs served from this site. Use the badge for the level your skill actually reaches with <code>skillpact conformance</code> (or the GitHub Action). A badge is a claim, not proof: readers can re-check with the <a href="../check/">checker</a> or the Action. Rules: <a href="https://github.com/kajisho5/skillpact/blob/main/TRADEMARKS.md">TRADEMARKS.md</a>.</p>
+<p><a href="../"><img src="skillpact-L1.svg" alt="SkillPact L1"></a> <a href="../"><img src="skillpact-L2.svg" alt="SkillPact L2"></a> <a href="../"><img src="skillpact-L3.svg" alt="SkillPact L3"></a></p>
+<h2 id="markdown">Markdown</h2>
+<pre><code>[![SkillPact L3](https://kajisho5.github.io/skillpact/badges/skillpact-L3.svg)](https://kajisho5.github.io/skillpact/)</code></pre>
+<p>Replace <code>L3</code> with <code>L1</code> or <code>L2</code> as needed.</p>
+<h2 id="keep-it-honest-in-ci">Keep it honest in CI</h2>
+<pre><code>- uses: kajisho5/skillpact@&lt;commit-sha&gt;   # pin to a full commit SHA
+  with: { path: ., min-level: L2 }</code></pre>
+<h2 id="levels">Levels</h2>
+<ul><li><strong>L1</strong>: the contract is valid.</li><li><strong>L2</strong>: plus the conformance tests pass in the sandbox (no network).</li><li><strong>L3</strong>: plus every file is covered by integrity and signed by an author you trust. L3 does not mean "safe".</li></ul>
+</article></main>
+<footer class="wrap foot">Spec text CC BY 4.0 · Code Apache-2.0 · © 2026 SEVENTHWELL · <a href="https://github.com/kajisho5/skillpact/blob/main/content/en/badges.md">source</a></footer></body></html>

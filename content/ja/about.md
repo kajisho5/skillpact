@@ -13,7 +13,7 @@ kajiyama@seventh-well.com か、GitHub の非公開の脆弱性報告で知ら�
 
 ## 知的財産
 - 仕様の本文は CC BY 4.0。スキーマ、適合スイート、実装は Apache-2.0 で、貢献者それぞれの貢献に対する特許ライセンスを含みます。
-- SEVENTHWELL は、この仕様の実装に必須となる特許を把握していません。仕様の本文について正式な特許不主張の誓約を加えるかは、1.0 までに決めます。[IPR.md](https://github.com/kajisho5/skillpact/blob/main/IPR.md)。
+- SEVENTHWELL と Shogo Kajiyama は、仕様の実装に対して防御的終了つきの無償の特許不主張を誓約しています（Microsoft Open Specification Promise と OWFa 1.0 を参考）。[IPR.md](https://github.com/kajisho5/skillpact/blob/main/IPR.md)。
 
 ## 商標とバッジ
 「SEVENTHWELL」は発行者の名前です。「SkillPact」は、仕様に従う実装や契約を説明するために使えます。L1/L2/L3 のバッジは、CI か `skillpact conformance` が実際に出したレベルだけを表示し、SEVENTHWELL の推薦を受けたように見せないでください。[TRADEMARKS.md](https://github.com/kajisho5/skillpact/blob/main/TRADEMARKS.md)。
@@ -25,7 +25,7 @@ kajiyama@seventh-well.com か、GitHub の非公開の脆弱性報告で知ら�
 [ROADMAP.md](https://github.com/kajisho5/skillpact/blob/main/ROADMAP.md)。次は公開レビュー、その後に安定したスキーマ URL とパッケージ公開を伴う 1.0 です。
 
 ## メディアタイプとファイル名
-ファイル名は常に `skill.contract.json` です。`application/json` で配信し、専用のメディアタイプは登録していません（仕様の付録 D）。
+ファイル名は常に `skill.contract.json` です。`application/json` で配信し、専用のメディアタイプは登録しておらず、IANA 登録は 1.0 の後に検討します（仕様の付録 D）。
 
 ## このサイトのアクセシビリティ
 言語属性つきの意味のある HTML、ページごとに 1 つの見出し、表の見出し、見えるフォーカス、十分な色のコントラストを使っています。チェッカーはキーボードで操作できます。問題は GitHub issue で知らせてください。[ACCESSIBILITY.md](https://github.com/kajisho5/skillpact/blob/main/ACCESSIBILITY.md)。

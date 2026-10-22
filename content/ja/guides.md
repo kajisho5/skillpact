@@ -11,7 +11,7 @@
 ## スキルの作者
 1. `python3 -m skillpact.cli init <skill_dir> -o skill.contract.json` で下書きを作ります。すべての項目を確かめ、`TODO(...)` と `x.init.uncertain` を消します（残すと `UNCONFIRMED_DRAFT`）。
 2. 範囲を狭くします（`/**` ではなく `$WORKDIR/**`）。spend と send は正直に宣言します。
-3. ネットなしで動くテストを足し、`skillpact test <skill_dir>` で実行します。Linux では bubblewrap を入れると完全なサンドボックスになります。
+3. ネットなしで動くテストを足し、`skillpact test <skill_dir>` で実行します。Linux は bubblewrap を入れると完全なサンドボックスになります。macOS は標準の Seatbelt（`sandbox-exec`）を自動で使います（試験的）。Windows は WSL2 か Linux コンテナの中で実行してください。
 4. `skillpact hash <skill_dir>`（全ファイルを載せる）、続いて `skillpact sign <skill_dir> key.pem`、CI なら `sign-sigstore`。公開鍵を公開します。
 5. GitHub Action をコミット SHA で固定し、`pull_request`（`pull_request_target` ではなく）で動かします：
 ```yaml

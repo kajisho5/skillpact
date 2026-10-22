@@ -10,6 +10,8 @@ SkillPact は、Agent Skills の `SKILL.md`（変更しない）の隣に置く�
 - ご意見は kajisho5/skillpact の GitHub issue へ。決め方は [GOVERNANCE.md](https://github.com/kajisho5/skillpact/blob/main/GOVERNANCE.md) にあります。
 - スキーマ：`https://kajisho5.github.io/skillpact/schema/v0.8.json`、ポリシー：`.../schema/policy-v0.8.json`。
 - ライセンス：本文 CC BY 4.0、スキーマと実装 Apache-2.0。
+- 特許：SEVENTHWELL と Shogo Kajiyama は、この仕様の実装に対して、防御的終了つきの無償の特許不主張を誓約しています：[IPR.md](https://github.com/kajisho5/skillpact/blob/main/IPR.md)。
+- メディアタイプ：専用のメディアタイプの IANA 登録は 1.0 の後に検討します（付録 D）。
 
 ## 1. 表記と用語
 「MUST」「MUST NOT」「REQUIRED」「SHALL」「SHALL NOT」「SHOULD」「SHOULD NOT」「RECOMMENDED」「MAY」「OPTIONAL」は、すべて大文字で書かれた場合に限り BCP 14（RFC 2119、RFC 8174）の意味で解釈します。「参考」と書いた節、例、注記は規範ではありません。
@@ -131,7 +133,7 @@ SkillPact は、Agent Skills の `SKILL.md`（変更しない）の隣に置く�
 - ランナーはスキルディレクトリの変更を（大きさや時刻ではなく）内容のハッシュで検出し、write の scope に `$SKILL_DIR` がなければそのケースを失敗にしなければなりません（MUST）。ファイルシステムを隔離できない場合は親ディレクトリも監視し、スキルの外への書き込みを報告しなければなりません（MUST）。
 - ネットワークを隔離できないランナーは L2 を出してはなりません（MUST NOT）。L2 には、`network: true` ではない隔離ケースが 1 つ以上通っていることも必要です。
 - スキップしたケースは失敗ではありませんが、件数を報告しなければなりません（MUST）。
-- 参照ランナーは bubblewrap（`bwrap`）を使い、なければ `unshare -rn`（ネットワークのみ。`fs_isolated: false` と報告）を使います。
+- 参照ランナーは Linux では bubblewrap（`bwrap`）を使い、なければ `unshare -rn`（ネットワークのみ。`fs_isolated: false` と報告）を使います。macOS では Seatbelt（`/usr/bin/sandbox-exec`、**試験的**）を使い、書き込みは `$WORKDIR`（宣言があれば `$SKILL_DIR` も）だけ、`network: true` 以外は通信をすべて拒否します。Apple は `sandbox-exec` を非推奨としていますが、現在も動作し、他のエージェントのサンドボックスでも使われています。Windows には対応する方式がない（WSL2 かコンテナを使う）ため、L2 になりません。
 
 ## 11. integrity と署名
 - `integrity.algorithm` は `sha256`。`integrity.files` は相対パス → 16 進小文字のハッシュ。検証者は載っている全ファイルを照合しなければなりません（MUST、`INTEGRITY_MISMATCH`、`INTEGRITY_MISSING`）。
@@ -253,11 +255,51 @@ L1 は整合性しか示しません。ハーネスは L1 だけを根拠に、�
 参考：Sigstore、MCP tool annotations、OWASP Agentic Skills Top 10（https://owasp.org/www-project-agentic-skills-top-10/）、HushSpec、Agent Policy Specification、Microsoft Agent Control Specification、OPA / Rego、MDA Open Spec、AutoVault、bubblewrap、各ハーネスの文書（Claude Code、Cursor、Codex、Gemini CLI。2026-10-22 時点）。
 
 ## 付録 A. 指摘コード
-エラー：`SKILL_MD_MISSING` `FRONTMATTER_MISSING` `FM_NAME` `FM_DESCRIPTION` `FM_COMPAT` `CONTRACT_MISSING` `CONTRACT_JSON` `CONTRACT_VERSION_UNSUPPORTED` `SCHEMA` `NAME_MISMATCH` `DUP_CAPABILITY` `UNDECLARED_EFFECT` `BAD_SUBSCHEMA` `UNKNOWN_REQUIREMENT` `ENTRY_MISSING` `TEST_UNKNOWN_CAPABILITY` `INTEGRITY_MISSING` `INTEGRITY_MISMATCH` `INTEGRITY_PATH` `INTEGRITY_EMPTY` `SIGNATURE_INVALID` `DUP_SIGNATURE` `SCOPE_WIDENED` `SCOPE_EMPTY` `SCOPE_TRAVERSAL` `UNKNOWN_FEATURE_KIND`
+重大度はコードと版ごとに決まっています。新しいコードは提案の手続き（GOVERNANCE.md）でのみ追加します。エラーがあれば L1 になりません。警告は L1 を妨げません。
 
-版で変わるもの（その版からエラー、それより前は警告）：`FM_NAME_DIR`（0.7）、`INTEGRITY_UNLISTED`（0.8）、`TEST_UNDECLARED_NETWORK`（0.8）、`UNCONFIRMED_DRAFT`（0.8）。
-
-警告：`BODY_LONG` `HIGH_RISK` `DESTRUCTIVE_NO_EFFECT` `UNUSED_PERMISSION` `NO_TESTS` `UNTESTED_CAPABILITY` `NO_ENTRY` `UNKNOWN_VARIABLE` `UNKNOWN_SCOPE_TOKEN` `CONTRACT_VERSION_NEWER` `SIGSTORE_UNVERIFIED`
+| コード | 重大度 | 節 | 意味 |
+|---|---|---|---|
+| `SKILL_MD_MISSING` | エラー | 全体 | SKILL.md がない |
+| `FRONTMATTER_MISSING` | エラー | 全体 | frontmatter がない |
+| `FM_NAME` | エラー | 全体 | name が Agent Skills の規則に違反 |
+| `FM_DESCRIPTION` | エラー | 全体 | description がない・1024 字超 |
+| `FM_COMPAT` | エラー | 全体 | compatibility が 500 字超 |
+| `FM_NAME_DIR` | エラー ≥0.7, それより前は警告 | §3 | name とディレクトリ名が違う |
+| `CONTRACT_MISSING` | エラー | 全体 | 契約ファイルがない |
+| `CONTRACT_JSON` | エラー | §4.1 | I-JSON でない（重複キー、大きな整数、サロゲート、深さ、文字コード） |
+| `CONTRACT_VERSION_UNSUPPORTED` | エラー | §17 | 知らない major（0.x では minor）版 |
+| `CONTRACT_VERSION_NEWER` | 警告 | §17 | 新しい minor 版（1.0 以降） |
+| `SCHEMA` | エラー | §5 | スキーマ違反 |
+| `NAME_MISMATCH` | エラー | §3 | skill.name と frontmatter の name が違う |
+| `DUP_CAPABILITY` | エラー | §7 | capability の id が重複 |
+| `UNDECLARED_EFFECT` | エラー | §7 | 使う効果が permissions で none |
+| `BAD_SUBSCHEMA` | エラー | §7 | inputs/outputs が不正なスキーマ |
+| `UNKNOWN_REQUIREMENT` | エラー | §7 | requires が requirements にない |
+| `ENTRY_MISSING` | エラー | §7 | 入口ファイルがない |
+| `UNKNOWN_FEATURE_KIND` | エラー | §7 | feature の kind が未定義 |
+| `SCOPE_EMPTY` | エラー | §6 | scoped なのに scope が空 |
+| `SCOPE_WIDENED` | エラー | §7 | effect_scopes が permissions より広い |
+| `SCOPE_TRAVERSAL` | エラー | §6.1 | パス範囲に . / .. / 空 / \ |
+| `TEST_UNKNOWN_CAPABILITY` | エラー | §10 | テストが未知の capability を参照 |
+| `TEST_UNDECLARED_NETWORK` | エラー ≥0.8, それより前は警告 | §10 | network 宣言なしの network テスト |
+| `UNCONFIRMED_DRAFT` | エラー ≥0.8, それより前は警告 | §14 | 下書きの印が残っている |
+| `INTEGRITY_MISSING` | エラー | §11 | 載っているファイルがない |
+| `INTEGRITY_MISMATCH` | エラー | §11 | ハッシュが違う |
+| `INTEGRITY_PATH` | エラー (載っていないリンク: 警告 <0.8) | §11.2 | 不正なパス・シンボリックリンク・上限超え |
+| `INTEGRITY_UNLISTED` | エラー ≥0.8, それより前は警告 | §11.2 | integrity に載っていないファイル |
+| `INTEGRITY_EMPTY` | エラー (0.8+) | §11.2 | files に SKILL.md がない |
+| `SIGNATURE_INVALID` | エラー | §11 | 署名が検証できない |
+| `DUP_SIGNATURE` | エラー | §11 | 同じ鍵が 2 回以上署名 |
+| `SIGSTORE_UNVERIFIED` | 警告 | §16.4 | Sigstore を検証できない実装 |
+| `HIGH_RISK` | 警告 | §6 | spend/send が any |
+| `UNKNOWN_SCOPE_TOKEN` | 警告 | §6 | 未定義の @ トークン |
+| `UNKNOWN_VARIABLE` | 警告 | §6 | 未定義の $ 変数 |
+| `DESTRUCTIVE_NO_EFFECT` | 警告 | §7 | destructive なのに write/send/spend がない |
+| `NO_ENTRY` | 警告 | §7 | 効果があるのに entry がない |
+| `UNUSED_PERMISSION` | 警告 | §6 | どの capability も使わない権限 |
+| `NO_TESTS` | 警告 | §10 | テストがない |
+| `UNTESTED_CAPABILITY` | 警告 | §10 | テストのない capability |
+| `BODY_LONG` | 警告 | §3 | SKILL.md 本文が 500 行超 |
 
 ## 付録 B. 例
 最小（説明だけのスキル）：
@@ -286,7 +328,7 @@ L1 は整合性しか示しません。ハーネスは L1 だけを根拠に、�
 
 ## 付録 D. メディアタイプとファイル名（登録についての注記）
 - ファイル名：`skill.contract.json`（固定、`SKILL.md` の隣）。
-- メディアタイプ：現在は `application/json` を使います。専用のタイプ（例 `application/skillpact+json`）は IANA に**登録していません**。需要があれば 1.0 の後に検討します。それまで実装は特定のメディアタイプに頼ってはなりません（MUST NOT）。
+- メディアタイプ：現在は `application/json` を使います。専用のタイプ（例 `application/skillpact+json`）は IANA に**登録していません**。1.0 の後に検討します。それまで実装は特定のメディアタイプに頼ってはなりません（MUST NOT）。
 - スキーマの URL は版ごとに固定です。
 
 ## 付録 E. 0.8 の変更点

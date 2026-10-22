@@ -2,6 +2,13 @@
 All notable changes to the SkillPact spec and implementations. Drafts until 1.0.
 
 
+## Unreleased (0.8 follow-up)
+- Patent non-assertion covenant (EN/JA) in IPR.md and spec Status.
+- IANA media type: to be considered after 1.0.
+- Finding-code severity table (Appendix A).
+- Experimental macOS Seatbelt runner mode; macOS CI job.
+- Published schema/v0.1.json and v0.2.json (aliases of v0.3); /ja/badges/.
+
 ## 0.8 (draft, 2026-10-22) — fixes from the v0.7 self-review
 Security (breaking for 0.8 contracts; older contracts keep their rules, see MIGRATION):
 - Integrity must list **every** file of the skill (protected files such as `CLAUDE.md`, `.claude/**`, `hooks/**`, entry scripts cannot be excluded); new `integrity.exclude`; `INTEGRITY_UNLISTED`, `INTEGRITY_EMPTY`, `INTEGRITY_PATH` (path traversal, absolute paths, symlinks, limits). L3 refused for any version with unlisted files.

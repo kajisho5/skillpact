@@ -13,7 +13,7 @@ Report vulnerabilities privately to kajiyama@seventh-well.com or through GitHub 
 
 ## Intellectual property
 - Specification text: CC BY 4.0. Schemas, conformance suite and implementations: Apache-2.0, which includes a patent license from each contributor for their contributions.
-- SEVENTHWELL is not aware of patents essential to implementing this specification. Whether to add a formal patent non-assertion covenant for the specification text will be decided before 1.0. See [IPR.md](https://github.com/kajisho5/skillpact/blob/main/IPR.md).
+- SEVENTHWELL and Shogo Kajiyama give a royalty-free patent non-assertion covenant for implementations of the specification, with defensive termination (modelled on the Microsoft Open Specification Promise and OWFa 1.0). See [IPR.md](https://github.com/kajisho5/skillpact/blob/main/IPR.md).
 
 ## Trademarks and badges
 "SEVENTHWELL" is the name of the publisher. "SkillPact" may be used to describe implementations and contracts that follow the specification. Show an L1/L2/L3 badge only for the level your CI or `skillpact conformance` actually reports, and do not suggest endorsement by SEVENTHWELL. See [TRADEMARKS.md](https://github.com/kajisho5/skillpact/blob/main/TRADEMARKS.md).
@@ -25,7 +25,7 @@ Use [CITATION.cff](https://github.com/kajisho5/skillpact/blob/main/CITATION.cff)
 See [ROADMAP.md](https://github.com/kajisho5/skillpact/blob/main/ROADMAP.md). Next: public review, then 1.0 with stable schema URLs and published packages.
 
 ## Media type and file naming
-The file is always `skill.contract.json`. It is served as `application/json`; no specific media type is registered (spec Appendix D).
+The file is always `skill.contract.json`. It is served as `application/json`; no specific media type is registered; IANA registration is to be considered after 1.0 (spec Appendix D).
 
 ## Accessibility of this site
 Pages use semantic HTML with a language attribute, one main heading, table headers, visible focus and sufficient colour contrast; the checker works with the keyboard. Report problems as GitHub issues. See [ACCESSIBILITY.md](https://github.com/kajisho5/skillpact/blob/main/ACCESSIBILITY.md).

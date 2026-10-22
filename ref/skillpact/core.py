@@ -549,7 +549,21 @@ def _sandbox():
     if os.environ.get("SKILLPACT_SANDBOX") == "none": return None
     if shutil.which("bwrap") and subprocess.run(["bwrap", "--ro-bind", "/", "/", "--dev", "/dev", "--unshare-net", "true"], capture_output=True).returncode == 0: return "bwrap"
     if shutil.which("unshare") and subprocess.run(["unshare", "-rn", "true"], capture_output=True).returncode == 0: return "unshare"
+    if os.path.exists(SEATBELT) and subprocess.run([SEATBELT, "-p", _seatbelt_profile("/nonexistent-skillpact", None, False), "true"], capture_output=True).returncode == 0: return "seatbelt"
     return None
+
+
+SEATBELT = "/usr/bin/sandbox-exec"   # macOS Seatbelt; deprecated by Apple but functional (also used by Codex / Claude Code sandboxes)
+
+
+def _seatbelt_profile(work, rw_skill, net):
+    """SBPL profile: everything allowed except file writes outside $WORKDIR (+ $SKILL_DIR if allowed) and, unless net, all network."""
+    q = lambda p_: '"' + os.path.realpath(p_).replace("\\", "\\\\").replace('"', '\\"') + '"'
+    roots = " ".join(f"(subpath {q(r)})" for r in [work] + ([rw_skill] if rw_skill else []))
+    prof = ["(version 1)", "(allow default)", "(deny file-write*)",
+            f'(allow file-write* {roots} (literal "/dev/null") (literal "/dev/tty") (regex #"^/dev/fd/"))']
+    if not net: prof.append("(deny network*)")
+    return "\n".join(prof)
 
 
 def _wrap(cmd, mode, net, work, rw_skill):
@@ -559,6 +573,7 @@ def _wrap(cmd, mode, net, work, rw_skill):
         if not net: w += ["--unshare-net"]
         return w + ["--chdir", str(work), "--"] + cmd
     if mode == "unshare" and not net: return ["unshare", "-rn"] + cmd
+    if mode == "seatbelt": return [SEATBELT, "-p", _seatbelt_profile(work, rw_skill, net), "--"] + cmd
     return cmd
 
 
@@ -580,7 +595,7 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
                 "PYTHONDONTWRITEBYTECODE": "1", "LANG": env.get("LANG", "C.UTF-8")})
     wrap = lambda cmd, net=False: _wrap(cmd, mode, net, work, str(skill_dir) if skill_dir_writes_allowed else None)
     results = []
-    watch = [skill_dir] + ([] if mode == "bwrap" else [skill_dir.parent])
+    watch = [skill_dir] + ([] if mode in ("bwrap", "seatbelt") else [skill_dir.parent])
     before = {str(d): _snapshot(d) for d in watch}
     setup_error = None
     try:
@@ -638,14 +653,14 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
     changed = lambda b, a: sorted(k for k in set(a) | set(b) if a.get(k) != b.get(k))
     wrote = changed(before[str(skill_dir)], after[str(skill_dir)])
     outside = []
-    if mode != "bwrap":
+    if mode not in ("bwrap", "seatbelt"):
         sk = skill_dir.name + "/"
         outside = [k for k in changed(before[str(skill_dir.parent)], after[str(skill_dir.parent)]) if not k.startswith(sk)]
     violations = [] if skill_dir_writes_allowed else wrote
     t_net = {t["id"]: bool(t.get("network")) for t in c.get("tests", {}).get("cases", [])}
     isolated_pass = sum(1 for r in results if r["ok"] and not r.get("skipped") and not t_net.get(r["id"]))
     res = {"ok": not setup_error and all(r["ok"] for r in results) and not violations and not outside, "requirements": reqs, "cases": results,
-           "sandbox": mode or "none", "fs_isolated": mode == "bwrap", "network_isolated": bool(mode) and isolated_pass > 0,
+           "sandbox": mode or "none", "fs_isolated": mode in ("bwrap", "seatbelt"), "network_isolated": bool(mode) and isolated_pass > 0,
            "skill_dir_writes": violations, "outside_writes": outside,
            "network_cases": sum(1 for r in results if t_net.get(r["id"]) and not r.get("skipped")),
            "passed": sum(r["ok"] and not r.get("skipped") for r in results), "skipped": sum(bool(r.get("skipped")) for r in results), "total": len(results)}

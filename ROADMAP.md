@@ -13,9 +13,9 @@ Dates are not promised; items move when review finds problems.
 ## Then: 1.0
 - Stable schema URLs and stability rules (spec §17).
 - Packages on PyPI and npm; signed release tags; production Sigstore signing of samples.
-- Decide on a patent non-assertion covenant for the spec text and on a media type registration.
+- Consider IANA media type registration (after 1.0).
 
 ## Later (proposals welcome)
 - Revocation list format for compromised keys.
-- Registered codes table with severities.
+- Seatbelt (macOS) sandbox mode: promote from experimental after field use.
 - More harness targets and runtime policy exports.

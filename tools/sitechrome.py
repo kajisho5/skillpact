@@ -10,7 +10,7 @@ DOCS = ROOT / "docs"
 GH = "https://github.com/kajisho5/skillpact"
 LINKS = [("home", "", "Home", "ホーム"), ("why", "why/", "Why", "なぜ"), ("spec", "spec/", "Spec", "仕様"), ("guides", "guides/", "Guides", "導入"),
          ("schema", "schema/", "Schema", "スキーマ"), ("check", "check/", "Checker", "チェッカー"), ("badges", "badges/", "Badges", "バッジ"), ("about", "about/", "About", "概要")]
-HAS_JA = {"home", "schema", "check", "why", "spec", "guides", "about", "rationale"}
+HAS_JA = {"home", "schema", "check", "why", "spec", "guides", "about", "rationale", "badges"}
 
 
 def _v(p): return tuple(map(int, p.split(".")))

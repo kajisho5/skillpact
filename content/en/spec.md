@@ -9,7 +9,9 @@ SkillPact defines `skill.contract.json`, a machine-readable contract placed next
 - **The English text is normative.** The Japanese translation ([/ja/spec/](../ja/spec/)) is informative; if they differ, English wins.
 - Feedback: GitHub issues on kajisho5/skillpact. Decision process: [GOVERNANCE.md](https://github.com/kajisho5/skillpact/blob/main/GOVERNANCE.md).
 - Schema: `https://kajisho5.github.io/skillpact/schema/v0.8.json` · Policy schema: `.../schema/policy-v0.8.json`.
-- License: text CC BY 4.0; schemas and implementations Apache-2.0. See IPR below.
+- License: text CC BY 4.0; schemas and implementations Apache-2.0.
+- Patents: SEVENTHWELL and Shogo Kajiyama give a royalty-free patent non-assertion covenant, with defensive termination, for implementations of this specification: [IPR.md](https://github.com/kajisho5/skillpact/blob/main/IPR.md).
+- Media type: IANA registration of a specific media type is to be considered after 1.0 (Appendix D).
 
 ## 1. Conventions and terminology
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" are to be interpreted as described in BCP 14 (RFC 2119, RFC 8174) when, and only when, they appear in all capitals. Sections marked *informative*, examples and notes are not normative.
@@ -131,7 +133,7 @@ All implementations MUST match globs exactly as follows; `fnmatch` or shell glob
 - A runner MUST detect changes to the skill directory by content hash (not by size or time) and fail the case unless the write scope includes `$SKILL_DIR`. When it cannot isolate the file system, it MUST also watch the parent directory and report writes outside the skill.
 - A runner that cannot provide network isolation MUST NOT report L2. L2 also needs at least one passing isolated case that is not `network: true`.
 - Skipped cases are not failures but MUST be counted and reported.
-- The reference runner uses bubblewrap (`bwrap`), falling back to `unshare -rn` (network only, reported as `fs_isolated: false`).
+- The reference runner uses bubblewrap (`bwrap`) on Linux, falling back to `unshare -rn` (network only, reported as `fs_isolated: false`). On macOS it uses Seatbelt (`/usr/bin/sandbox-exec`, *experimental*): writes allowed only in `$WORKDIR` (and `$SKILL_DIR` when declared), all network denied unless `network: true`. Apple marks `sandbox-exec` as deprecated but it remains functional and is used by other agent sandboxes; Windows has no supported mode (use WSL2 or a container), so no L2 there.
 
 ## 11. Integrity and signatures
 - `integrity.algorithm` is `sha256`; `integrity.files` maps relative paths to lowercase hex digests. Validators MUST check every listed file (`INTEGRITY_MISMATCH`, `INTEGRITY_MISSING`).
@@ -253,11 +255,51 @@ Normative: RFC 2119, RFC 8174 (BCP 14); RFC 8259 (JSON); RFC 7493 (I-JSON); RFC 
 Informative: Sigstore; MCP tool annotations; OWASP Agentic Skills Top 10 (https://owasp.org/www-project-agentic-skills-top-10/); HushSpec; Agent Policy Specification; Microsoft Agent Control Specification; OPA / Rego; MDA Open Spec; AutoVault; bubblewrap; harness documentation (Claude Code, Cursor, Codex, Gemini CLI) as of 2026-10-22.
 
 ## Appendix A. Finding codes
-Errors: `SKILL_MD_MISSING` `FRONTMATTER_MISSING` `FM_NAME` `FM_DESCRIPTION` `FM_COMPAT` `CONTRACT_MISSING` `CONTRACT_JSON` `CONTRACT_VERSION_UNSUPPORTED` `SCHEMA` `NAME_MISMATCH` `DUP_CAPABILITY` `UNDECLARED_EFFECT` `BAD_SUBSCHEMA` `UNKNOWN_REQUIREMENT` `ENTRY_MISSING` `TEST_UNKNOWN_CAPABILITY` `INTEGRITY_MISSING` `INTEGRITY_MISMATCH` `INTEGRITY_PATH` `INTEGRITY_EMPTY` `SIGNATURE_INVALID` `DUP_SIGNATURE` `SCOPE_WIDENED` `SCOPE_EMPTY` `SCOPE_TRAVERSAL` `UNKNOWN_FEATURE_KIND`
+Severity is fixed per code and version; new codes are added only through the proposal process (GOVERNANCE.md). An error makes a contract fail L1; warnings do not.
 
-Version-dependent (error from the given version, warning before): `FM_NAME_DIR` (0.7), `INTEGRITY_UNLISTED` (0.8), `TEST_UNDECLARED_NETWORK` (0.8), `UNCONFIRMED_DRAFT` (0.8).
-
-Warnings: `BODY_LONG` `HIGH_RISK` `DESTRUCTIVE_NO_EFFECT` `UNUSED_PERMISSION` `NO_TESTS` `UNTESTED_CAPABILITY` `NO_ENTRY` `UNKNOWN_VARIABLE` `UNKNOWN_SCOPE_TOKEN` `CONTRACT_VERSION_NEWER` `SIGSTORE_UNVERIFIED`
+| Code | Severity | Section | Meaning |
+|---|---|---|---|
+| `SKILL_MD_MISSING` | error | all | SKILL.md not found |
+| `FRONTMATTER_MISSING` | error | all | SKILL.md has no YAML frontmatter |
+| `FM_NAME` | error | all | frontmatter name breaks Agent Skills rules |
+| `FM_DESCRIPTION` | error | all | description missing or longer than 1024 |
+| `FM_COMPAT` | error | all | compatibility longer than 500 |
+| `FM_NAME_DIR` | error ≥0.7, warn before | §3 | name differs from the directory name |
+| `CONTRACT_MISSING` | error | all | skill.contract.json not found |
+| `CONTRACT_JSON` | error | §4.1 | not I-JSON (duplicate keys, big integers, surrogates, depth, encoding) |
+| `CONTRACT_VERSION_UNSUPPORTED` | error | §17 | unknown major (or 0.x) version |
+| `CONTRACT_VERSION_NEWER` | warn | §17 | newer minor version, processed as known (1.0+) |
+| `SCHEMA` | error | §5 | JSON Schema violation |
+| `NAME_MISMATCH` | error | §3 | skill.name differs from frontmatter name |
+| `DUP_CAPABILITY` | error | §7 | duplicate capability id |
+| `UNDECLARED_EFFECT` | error | §7 | effect used but permission is none |
+| `BAD_SUBSCHEMA` | error | §7 | inputs/outputs is not a valid JSON Schema |
+| `UNKNOWN_REQUIREMENT` | error | §7 | requires names no requirement |
+| `ENTRY_MISSING` | error | §7 | $SKILL_DIR entry file does not exist |
+| `UNKNOWN_FEATURE_KIND` | error | §7 | feature kind has no features_check |
+| `SCOPE_EMPTY` | error | §6 | scoped effect without scope |
+| `SCOPE_WIDENED` | error | §7 | effect_scopes wider than permissions |
+| `SCOPE_TRAVERSAL` | error | §6.1 | path scope with . / .. / empty segment / backslash |
+| `TEST_UNKNOWN_CAPABILITY` | error | §10 | test names an unknown capability |
+| `TEST_UNDECLARED_NETWORK` | error ≥0.8, warn before | §10 | network:true test without network permission |
+| `UNCONFIRMED_DRAFT` | error ≥0.8, warn before | §14 | TODO(...) or x.init/import.uncertain left |
+| `INTEGRITY_MISSING` | error | §11 | listed file missing |
+| `INTEGRITY_MISMATCH` | error | §11 | hash differs |
+| `INTEGRITY_PATH` | error (unlisted symlink: warn <0.8) | §11.2 | bad path, symlink or limit exceeded |
+| `INTEGRITY_UNLISTED` | error ≥0.8, warn before | §11.2 | file not covered by integrity.files |
+| `INTEGRITY_EMPTY` | error (0.8+) | §11.2 | integrity.files lacks SKILL.md |
+| `SIGNATURE_INVALID` | error | §11 | a signature does not verify |
+| `DUP_SIGNATURE` | error | §11 | same key/identity signs twice |
+| `SIGSTORE_UNVERIFIED` | warn | §16.4 | implementation cannot verify Sigstore |
+| `HIGH_RISK` | warn | §6 | spend/send with level any |
+| `UNKNOWN_SCOPE_TOKEN` | warn | §6 | undefined @token |
+| `UNKNOWN_VARIABLE` | warn | §6 | undefined $variable |
+| `DESTRUCTIVE_NO_EFFECT` | warn | §7 | destructive without write/send/spend |
+| `NO_ENTRY` | warn | §7 | effects but no entry |
+| `UNUSED_PERMISSION` | warn | §6 | permission no capability uses |
+| `NO_TESTS` | warn | §10 | tool without tests |
+| `UNTESTED_CAPABILITY` | warn | §10 | capability without a test |
+| `BODY_LONG` | warn | §3 | SKILL.md body over 500 lines |
 
 ## Appendix B. Examples
 Minimal (instructions only):
@@ -286,7 +328,7 @@ Full signed examples: `samples/` (four skills at L3). Test vectors: `conformance
 
 ## Appendix D. Media type and file naming (registration note)
 - File name: `skill.contract.json`, fixed, next to `SKILL.md`.
-- Media type: `application/json` is used today. A specific type (e.g. `application/skillpact+json`) is **not registered** with IANA; registration will be considered after 1.0 if there is demand. Until then implementations MUST NOT rely on a specific media type.
+- Media type: `application/json` is used today. A specific type (e.g. `application/skillpact+json`) is **not registered** with IANA; registration is to be considered after 1.0. Until then implementations MUST NOT rely on a specific media type.
 - Schema URLs are immutable per version.
 
 ## Appendix E. Changes in 0.8

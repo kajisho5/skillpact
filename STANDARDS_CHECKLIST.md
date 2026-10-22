@@ -21,7 +21,7 @@ Audit of SkillPact 0.8 against the material usually expected of W3C / IETF speci
 | 15 | Interoperability and mappings | done | spec §12–14, §20; `spec/comparison.md`; `spec/owasp_mapping.md` | `/spec/` · `/why/` |
 | 16 | Versioning, stability, deprecation policy | done | spec §17; `GOVERNANCE.md` | `/spec/` |
 | 17 | Normative vs informative references | done | spec §21 | `/spec/` |
-| 18 | Error / finding code registry | done (list; severity table planned) | spec Appendix A | `/spec/` |
+| 18 | Error / finding code registry with severities | done | spec Appendix A | `/spec/` |
 | 19 | Schemas with immutable URLs | done | `docs/schema/v0.8.json`, `policy-v0.8.json` | `/schema/` · `/ja/schema/` |
 | 20 | Adoption guides per role (user, author, harness vendor, enterprise/CI) | done | `content/en/guides.md` | `/guides/` · `/ja/guides/` |
 | 21 | Why / motivation, benefits, who benefits | done | `content/en/why.md`; README | `/why/` · `/ja/why/` · top pages |
@@ -31,18 +31,18 @@ Audit of SkillPact 0.8 against the material usually expected of W3C / IETF speci
 | 25 | CONTRIBUTING | done | `CONTRIBUTING.md` | linked from `/about/` |
 | 26 | Code of conduct | done (Contributor Covenant 2.1) | `CODE_OF_CONDUCT.md` | linked from `/about/` |
 | 27 | Security policy / vulnerability reporting | done (kajiyama@seventh-well.com) | `SECURITY.md` | `/about/` |
-| 28 | Patent / IPR statement | done; formal patent covenant for the spec text is an open decision | `IPR.md`, `LICENSE`, `LICENSE-spec-CC-BY-4.0.txt` | `/about/` |
+| 28 | Patent / IPR statement | done (royalty-free non-assertion covenant with defensive termination, EN + JA) | `IPR.md`, `LICENSE`, `LICENSE-spec-CC-BY-4.0.txt` | `/about/` |
 | 29 | Trademark / brand and badge usage | done | `TRADEMARKS.md` | `/about/`, `/badges/` |
 | 30 | Citation | done | `CITATION.cff` | `/about/` |
 | 31 | Changelog | done | `CHANGELOG.md`; spec Appendix E | — |
 | 32 | Migration guide | done | `spec/MIGRATION.md` | — |
 | 33 | Roadmap | done | `ROADMAP.md` | `/about/` |
 | 34 | Acknowledgements | done | `ACKNOWLEDGEMENTS.md` | `/about/` |
-| 35 | Media type / file naming registration note | done (not registered; reasons) | spec Appendix D | `/spec/` · `/about/` |
+| 35 | Media type / file naming registration note | done (not registered; to be considered after 1.0) | spec Appendix D | `/spec/` · `/about/` |
 | 36 | Accessibility of the site | done (self-assessed, WCAG 2.2 AA target) | `ACCESSIBILITY.md` | `/about/` |
 | 37 | Translations and which text is normative | done (EN normative) | spec Status | `/spec/` · `/ja/spec/` |
 | 38 | Licence for text and code | done | `LICENSE*`, README | footer of every page |
 | 39 | Independent implementations | done (Python reference, TypeScript) | `ref/`, `ts/` | — |
 | 40 | Public review / feedback channel | prepared; dates and issue/Discussions creation need approval | `REVIEW.md`, `.github/ISSUE_TEMPLATE/` | banner hidden until dates set |
 
-Open items (need a decision by the editor): formal patent non-assertion covenant for the spec text; media type registration; public review dates.
+Open items (need a decision by the editor): public review dates.

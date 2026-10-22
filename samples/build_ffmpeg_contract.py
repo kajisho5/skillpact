@@ -15,6 +15,7 @@ c["compat"] = {"agents": {"claude-code": {"status": "expected", "notes": "SKILL.
 c["permissions"]["exec"]["scope"].append("fc-match")  # found by the exec audit (0.8.x): scripts/_common/fonts.py asks fontconfig for font files
 for cap in c["capabilities"]:
     if "exec" in cap.get("effect_scopes", {}): cap["effect_scopes"]["exec"].append("fc-match")   # fonts.py is shared by every tool
+    if cap["id"] == "media.check" and "ffmpeg" not in cap["effect_scopes"]["exec"]: cap["effect_scopes"]["exec"].insert(0, "ffmpeg")   # exec audit: check.py measures loudness with ffmpeg
 c["requirements"]["runtimes"].append({"name": "node", "version": ">=16", "check": ["node", "--version"], "optional": True, "when": "npx installer only"})
 c["requirements"]["env"] = [{"name": "FFMPEG_SKILL_HW", "required": False, "description": "1 = Apple GPU encoders by default"},
                             {"name": "FFMPEG_SKILL_MCP_FULL", "required": False, "description": "1 = MCP tools/list shows all 42 tools"},

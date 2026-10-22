@@ -2901,6 +2901,7 @@
       },
       "effect_scopes": {
         "exec": [
+          "ffmpeg",
           "ffprobe",
           "python3",
           "fc-match"

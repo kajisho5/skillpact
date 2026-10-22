@@ -1,5 +1,5 @@
 // Browser entry: everything runs locally in the page; nothing is sent anywhere.
-import { checkContract, signingInputString, EFFECTS, type Finding } from "./core.js";
+import { checkContract, signingInputString, signatureRoles, sigKey, EFFECTS, type Finding } from "./core.js";
 import { parseStrict } from "./strictjson.js";
 
 const b64 = (s: string) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -19,7 +19,7 @@ export async function check(text: string, trustedKeys: string[]) {
   if (c2?.integrity?.signatures?.length) {
     const data = signingInputString(c2);
     for (const s of c2.integrity.signatures) {
-      if (s.type === "sigstore") { sigs[`sigstore:${s.issuer}|${s.identity}`] = "unsupported"; continue; }
+      if (s.type === "sigstore") { sigs[sigKey(s)] = "unsupported"; continue; }
       sigs[s.key] = await edVerify(s.key, s.sig, data);
     }
     if (Object.values(sigs).some(v => v === false)) F.push({ level: "error", code: "SIGNATURE_INVALID", message: "signature check failed", where: "/integrity/signatures" });
@@ -31,8 +31,9 @@ export async function check(text: string, trustedKeys: string[]) {
     if (p.level === "any") risky.push(`${e}: any (制限なし)`);
     else if (["spend", "send", "exec", "network"].includes(e)) risky.push(`${e}: ${(p.scope ?? []).join(", ")}`);
   }
-  const trusted = Object.entries(sigs).some(([k, v]) => v === true && trustedKeys.includes(k));
+  const roles = c2 ? signatureRoles(c2) : {};
+  const trusted = Object.entries(sigs).some(([k, v]) => v === true && trustedKeys.includes(k) && roles[k] === "author");
   const level = !ok ? "none" : trusted ? "L1 + 信頼済み署名（L3 にはテスト実行が必要）" : "L1-declared";
-  return { ok, level, findings: F, risky, signatures: sigs, contract_version: c?.contract_version, skill: c?.skill };
+  return { ok, level, findings: F, risky, signatures: sigs, roles, contract_version: c?.contract_version, skill: c?.skill };
 }
 (globalThis as any).SkillPact = { check };

@@ -6,7 +6,9 @@ import SCHEMA_JSON from "./schema.json" with { type: "json" };
 const Ajv2020: any = (Ajv2020Mod as any).default ?? Ajv2020Mod;
 export const SCHEMA: any = SCHEMA_JSON;
 export const EFFECTS = ["read", "write", "network", "exec", "spend", "send"] as const;
-export const KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6"];
+export const KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"];
+export const SCOPE_TOKENS: Record<string, string[]> = { network: ["@local"] };
+export const vt = (v: string) => String(v).split(".").map(Number);
 export const PATH_VARS = new Set(["$INPUT", "$INPUT_DIR", "$OUTPUT", "$WORKDIR", "$SKILL_DIR", "$TMPDIR"]);
 export const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -44,7 +46,7 @@ export const covered = (scope: string[], pats: string[]) => scope.length > 0 && 
 const makeAjv = (o: any) => new Ajv2020(o);
 
 
-export type Env = { fileExists?: (rel: string) => boolean; fileSha256?: (rel: string) => string; skillName?: string | null };
+export type Env = { nameDirMismatch?: string; fileExists?: (rel: string) => boolean; fileSha256?: (rel: string) => string; skillName?: string | null };
 /** Contract-level checks shared by Node and browser. Signatures are checked by the caller (sync in Node, WebCrypto in browser). */
 export function checkContract(cIn: any, env: Env, F: Finding[]): any | null {
   const err = (code: string, message: string, where = "") => F.push({ level: "error", code, message, where });
@@ -57,11 +59,13 @@ export function checkContract(cIn: any, env: Env, F: Finding[]): any | null {
   const ajv = makeAjv({ allErrors: true, strict: false, validateFormats: false });
   const vfn = ajv.compile(SCHEMA);
   if (!vfn(c)) { for (const e of vfn.errors ?? []) err("SCHEMA", e.message ?? "schema error", e.instancePath); return null; }
+  if (env.nameDirMismatch) { const [a, b] = vt(c.contract_version); (a > 0 || b >= 7 ? err : warn)("FM_NAME_DIR", env.nameDirMismatch, "SKILL.md"); }
   if (fm && fm.name !== c.skill.name) err("NAME_MISMATCH", "contract skill.name != SKILL.md name");
   const perms = c.permissions;
   for (const eff of ["spend", "send"]) if (perms[eff].level === "any") warn("HIGH_RISK", `${eff}: level any`, `/permissions/${eff}`);
   for (const eff of EFFECTS) {
     if (perms[eff].level === "scoped" && !(perms[eff].scope?.length)) err("SCOPE_EMPTY", `permissions.${eff}: scoped needs a scope`, `/permissions/${eff}`);
+    for (const sc of perms[eff].scope ?? []) if (sc.startsWith("@") && !(SCOPE_TOKENS[eff] ?? []).includes(sc)) warn("UNKNOWN_SCOPE_TOKEN", `scope token ${sc} is not defined`, `/permissions/${eff}`);
     for (const sc of perms[eff].scope ?? []) for (const v of sc.match(/\$[A-Z_]+/g) ?? []) if (!PATH_VARS.has(v)) warn("UNKNOWN_VARIABLE", `undefined variable ${v}`, `/permissions/${eff}`);
   }
   const req = c.requirements ?? {};
@@ -95,3 +99,11 @@ export function checkContract(cIn: any, env: Env, F: Finding[]): any | null {
   return c;
 }
 
+
+/** key-or-identity -> role (author by default). Staging Sigstore identities get a distinct prefix. */
+export function signatureRoles(c: any): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const s of c?.integrity?.signatures ?? []) out[sigKey(s)] = s.role ?? "author";
+  return out;
+}
+export const sigKey = (s: any) => s.type === "sigstore" ? `${s.instance === "staging" ? "sigstore-staging" : "sigstore"}:${s.issuer}|${s.identity}` : s.key;

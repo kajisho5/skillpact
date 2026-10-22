@@ -1,0 +1,28 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkillPact — Agent Skills のための契約 · SEVENTHWELL</title><meta name="description" content="Agent Skill が何をするかを宣言・テスト・署名し、インストール前に確かめる。">
+<link rel="canonical" href="https://kajisho5.github.io/skillpact/ja/"><link rel="alternate" hreflang="en" href="https://kajisho5.github.io/skillpact/">
+<link rel="stylesheet" href="../assets/site.css"></head><body>
+<header class="top"><div class="wrap nav"><a class="brand" href="./"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav aria-label="Main"><a href="./" aria-current="page">ホーム</a><a href="schema/">スキーマ</a><a href="check/">チェッカー</a><a href="../badges/">バッジ</a><a href="https://github.com/kajisho5/skillpact">GitHub</a><a class="lang" href="../" lang="en" hreflang="en">EN</a></nav></div></header>
+<main class="wrap">
+<section class="hero"><p class="eyebrow">オープンな規格 · ドラフト v0.7</p><h1>Agent Skills のための<br>機械が読める契約</h1>
+<p class="lead">変更しない <code>SKILL.md</code> の隣に <code>skill.contract.json</code> を置きます。作者はすべての副作用を<b>宣言</b>し、ネットを切って動く<b>テスト</b>を付け、<b>署名</b>します。ハーネスはそれを<em>インストール前に</em>確かめます。</p>
+<p><a class="btn" href="schema/">スキーマの説明 →</a> <a class="btn ghost" href="check/">ブラウザで確認</a></p></section>
+<section><h2>6 種類の副作用</h2><div class="effs">
+<div class="eff e-read"><b>read</b><span>ファイルやデータを読む</span></div><div class="eff e-write"><b>write</b><span>ファイルを作る・変える</span></div>
+<div class="eff e-network"><b>network</b><span>外部と通信する（<code>@local</code> は手元・社内網だけ）</span></div><div class="eff e-exec"><b>exec</b><span>他のプログラムを動かす</span></div>
+<div class="eff e-spend"><b>spend</b><span>お金を使う</span></div><div class="eff e-send"><b>send</b><span>人にメッセージを送る</span></div></div></section>
+<section><h2>3 つのレベル</h2><div class="levels">
+<div class="lv"><span class="badge l1">L1</span><b>宣言済み</b><p>契約が正しい形をしている。</p></div>
+<div class="lv"><span class="badge l2">L2</span><b>テスト済み</b><p>適合テストがネットを切った状態で通る。</p></div>
+<div class="lv"><span class="badge l3">L3</span><b>署名済み</b><p>ハッシュと、信頼できる作者の署名（ed25519 か Sigstore）。</p></div></div></section>
+<section><h2>1 つのルールを、すべてのハーネスに</h2><p>ハーネスのポリシーが副作用ごとに <span class="badge allow">許可</span><span class="badge ask">確認</span><span class="badge deny">拒否</span> を決め、Claude Code・Cursor・Codex・Gemini CLI の設定に変換します。実行中の強制は APS・ACS・HushSpec に任せます（書き出しに対応）。</p>
+<pre><code>skillpact conformance ./my-skill
+skillpact policy-compile ./my-skill policy.json --target claude-code
+skillpact convert ./my-skill --to mda</code></pre></section>
+<section><h2>仕様とスキーマ</h2><div class="grid3">
+<a class="card" href="schema/"><h3>スキーマの説明</h3><span>契約ファイルの構成と読み方。</span></a>
+<a class="card" href="../schema/v0.7.json"><h3>v0.7.json</h3><span>契約の JSON Schema（最新）</span></a>
+<a class="card" href="../schema/policy-v0.7.json"><h3>policy-v0.7.json</h3><span>ハーネスポリシーの JSON Schema（最新）</span></a>
+<a class="card" href="check/"><h3>チェッカー</h3><span>ブラウザの中だけで契約を確認（送信なし）</span></a>
+<a class="card" href="../badges/"><h3>バッジ</h3><span>README 用の L1 / L2 / L3 バッジ</span></a></div></section>
+</main><footer class="wrap foot">仕様 CC BY 4.0 · コード Apache-2.0 · © 2026 SEVENTHWELL</footer></body></html>

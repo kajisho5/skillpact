@@ -11,9 +11,17 @@ POLICY_SCHEMA = json.loads((HERE / "policy_schema.json").read_text())
 EFFECTS = ["read", "write", "network", "exec", "spend", "send"]
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 CONTRACT_FILE = "skill.contract.json"
-KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6"]
+KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"]
 PATH_VARS = {"$INPUT", "$INPUT_DIR", "$OUTPUT", "$WORKDIR", "$SKILL_DIR", "$TMPDIR"}
-JCS_FROM = (0, 4)  # contract_version >= 0.4 signs RFC 8785 (JCS) bytes
+JCS_FROM = (0, 4)
+SCOPE_TOKENS = {"network": ("@local",)}  # @local = loopback + private networks (spec 0.7)
+LOCAL_HOSTS = ["localhost", "127.0.0.1", "::1", "10.*", "172.16.*", "172.17.*", "172.18.*", "172.19.*", "172.2?.*", "172.30.*", "172.31.*", "192.168.*", "*.local", "fc??:*", "fd??:*"]
+SIGNATURE_ROLES = ("author", "reviewer", "scanner")
+
+
+def _vt(v):
+    try: return tuple(int(x) for x in str(v).split("."))
+    except ValueError: return (0, 0)  # contract_version >= 0.4 signs RFC 8785 (JCS) bytes
 
 
 def version_status(v):
@@ -58,7 +66,7 @@ def _no_dup_keys(pairs):
 def validate(skill_dir, contract_path=None) -> dict:
     skill_dir = Path(skill_dir).resolve(); r = Report()
     sm = skill_dir / "SKILL.md"
-    fm = None
+    fm = None; name_dir_mismatch = None
     if not sm.exists(): r.err("SKILL_MD_MISSING", "SKILL.md not found", str(sm))
     else:
         fm, body = read_frontmatter(sm)
@@ -66,7 +74,7 @@ def validate(skill_dir, contract_path=None) -> dict:
         else:
             n, d = fm.get("name"), fm.get("description")
             if not isinstance(n, str) or not NAME_RE.match(n) or len(n) > 64: r.err("FM_NAME", f"invalid name {n!r} (agentskills.io rules)", "SKILL.md")
-            elif n != skill_dir.name and not contract_path: r.warn("FM_NAME_DIR", f"name {n!r} != directory {skill_dir.name!r}", "SKILL.md")
+            elif n != skill_dir.name and not contract_path: name_dir_mismatch = f"name {n!r} != directory {skill_dir.name!r}"
             if not isinstance(d, str) or not (1 <= len(d) <= 1024): r.err("FM_DESCRIPTION", "description must be 1-1024 chars", "SKILL.md")
             if "compatibility" in fm and len(str(fm["compatibility"])) > 500: r.err("FM_COMPAT", "compatibility > 500 chars", "SKILL.md")
             if body.count("\n") > 500: r.warn("BODY_LONG", f"SKILL.md body has {body.count(chr(10))} lines (> 500 recommended max)", "SKILL.md")
@@ -84,6 +92,8 @@ def validate(skill_dir, contract_path=None) -> dict:
     for e in sorted(Draft202012Validator(SCHEMA).iter_errors(c), key=lambda e: list(e.path)):
         r.err("SCHEMA", e.message, "/" + "/".join(map(str, e.path)))
     if not r.ok: return r.to_dict()
+    if name_dir_mismatch:  # Agent Skills: name MUST match the parent directory (error from 0.7)
+        (r.err if _vt(c["contract_version"]) >= (0, 7) else r.warn)("FM_NAME_DIR", name_dir_mismatch, "SKILL.md")
     # cross checks
     if fm and fm.get("name") != c["skill"]["name"]: r.err("NAME_MISMATCH", f"contract skill.name {c['skill']['name']!r} != SKILL.md name {fm.get('name')!r}")
     perms = c["permissions"]
@@ -92,6 +102,7 @@ def validate(skill_dir, contract_path=None) -> dict:
     for eff in EFFECTS:
         if perms[eff]["level"] == "scoped" and not perms[eff].get("scope"): r.err("SCOPE_EMPTY", f"permissions.{eff}: level 'scoped' needs at least one scope", f"/permissions/{eff}")
         for sc in perms[eff].get("scope", []):
+            if sc.startswith("@") and sc not in SCOPE_TOKENS.get(eff, ()): r.warn("UNKNOWN_SCOPE_TOKEN", f"permissions.{eff}.scope token {sc} is not defined", f"/permissions/{eff}")
             for var in re.findall(r"\$[A-Z_]+", sc):
                 if var not in PATH_VARS: r.warn("UNKNOWN_VARIABLE", f"permissions.{eff}.scope uses undefined variable {var}", f"/permissions/{eff}")
     reqnames = {b["name"] for b in c.get("requirements", {}).get("binaries", []) + c.get("requirements", {}).get("runtimes", [])}
@@ -191,14 +202,16 @@ def keygen(path):
     return "ed25519:" + base64.b64encode(pub).decode()
 
 
-def sign(skill_dir, key_path, signer="", contract_path=None):
+def sign(skill_dir, key_path, signer="", contract_path=None, role="author"):
     from cryptography.hazmat.primitives import serialization as s
     skill_dir = Path(skill_dir).resolve(); c, cpath = load_contract(skill_dir, contract_path)
     if "integrity" not in c: raise SystemExit("run `hash` first")
     k = s.load_pem_private_key(Path(key_path).read_bytes(), None)
     pub = "ed25519:" + base64.b64encode(k.public_key().public_bytes(s.Encoding.Raw, s.PublicFormat.Raw)).decode()
     sig = base64.b64encode(k.sign(_canonical(c))).decode()
-    c["integrity"].setdefault("signatures", []).append({"type": "ed25519", "key": pub, "sig": sig, "signer": signer})
+    entry = {"type": "ed25519", "key": pub, "sig": sig, "signer": signer}
+    if role != "author": entry["role"] = role
+    c["integrity"].setdefault("signatures", []).append(entry)
     cpath.write_text(json.dumps(c, ensure_ascii=False, indent=2) + "\n")
     return pub
 
@@ -210,7 +223,8 @@ def verify_signatures(c, sigstore_verifier=None, offline=False) -> dict:
     for s_ in c.get("integrity", {}).get("signatures", []):
         if s_.get("type") == "sigstore":
             from . import sigstore_sig
-            out[f"sigstore:{s_.get('issuer')}|{s_.get('identity')}"] = sigstore_sig.verify_entry(c, s_, sigstore_verifier, offline)
+            pre = "sigstore-staging" if s_.get("instance") == "staging" else "sigstore"  # staging never matches a production trust entry
+            out[f"{pre}:{s_.get('issuer')}|{s_.get('identity')}"] = sigstore_sig.verify_entry(c, s_, sigstore_verifier, offline)
             continue
         try:
             Ed25519PublicKey.from_public_bytes(base64.b64decode(s_["key"].split(":", 1)[1])).verify(base64.b64decode(s_["sig"]), _canonical(c))
@@ -424,7 +438,7 @@ def compile_native(contract, policy, target, mcp_server=None) -> dict:
     m = match_policy(contract, policy)
     perms = contract["permissions"]
     cmds = perms["exec"].get("scope", []) if perms["exec"]["level"] == "scoped" else []
-    hosts = perms["network"].get("scope", []) if perms["network"]["level"] == "scoped" else []
+    hosts = expand_scope(perms["network"].get("scope", [])) if perms["network"]["level"] == "scoped" else []
     dec = {e["effect"]: e["decision"] for c in m["capabilities"] for e in c["effects"]}
     bucket = lambda eff: "deny" if not m["capabilities"] and m["decision"] == "deny" else dec.get(eff, "allow")
     sb = policy.get("sandbox", {})
@@ -478,7 +492,7 @@ def mcp_annotations(cap) -> dict:
 
 
 def mcp_list_tools(cmd, env=None, timeout=30):
-    msgs = [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "skillpact", "version": "0.6"}}},
+    msgs = [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "skillpact", "version": "0.7"}}},
             {"jsonrpc": "2.0", "method": "notifications/initialized"}, {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}]
     p = subprocess.run(cmd, input="".join(json.dumps(m) + "\n" for m in msgs), capture_output=True, text=True, timeout=timeout, env={**os.environ, **(env or {})})
     for line in p.stdout.splitlines():
@@ -537,3 +551,20 @@ def migrate(c: dict, to: str = None) -> tuple[dict, list]:
         if integ.get("signatures") and ch:
             integ["signatures"] = []; ch.append("integrity.signatures removed: contract changed (and canonicalization is JCS from 0.4); re-sign")
     return n, ch
+
+
+def signature_roles(c) -> dict:
+    """{key-or-identity: role}; role defaults to author (spec 0.7)."""
+    out = {}
+    for s_ in c.get("integrity", {}).get("signatures", []):
+        pre = "sigstore-staging" if s_.get("instance") == "staging" else "sigstore"
+        k = s_["key"] if s_.get("type") == "ed25519" else f"{pre}:{s_.get('issuer')}|{s_.get('identity')}"
+        out[k] = s_.get("role", "author")
+    return out
+
+
+def expand_scope(scope):
+    """Replace reserved tokens (@local) by concrete host globs for harness configs / runtime policies."""
+    out = []
+    for s_ in scope: out.extend(LOCAL_HOSTS if s_ == "@local" else [s_])
+    return out

@@ -31,7 +31,9 @@ def sign(skill_dir, identity_token=None, contract_path=None, signer=None, stagin
         identity, issuer, bjson = tok.identity, tok.issuer, json.loads(bundle.to_json())
     else:
         identity, issuer, bjson = signer(payload)
-    c["integrity"].setdefault("signatures", []).append({"type": "sigstore", "identity": identity, "issuer": issuer, "bundle": bjson})
+    entry = {"type": "sigstore", "identity": identity, "issuer": issuer, "bundle": bjson}
+    if staging: entry["instance"] = "staging"
+    c["integrity"].setdefault("signatures", []).append(entry)
     cpath.write_text(json.dumps(c, ensure_ascii=False, indent=2) + "\n")
     return {"identity": identity, "issuer": issuer}
 
@@ -42,13 +44,14 @@ def verify_entry(c, entry, verifier=None, offline=False):
     payload = core._canonical(c)
     if verifier is not None: return bool(verifier(payload, entry))
     try:
-        verify_bytes(payload, entry["bundle"], entry["identity"], entry["issuer"], offline); return True
+        verify_bytes(payload, entry["bundle"], entry["identity"], entry["issuer"], offline, staging=entry.get("instance") == "staging"); return True
     except Exception:
         return False
 
 
-def verify_bytes(payload: bytes, bundle_json, identity, issuer, offline=False):
+def verify_bytes(payload: bytes, bundle_json, identity, issuer, offline=False, staging=False):
     """Raise on failure. Plain Sigstore verification of `payload` (used for contracts and in integration tests)."""
     from sigstore.verify import Verifier, policy
     b = _bundle_cls().from_json(bundle_json if isinstance(bundle_json, (str, bytes)) else json.dumps(bundle_json))
-    Verifier.production(offline=offline).verify_artifact(payload, b, policy.Identity(identity=identity, issuer=issuer))
+    v = Verifier.staging(offline=offline) if staging else Verifier.production(offline=offline)
+    v.verify_artifact(payload, b, policy.Identity(identity=identity, issuer=issuer))

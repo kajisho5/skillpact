@@ -1,6 +1,6 @@
 {
-  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.6.json",
-  "contract_version": "0.6",
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.7.json",
+  "contract_version": "0.7",
   "kind": "tool",
   "skill": {
     "name": "thumbnail-skill",
@@ -257,7 +257,7 @@
       {
         "type": "ed25519",
         "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
-        "sig": "at56JZgm+m1x8z8jfCs3nvbWDssuvTNFU3QeaUvpgBdFcq0I70XmeKTEm43dExC93ep3+n0Jt8WBdknNUo44Aw==",
+        "sig": "uQ9fWoXcJqp0FkR3/IsPrUfLOVa93IyPDvH2BjYqE8wJNyslrcLr+EodCx23kUBiKby6vDifQBGWBsxRRxuXDA==",
         "signer": "SEVENTHWELL"
       }
     ],

@@ -1,0 +1,50 @@
+{
+  "contract_version": "0.7",
+  "kind": "instructions",
+  "skill": {
+    "name": "v07-reviewer-signature",
+    "version": "1.0.0"
+  },
+  "permissions": {
+    "read": {
+      "level": "none"
+    },
+    "write": {
+      "level": "none"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "none"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "guide",
+      "summary": "guidance only",
+      "effects": []
+    }
+  ],
+  "integrity": {
+    "algorithm": "sha256",
+    "files": {
+      "SKILL.md": "5dcef11355b7f19ef8d45efb94ba7911edd19dbcb3c46013ac54b79210004966"
+    },
+    "signatures": [
+      {
+        "type": "ed25519",
+        "key": "ed25519:h4z5ZqAU97RzV18w3J26PraX7BcDlTuQY+BUIXN99ag=",
+        "sig": "1gpvpcIkp7MkB+g+8KbJicO6rqT9WCqdh8cOkYaj/j3nKYxebspYtbB1HYOLhnx1tjshGDGdifqvRkJ3TpfrBA==",
+        "signer": "test reviewer",
+        "role": "reviewer"
+      }
+    ]
+  }
+}

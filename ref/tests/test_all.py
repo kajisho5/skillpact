@@ -310,7 +310,7 @@ def test_v04_contract_version_accepted():
     import json, pathlib, jsonschema
     s = json.loads((pathlib.Path(__file__).parent.parent / "skillpact" / "schema.json").read_text())
     assert "0.4" in s["properties"]["contract_version"]["enum"]
-    assert s["$id"].endswith("/schema/v0.6.json")
+    assert s["$id"].endswith("/schema/v0.7.json")
     jsonschema.Draft202012Validator.check_schema(s)
 
 
@@ -409,13 +409,13 @@ def test_v05_migrate_from_03_fills_empty_scope_and_drops_signatures():
          "integrity": {"algorithm": "sha256", "files": {}, "signatures": [{"type": "ed25519", "key": "ed25519:x", "sig": "y"}]}}
     c["permissions"]["send"] = {"level": "scoped", "scope": []}
     n, ch = core.migrate(c)
-    assert n["contract_version"] == "0.6" and n["$schema"].endswith("v0.6.json")
+    assert n["contract_version"] == core.LATEST and n["$schema"].endswith(f"v{core.LATEST}.json")
     assert n["permissions"]["send"]["scope"] == ["TODO(migrate)"] and n["integrity"]["signatures"] == []
     assert n["integrity"]["canonicalization"] == "jcs" and any("re-sign" in x for x in ch)
     assert c["contract_version"] == "0.3"  # input untouched
 
 def test_v05_migrate_noop_and_rejects_unknown():
-    n, ch = core.migrate({"contract_version": "0.6", "permissions": {}})
+    n, ch = core.migrate({"contract_version": core.LATEST, "permissions": {}})
     assert ch == []
     with pytest.raises(ValueError): core.migrate({"contract_version": "7.0"})
 
@@ -443,3 +443,32 @@ def test_v06_example_skills_signed_latest(name):
 
 def test_v06_hash_includes_src():
     assert any(k.startswith("src/") for k in C(ROOT.parent / "samples" / "subtitle-skill")["integrity"]["files"])
+
+
+# ---------------- v0.7 ----------------
+def test_v07_name_dir_must_match(tmp_path):
+    d = tmp_path / "folder"; d.mkdir()
+    (d / "SKILL.md").write_text("---\nname: other\ndescription: x\n---\n")
+    c = {"contract_version": "0.7", "kind": "instructions", "skill": {"name": "other", "version": "1.0.0"},
+         "permissions": {e: {"level": "none"} for e in core.EFFECTS}, "capabilities": [{"id": "g", "summary": "g", "effects": []}]}
+    (d / "skill.contract.json").write_text(json.dumps(c)); r = core.validate(d)
+    assert not r["ok"] and "FM_NAME_DIR" in _codes(r)
+    c["contract_version"] = "0.6"; (d / "skill.contract.json").write_text(json.dumps(c)); assert core.validate(d)["ok"]
+
+def test_v07_network_local_expands_for_harness_and_mda():
+    assert "127.0.0.1" in core.expand_scope(["@local"]) and core.expand_scope(["a.com"]) == ["a.com"]
+    c = {"permissions": {e: {"level": "none"} for e in core.EFFECTS}, "capabilities": [{"id": "x", "effects": ["network"]}], "skill": {"name": "x", "version": "1.0.0"}}
+    c["permissions"]["network"] = {"level": "scoped", "scope": ["@local"]}
+    assert interop.to_mda(c, SAMPLE / "skill.contract.json")["metadata"]["mda"]["requires"]["network"] == "local"
+
+def test_v07_reviewer_signature_is_attestation_not_L3(tmp_path, capsys):
+    dst = tmp_path / "thumbnail-skill"; shutil.copytree(ROOT.parent / "samples" / "thumbnail-skill", dst)
+    c = C(dst); c["integrity"]["signatures"] = []; (dst / "skill.contract.json").write_text(json.dumps(c))
+    key = tmp_path / "r.pem"; pub = core.keygen(key); core.sign(dst, key, "reviewer", role="reviewer")
+    assert core.signature_roles(C(dst)) == {pub: "reviewer"}
+    cli.main(["conformance", str(dst), "--trusted-key", pub]); out = json.loads(capsys.readouterr().out)
+    assert out["level"] == "L2-tested" and "author" in out["note"]
+
+def test_v07_staging_sigstore_never_matches_production_trust():
+    c = {"integrity": {"signatures": [{"type": "sigstore", "identity": "i", "issuer": "https://t", "bundle": {}, "instance": "staging"}]}}
+    assert list(core.signature_roles(c)) == ["sigstore-staging:https://t|i"]

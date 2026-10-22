@@ -4,7 +4,7 @@ import { createHash, createPublicKey, verify as edVerify } from "node:crypto";
 import { join, resolve, basename } from "node:path";
 import YAML from "yaml";
 import { parseStrict } from "./strictjson.js";
-import { checkContract, signingInputString, NAME_RE, type Finding, type Report } from "./core.js";
+import { checkContract, signingInputString, signatureRoles, sigKey, NAME_RE, type Finding, type Report } from "./core.js";
 export * from "./core.js";
 
 export function signingInput(c: any): Buffer { return Buffer.from(signingInputString(c), "utf8"); }
@@ -22,7 +22,7 @@ export function verifyEd25519(pub: string, sigB64: string, data: Buffer): boolea
 export function verifySignatures(c: any): Record<string, boolean | "unsupported"> {
   const out: Record<string, boolean | "unsupported"> = {}; const data = signingInput(c);
   for (const s of c?.integrity?.signatures ?? []) {
-    if (s.type === "sigstore") { out[`sigstore:${s.issuer}|${s.identity}`] = "unsupported"; continue; }
+    if (s.type === "sigstore") { out[sigKey(s)] = "unsupported"; continue; }
     out[s.key] = verifyEd25519(s.key, s.sig, data);
   }
   return out;
@@ -35,7 +35,7 @@ export function validate(skillDir: string, contractPath?: string): Report {
   const err = (code: string, message: string, where = "") => F.push({ level: "error", code, message, where });
   const warn = (code: string, message: string, where = "") => F.push({ level: "warn", code, message, where });
   const done = (): Report => ({ ok: !F.some(f => f.level === "error"), errors: F.filter(f => f.level === "error").length, warnings: F.filter(f => f.level === "warn").length, findings: F });
-  let fm: any = null;
+  let fm: any = null; let nameDirMismatch: string | undefined;
   const sm = join(dir, "SKILL.md");
   if (!existsSync(sm)) err("SKILL_MD_MISSING", "SKILL.md not found", sm);
   else {
@@ -44,7 +44,7 @@ export function validate(skillDir: string, contractPath?: string): Report {
     else {
       fm = YAML.parse(m[1]) ?? {}; const n = fm.name, d = fm.description;
       if (typeof n !== "string" || !NAME_RE.test(n) || n.length > 64) err("FM_NAME", `invalid name ${JSON.stringify(n)}`, "SKILL.md");
-      else if (n !== basename(dir) && !contractPath) warn("FM_NAME_DIR", `name ${n} != directory`, "SKILL.md");
+      else if (n !== basename(dir) && !contractPath) nameDirMismatch = `name ${n} != directory ${basename(dir)}`;
       if (typeof d !== "string" || d.length < 1 || d.length > 1024) err("FM_DESCRIPTION", "description must be 1-1024 chars", "SKILL.md");
       if ("compatibility" in fm && String(fm.compatibility).length > 500) err("FM_COMPAT", "compatibility > 500 chars", "SKILL.md");
       if ((m[2].match(/\n/g) ?? []).length > 500) warn("BODY_LONG", "SKILL.md body > 500 lines", "SKILL.md");
@@ -54,7 +54,7 @@ export function validate(skillDir: string, contractPath?: string): Report {
   if (!existsSync(cp)) { err("CONTRACT_MISSING", "skill.contract.json not found"); return done(); }
   let c: any;
   try { c = parseStrict(readFileSync(cp, "utf8")); } catch (e: any) { err("CONTRACT_JSON", String(e.message)); return done(); }
-  const c2 = checkContract(c, { fileExists: rel => existsSync(join(dir, rel)), fileSha256: rel => sha256(join(dir, rel)), skillName: fm ? fm.name : undefined }, F);
+  const c2 = checkContract(c, { nameDirMismatch, fileExists: rel => existsSync(join(dir, rel)), fileSha256: rel => sha256(join(dir, rel)), skillName: fm ? fm.name : undefined }, F);
   if (!c2) return done(); c = c2;
   if (c.integrity) {
     if (c.integrity.signatures?.length) {
@@ -71,7 +71,9 @@ export function verifyLevel(skillDir: string, trustedKeys: string[], contractPat
   const v = validate(skillDir, contractPath); if (!v.ok) return { level: "none", validate: v };
   const c = JSON.parse(readFileSync(contractPath ?? join(resolve(skillDir), "skill.contract.json"), "utf8"));
   const sig = verifySignatures(c);
-  const trustedValid = Object.entries(sig).some(([k, ok]) => ok === true && trustedKeys.includes(k));
-  return { level: "L1-declared", signature_trusted: trustedValid, signatures: sig, note: "tests are not run by the verify-only implementation; L2/L3 need a runner", validate: v };
+  const roles = signatureRoles(c);
+  const trustedValid = Object.entries(sig).some(([k, ok]) => ok === true && trustedKeys.includes(k) && roles[k] === "author");
+  const attestations = Object.entries(sig).filter(([k, ok]) => ok === true && roles[k] !== "author").map(([k]) => ({ key: k, role: roles[k], trusted: trustedKeys.includes(k) }));
+  return { level: "L1-declared", signature_trusted: trustedValid, attestations, signatures: sig, note: "tests are not run by the verify-only implementation; L2/L3 need a runner", validate: v };
 }
 

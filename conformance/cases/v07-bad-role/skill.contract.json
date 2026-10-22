@@ -1,0 +1,47 @@
+{
+  "contract_version": "0.7",
+  "kind": "instructions",
+  "skill": {
+    "name": "v07-bad-role",
+    "version": "1.0.0"
+  },
+  "permissions": {
+    "read": {
+      "level": "none"
+    },
+    "write": {
+      "level": "none"
+    },
+    "network": {
+      "level": "none"
+    },
+    "exec": {
+      "level": "none"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "guide",
+      "summary": "guidance only",
+      "effects": []
+    }
+  ],
+  "integrity": {
+    "algorithm": "sha256",
+    "files": {},
+    "signatures": [
+      {
+        "type": "ed25519",
+        "key": "ed25519:h4z5ZqAU97RzV18w3J26PraX7BcDlTuQY+BUIXN99ag=",
+        "sig": "AA==",
+        "role": "boss"
+      }
+    ]
+  }
+}

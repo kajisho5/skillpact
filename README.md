@@ -1,6 +1,6 @@
-# SkillPact — machine-readable contracts for Agent Skills (draft 0.6)
+# SkillPact — machine-readable contracts for Agent Skills (draft 0.7)
 
-[![SkillPact L3](https://kajisho5.github.io/skillpact/badges/skillpact-L3.svg)](https://kajisho5.github.io/skillpact/) · [Checker (in your browser)](https://kajisho5.github.io/skillpact/check/) · [Schema](https://kajisho5.github.io/skillpact/schema/) · [Badges](https://kajisho5.github.io/skillpact/badges/)
+[![SkillPact L3](https://kajisho5.github.io/skillpact/badges/skillpact-L3.svg)](https://kajisho5.github.io/skillpact/) · [Checker (in your browser)](https://kajisho5.github.io/skillpact/check/) · [Schema](https://kajisho5.github.io/skillpact/schema/) · [Badges](https://kajisho5.github.io/skillpact/badges/) · [日本語](https://kajisho5.github.io/skillpact/ja/)
 
 `skill.contract.json` sits next to an unchanged `SKILL.md` and declares, so any agent harness can check it *before install*:
 - **capabilities**: entries (CLI / MCP tool), input & output JSON Schemas
@@ -15,11 +15,11 @@ A small **harness policy** file then decides allow / ask / deny for each capabil
 Scanners guess what a skill does after the fact. SkillPact makes the author **declare** every effect, ships executable **tests** that prove the declaration, and **signs** both (ed25519 or Sigstore). A harness checks this *before install* and compiles the result into its own permission config.
 Runtime enforcement is deliberately **not** reinvented: decisions export to APS / ACS / HushSpec / Rego, which enforce at run time. SkillPact complements scanners (a contract is a better scanner input) and interoperates with MDA Open Spec `requires` and AutoVault `capabilities` (`skillpact convert`). OWASP Agentic Skills Top 10 coverage: `owasp_mapping.md`.
 
-Schema: `https://kajisho5.github.io/skillpact/schema/v0.6.json` · License: spec CC BY 4.0, code Apache-2.0 · © SEVENTHWELL
+Schema: `https://kajisho5.github.io/skillpact/schema/v0.7.json` · License: spec CC BY 4.0, code Apache-2.0 · © SEVENTHWELL
 
 | doc | |
 |---|---|
-| `spec/spec_v0.6.md` | full normative spec (JA, BCP 14): conformance, versioning, security considerations & threat model |
+| `spec/spec_v0.7.md` | full normative spec (JA, BCP 14): conformance, versioning, security considerations & threat model |
 | `spec/MIGRATION.md` / `spec/comparison.md` | migration from 0.x · comparison with Agent Skills, MDA, AutoVault, SkillSeal |
 | `conformance/` | implementation-independent conformance suite + JCS / ed25519 test vectors |
 | `ts/` | second implementation (TypeScript, verify-only); also powers the browser checker |

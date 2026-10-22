@@ -1,6 +1,6 @@
 {
-  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.6.json",
-  "contract_version": "0.6",
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.7.json",
+  "contract_version": "0.7",
   "kind": "tool",
   "skill": {
     "name": "ffmpeg-skill",
@@ -19111,7 +19111,7 @@
       {
         "type": "ed25519",
         "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
-        "sig": "GffUt1PD6VW+Et9Y76/cP/wLT7LntHMyN4RRxp7SL6A7TGP4Six9buvSaOera85Oe8tbcpkPwwHnYhkzlvHNAQ==",
+        "sig": "nVuJ2XatRm+rgNa5EwrFoBGLIxKZJlDJ1Tnr4rh7mHbBa/7RItdROSHlf/EayyDdWs98DEQTnMc6V9UMIkeUCQ==",
         "signer": "SEVENTHWELL"
       }
     ],

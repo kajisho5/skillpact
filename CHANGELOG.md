@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to the SkillPact spec and implementations. Drafts until 1.0.
 
+
+## 0.7 (draft, 2026-10-22)
+- `@local` network scope token (maps to MDA `network: local`, expanded to concrete hosts for harness configs / HushSpec / Rego).
+- `SKILL.md` name MUST equal the directory name (error from contract_version 0.7, warning before) — aligned with Agent Skills.
+- Signature `role`: author / reviewer / scanner. L3 requires a trusted author signature; others are reported as attestations.
+- Sigstore `instance: staging`; staging identities never match production trust entries. Signing workflow tested on Sigstore staging.
+- Conformance suite: 30 cases. Samples migrated to 0.7 and re-signed.
+
 ## 0.6 (draft, 2026-10-22)
 - Second, independent implementation: TypeScript verify-only (`ts/`), passes the full conformance suite and verifies all signed samples.
 - Three more example skills (subtitle-skill, thumbnail-skill, video-editing-skill), all 0.6 and L3; ffmpeg-skill migrated to 0.6 and re-signed (JCS).

@@ -1,0 +1,50 @@
+# Approved for STAGING runs only (2026-10-22). Production signing needs a separate approval before v1.0.
+# Keyless Sigstore signing of the flagship sample contract. Manual trigger only; never commits.
+# Signer identity (SAN):  https://github.com/kajisho5/skillpact/.github/workflows/sigstore-sign.yml@refs/heads/main
+# Issuer:                 https://token.actions.githubusercontent.com
+name: sigstore-sign
+on:
+  workflow_dispatch:
+    inputs:
+      staging:
+        description: "Use Sigstore staging (try this first)"
+        type: boolean
+        default: true
+permissions:
+  contents: read
+  id-token: write   # OIDC token for keyless signing
+jobs:
+  sign:
+    if: github.repository == 'kajisho5/skillpact' && github.ref == 'refs/heads/main' && inputs.staging  # production disabled until approved
+    runs-on: ubuntu-latest
+    env:
+      SAN: https://github.com/${{ github.repository }}/.github/workflows/sigstore-sign.yml@${{ github.ref }}
+      ISSUER: https://token.actions.githubusercontent.com
+      STAGING: ${{ inputs.staging }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: cd ref && pip install -e .[sigstore]
+      - name: sign (keyless, ambient GitHub OIDC)
+        run: |
+          cd ref
+          python -m skillpact.cli sign-sigstore ../samples/ffmpeg-skill ${{ inputs.staging && '--staging' || '' }}
+      - name: verify signature against the expected identity (no tests; signature only)
+        run: |
+          cd ref
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from skillpact import core
+          c = json.loads(Path("../samples/ffmpeg-skill/skill.contract.json").read_text())
+          res = core.verify_signatures(c)
+          pre = "sigstore-staging" if os.environ["STAGING"] == "true" else "sigstore"
+          key = f"{pre}:{os.environ['ISSUER']}|{os.environ['SAN']}"
+          print(json.dumps(res, indent=2))
+          assert res.get(key) is True, f"no valid signature for {key}"
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-contract-${{ inputs.staging && 'staging' || 'production' }}
+          path: samples/ffmpeg-skill/skill.contract.json

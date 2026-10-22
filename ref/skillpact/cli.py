@@ -10,7 +10,7 @@ def main(argv=None):
         p = sub.add_parser(n); p.add_argument("skill_dir"); p.add_argument("--contract")
         if n == "test": p.add_argument("--only", nargs="*"); p.add_argument("--no-net-sandbox", action="store_true"); p.add_argument("--skills-path", nargs="*")
     p = sub.add_parser("keygen"); p.add_argument("key_path")
-    p = sub.add_parser("sign"); p.add_argument("skill_dir"); p.add_argument("key_path"); p.add_argument("--signer", default=""); p.add_argument("--contract")
+    p = sub.add_parser("sign"); p.add_argument("skill_dir"); p.add_argument("key_path"); p.add_argument("--signer", default=""); p.add_argument("--contract"); p.add_argument("--role", default="author", choices=["author", "reviewer", "scanner"])
     p = sub.add_parser("policy-check"); p.add_argument("skill_dir"); p.add_argument("policy"); p.add_argument("--contract")
     p = sub.add_parser("policy-compile"); p.add_argument("skill_dir"); p.add_argument("policy"); p.add_argument("--target", required=True, choices=["claude-code", "cursor", "codex", "gemini-cli"]); p.add_argument("--contract"); p.add_argument("--mcp-server"); p.add_argument("--render", action="store_true")
     p = sub.add_parser("init"); p.add_argument("skill_dir"); p.add_argument("-o", "--output"); p.add_argument("--force", action="store_true"); p.add_argument("--from-native", nargs="+")
@@ -28,7 +28,7 @@ def main(argv=None):
     elif a.cmd == "test": r = core.run_tests(a.skill_dir, cp, a.only, not a.no_net_sandbox, a.skills_path or ())
     elif a.cmd == "hash": r = {"ok": True, "files": core.hash_files(a.skill_dir, cp)}
     elif a.cmd == "keygen": r = {"ok": True, "public_key": core.keygen(a.key_path)}
-    elif a.cmd == "sign": r = {"ok": True, "public_key": core.sign(a.skill_dir, a.key_path, a.signer, cp)}
+    elif a.cmd == "sign": r = {"ok": True, "public_key": core.sign(a.skill_dir, a.key_path, a.signer, cp, a.role)}
     elif a.cmd == "verify":
         c, _ = core.load_contract(Path(a.skill_dir), cp); res = core.verify_signatures(c); v = core.validate(a.skill_dir, cp)
         r = {"ok": bool(res) and all(res.values()) and v["ok"], "signatures": res, "integrity_ok": v["ok"]}
@@ -89,11 +89,17 @@ def main(argv=None):
             elif t["ok"]:
                 level = "L2-tested"; c, _ = core.load_contract(Path(a.skill_dir), cp); sig = core.verify_signatures(c)
                 if sig and all(sig.values()) and "integrity" in c:
-                    if any(k in a.trusted_key for k in sig): level = "L3-signed"
+                    roles = core.signature_roles(c); r_ok = [k for k, ok in sig.items() if ok and k in a.trusted_key]
+                    attest = sorted({roles.get(k, "author") for k in r_ok} - {"author"})
+                    if any(roles.get(k, "author") == "author" for k in r_ok): level = "L3-signed"
+                    elif r_ok: note = "only reviewer/scanner signatures are trusted: L3 needs a trusted author signature (spec 0.7 s11)"
                     else: note = "signature is valid but no --trusted-key matched: L3 not granted (spec 0.4 s11)"
         r = {"ok": level != "none", "level": level, "validate_errors": v["errors"], "warnings": v["warnings"],
              "tests": {"passed": t.get("passed", 0), "total": t.get("total", 0), "skipped": t.get("skipped", 0), **({"error": t["error"]} if t.get("error") else {})} if t else None}
         if note: r["note"] = note
+        if t and t.get("ok") and level.startswith(("L2", "L3")):
+            c_, _ = core.load_contract(Path(a.skill_dir), cp); sig_ = core.verify_signatures(c_); roles_ = core.signature_roles(c_)
+            r["attestations"] = [{"key": k, "role": roles_.get(k, "author"), "trusted": k in a.trusted_key} for k, ok in sig_.items() if ok and roles_.get(k, "author") != "author"]
     print(json.dumps(r, ensure_ascii=False, indent=2))
     return 0 if r.get("ok") else 1
 

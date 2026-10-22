@@ -1,6 +1,6 @@
 {
   "suite": "skillpact-conformance",
-  "spec_version": "0.5",
+  "spec_version": "0.7",
   "test_public_key": "ed25519:h4z5ZqAU97RzV18w3J26PraX7BcDlTuQY+BUIXN99ag=",
   "cases": [
     {
@@ -239,6 +239,76 @@
         "valid": false,
         "errors": [
           "CONTRACT_JSON"
+        ]
+      }
+    },
+    {
+      "id": "v07-valid-minimal",
+      "description": "0.7 の最小の有効な契約（name とフォルダ名が一致）",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v07-name-dir-mismatch",
+      "description": "0.7 では name とフォルダ名の不一致はエラー",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "FM_NAME_DIR"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v06-name-dir-mismatch-warn",
+      "description": "0.6 以前は不一致は警告のみ",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [
+          "FM_NAME_DIR"
+        ]
+      }
+    },
+    {
+      "id": "v07-network-local",
+      "description": "network の @local（ループバックと社内網）",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v07-unknown-scope-token",
+      "description": "未定義の @ トークンは警告",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [
+          "UNKNOWN_SCOPE_TOKEN"
+        ]
+      }
+    },
+    {
+      "id": "v07-reviewer-signature",
+      "description": "reviewer の署名（役割つき）も検証できる",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v07-bad-role",
+      "description": "未定義の署名 role はスキーマ違反",
+      "expect": {
+        "valid": false,
+        "errors_any": [
+          "SCHEMA"
         ]
       }
     }

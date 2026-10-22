@@ -1,4 +1,4 @@
-# 移行ガイド（0.1〜0.5 → 0.6）
+# 移行ガイド（0.1〜0.6 → 0.7）
 
 ## 1 行で
 ```
@@ -16,6 +16,11 @@ python3 -m skillpact.cli hash <skill_dir> && python3 -m skillpact.cli sign <skil
 | 0.4〜0.5 | 版と `$schema` | 契約が変わるので再署名 |
 
 ## 検証者・ハーネス側
-- 0.6 の検証者は 0.1〜0.6 をすべて受け付ける。知らない版（例 0.7）は `CONTRACT_VERSION_UNSUPPORTED` で拒否する。
+- 0.7 の検証者は 0.1〜0.7 をすべて受け付ける。知らない版（例 0.8）は `CONTRACT_VERSION_UNSUPPORTED` で拒否する。
 - L3 を出すには `--trusted-key` が必須になった（0.4〜）。
 - 重複キーを含む JSON は `CONTRACT_JSON` で拒否する（0.5〜）。
+
+## 0.7 で増えた確認点
+- `SKILL.md` の `name` とフォルダ名が違うと、0.7 ではエラー（`FM_NAME_DIR`）。フォルダ名を合わせる。
+- ネットワークがローカルだけなら `"scope": ["@local"]` と書ける（以前の `localhost` などの列挙もそのまま有効）。
+- レビュアーの署名は `sign --role reviewer`。L3 には作者（author）の署名が必要。

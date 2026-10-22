@@ -46,7 +46,7 @@ def to_mda(c, contract_path=None):
     r = {"tools": [_TOOL[e] for e in ("read", "write", "exec", "network") if e in used]}
     net = perms.get("network", {})
     lvl = net.get("level", "none") if "network" in used or net else "none"
-    r["network"] = "none" if lvl == "none" else (list(net.get("scope", [])) if lvl == "scoped" and net.get("scope") else "public")
+    r["network"] = "none" if lvl == "none" else ("local" if lvl == "scoped" and net.get("scope") == ["@local"] else (list(net.get("scope", [])) if lvl == "scoped" and net.get("scope") else "public"))
     pk = [b["name"] for b in req.get("binaries", [])] + [p["name"] if isinstance(p, dict) else p for p in req.get("packages", [])]
     if pk: r["packages"] = pk
     rt = [f'{x["name"]}{x.get("version", "")}' for x in req.get("runtimes", []) if not x.get("optional")]
@@ -72,7 +72,7 @@ def from_mda(frontmatter_or_requires, name="unnamed-skill", version="0.0.0"):
     net = req.get("network")
     if isinstance(net, list): perms["network"] = {"level": "scoped", "scope": net}
     elif net in ("public", "local"):
-        perms["network"] = {"level": "any" if net == "public" else "scoped", **({"scope": ["localhost", "127.0.0.1", "10.*", "192.168.*", "172.16.*"]} if net == "local" else {})}
+        perms["network"] = {"level": "any" if net == "public" else "scoped", **({"scope": ["@local"]} if net == "local" else {})}
     elif net is None and any(_MDA_TOOL_REV.get(str(t).lower()) == "network" for t in req.get("tools", [])):
         perms["network"] = {"level": "any"}; unc.append("permissions.network: only implied by tools, imported as any")
     if (req.get("cost-hints") or {}).get("paid-apis"):
@@ -83,7 +83,7 @@ def from_mda(frontmatter_or_requires, name="unnamed-skill", version="0.0.0"):
         m = re.match(r"([A-Za-z0-9_.-]+)(.*)", r_); reqs["runtimes"].append({"name": m.group(1), **({"version": m.group(2)} if m.group(2) else {})})
     effects = [e for e in ("read", "write", "network", "exec", "spend", "send") if perms[e]["level"] != "none"]
     extra = {k: v for k, v in req.items() if k not in ("tools", "network", "packages", "runtime", "cost-hints")}
-    c = {"contract_version": "0.6", "kind": "tool", "skill": {"name": name, "version": version},
+    c = {"contract_version": "0.7", "kind": "tool", "skill": {"name": name, "version": version},
          "requirements": reqs, "permissions": perms,
          "capabilities": [{"id": "skill", "summary": "whole skill (MDA declares at skill level only)", "role": "execution", "effects": effects}],
          "x": {"import": {"source": "mda-1.0", "uncertain": unc + ["capabilities: single whole-skill capability; split per tool by hand", "tests: none (add before claiming L2)"]}}}
@@ -116,7 +116,7 @@ def from_autovault(fm, name=None, version=None):
         if perms[e]["level"] == "any": unc.append(f"permissions.{e}: AutoVault has no scopes, imported as level=any")
     if fm.get("requires-secrets"): unc.append("requires-secrets: kept as requirements.env (required=true)")
     effects = [e for e in ("read", "write", "network", "exec", "spend", "send") if perms[e]["level"] != "none"]
-    return {"contract_version": "0.6", "kind": "tool",
+    return {"contract_version": "0.7", "kind": "tool",
             "skill": {"name": name or fm.get("name", "unnamed-skill"), "version": str(version or fm.get("version", "0.0.0")), **({"license": fm["license"]} if fm.get("license") else {})},
             "requirements": {"env": [{"name": s["name"], "required": bool(s.get("required", True)), "description": s.get("description", "")} for s in fm.get("requires-secrets", [])]},
             "permissions": perms,

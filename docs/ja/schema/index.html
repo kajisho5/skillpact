@@ -1,0 +1,20 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>スキーマの説明 v0.7 — SkillPact</title><meta name="description" content="skill.contract.json とハーネスポリシーの構成。">
+<link rel="canonical" href="https://kajisho5.github.io/skillpact/ja/schema/"><link rel="alternate" hreflang="en" href="https://kajisho5.github.io/skillpact/schema/">
+<link rel="stylesheet" href="../../assets/site.css"></head><body>
+<header class="top"><div class="wrap nav"><a class="brand" href="../"><span class="logo">◆</span> SkillPact <small>by SEVENTHWELL</small></a><nav aria-label="Main"><a href="../">ホーム</a><a href="../schema/" aria-current="page">スキーマ</a><a href="../check/">チェッカー</a><a href="../../badges/">バッジ</a><a href="https://github.com/kajisho5/skillpact">GitHub</a><a class="lang" href="../../schema/" lang="en" hreflang="en">EN</a></nav></div></header>
+<main class="wrap"><section class="hero sm"><p class="eyebrow">スキーマ · ドラフト v0.7</p><h1>skill.contract.json とハーネスポリシー</h1>
+<p class="lead">契約ファイルは <code>SKILL.md</code> と同じフォルダに置く JSON です。全項目の型・必須・取りうる値は<a href="../../schema/">英語版の項目別リファレンス</a>にあります。ここでは全体の形だけを説明します。</p>
+<div class="pills"><a class="pill" href="../../schema/v0.7.json">v0.7.json <small>契約</small></a><a class="pill" href="../../schema/policy-v0.7.json">policy-v0.7.json <small>ポリシー</small></a></div></section>
+<section><h2>契約の主な項目</h2><table class="ft"><thead><tr><th>項目</th><th>内容</th></tr></thead><tbody>
+<tr><td><code class="f">contract_version</code></td><td>仕様の版（最新は <code>"0.7"</code>）。知らない版は拒否されます。</td></tr>
+<tr><td><code class="f">skill</code></td><td>スキルの名前と版。名前は <code>SKILL.md</code> の name、およびフォルダ名と同じにします。</td></tr>
+<tr><td><code class="f">permissions</code></td><td>6 種類の副作用それぞれの上限（none / scoped / any）と範囲。</td></tr>
+<tr><td><code class="f">capabilities</code></td><td>ツール・コマンドごとの副作用、入口、入出力のスキーマ。</td></tr>
+<tr><td><code class="f">requirements</code></td><td>必要なプログラム、ランタイム、パッケージ、他のスキル、環境変数（値は書かない）。</td></tr>
+<tr><td><code class="f">tests</code></td><td>ネットを切って動く適合テスト。全部通れば L2。</td></tr>
+<tr><td><code class="f">integrity</code></td><td>ファイルのハッシュと署名。信頼できる作者（author）の署名があれば L3。レビュアーの署名は証明として別に報告されます。</td></tr>
+<tr><td><code class="f">x</code></td><td>拡張用（<code>x.&lt;ベンダー名&gt;</code>）。検証者は中身を無視して進めます。</td></tr>
+</tbody></table></section>
+<section><h2>署名の対象</h2><p>v0.4 以降は、<code>integrity.signatures</code> を除いた契約全体を RFC 8785（JCS）で正規化したバイト列に署名します。</p></section>
+</main><footer class="wrap foot">仕様 CC BY 4.0 · コード Apache-2.0 · © 2026 SEVENTHWELL</footer></body></html>

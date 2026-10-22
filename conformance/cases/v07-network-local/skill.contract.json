@@ -1,0 +1,45 @@
+{
+  "contract_version": "0.7",
+  "kind": "tool",
+  "skill": {
+    "name": "v07-network-local",
+    "version": "1.0.0"
+  },
+  "permissions": {
+    "read": {
+      "level": "none"
+    },
+    "write": {
+      "level": "none"
+    },
+    "network": {
+      "level": "scoped",
+      "scope": [
+        "@local"
+      ]
+    },
+    "exec": {
+      "level": "none"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "guide",
+      "summary": "guidance only",
+      "effects": [
+        "network"
+      ],
+      "entry": {
+        "cli": [
+          "true"
+        ]
+      }
+    }
+  ]
+}

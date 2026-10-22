@@ -34,9 +34,9 @@ jobs:
             python -m skillpact.cli conformance ../samples/$s --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=" | python -c "import json,sys; r=json.load(sys.stdin); print('$s', r['level']); assert r['level']=='L3-signed'"
           done
       - name: schemas in docs and both implementations match
-        run: cmp ref/skillpact/schema.json docs/schema/v0.6.json && cmp ref/skillpact/schema.json ts/src/schema.json && cmp ref/skillpact/policy_schema.json docs/schema/policy-v0.3.json
+        run: cmp ref/skillpact/schema.json docs/schema/v0.7.json && cmp ref/skillpact/schema.json ts/src/schema.json && cmp ref/skillpact/policy_schema.json docs/schema/policy-v0.7.json
       - name: schema reference page is up to date
-        run: python tools/gen_schema_docs.py && git diff --exit-code docs/
+        run: python tools/sitechrome.py && python tools/gen_schema_docs.py && git diff --exit-code docs/
 
   ts:
     runs-on: ubuntu-latest

@@ -1,6 +1,6 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "https://kajisho5.github.io/skillpact/schema/v0.6.json",
+ "$id": "https://kajisho5.github.io/skillpact/schema/v0.7.json",
  "title": "SkillPact contract 0.3 (skill.contract.json, next to SKILL.md)",
  "type": "object",
  "required": [
@@ -21,7 +21,8 @@
     "0.3",
     "0.4",
     "0.5",
-    "0.6"
+    "0.6",
+    "0.7"
    ]
   },
   "skill": {
@@ -285,6 +286,21 @@
        },
        "bundle": {
         "type": "object"
+       },
+       "instance": {
+        "enum": [
+         "production",
+         "staging"
+        ],
+        "description": "Sigstore instance; staging signatures are for testing and never satisfy a production trust entry"
+       },
+       "role": {
+        "enum": [
+         "author",
+         "reviewer",
+         "scanner"
+        ],
+        "description": "author (default) makes L3 possible; reviewer / scanner are attestations by others over the same signing input"
        }
       },
       "allOf": [

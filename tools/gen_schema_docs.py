@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Generate docs/schema/index.html from docs/schema/*.json + real examples.
 Run from repo root:  python3 tools/gen_schema_docs.py   (stdlib only)."""
-import json, html, pathlib
+import json, html, pathlib, sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import sitechrome
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BASE = "https://kajisho5.github.io/skillpact/"
 VERSIONS = sorted((q.stem[1:] for q in (ROOT / "docs/schema").glob("v*.json")), key=lambda v: tuple(map(int, v.split("."))))
 VER = VERSIONS[-1]  # latest published contract schema
 C = json.loads((ROOT / f"docs/schema/v{VER}.json").read_text())
-P = json.loads((ROOT / "docs/schema/policy-v0.3.json").read_text())
+P = json.loads((ROOT / f"docs/schema/policy-v{sitechrome.PVER}.json").read_text())
 SAMPLE = json.loads((ROOT / "samples/ffmpeg-skill/skill.contract.json").read_text())
 POL = {p.stem: json.loads(p.read_text()) for p in sorted((ROOT / "examples/policies").glob("*.json"))}
 EFFECTS = ["read", "write", "network", "exec", "spend", "send"]
@@ -160,7 +162,7 @@ def main():
 <main class="wrap">
 <section class="hero sm"><p class="eyebrow">Schema reference · draft v{VER}</p><h1>skill.contract.json &amp; harness policy</h1>
 <p class="lead">Every field, its type, whether it is required, and the allowed values — with real snippets from the signed <b>ffmpeg-skill</b> contract ({len(caps)} capabilities, {len(SAMPLE['tests']['cases'])} tests).</p>
-<div class="pills"><a class="pill" href="v{VER}.json">v{VER}.json <small>contract</small></a>{OLDER}<a class="pill" href="policy-v0.3.json">policy-v0.3.json <small>policy</small></a></div>
+<div class="pills"><a class="pill" href="v{VER}.json">v{VER}.json <small>contract</small></a>{OLDER}<a class="pill" href="policy-v{sitechrome.PVER}.json">policy-v{sitechrome.PVER}.json <small>policy</small></a></div>
 <pre class="ids"><code>{esc(C['$id'])}
 {esc(P['$id'])}</code></pre></section>
 
@@ -189,6 +191,7 @@ def main():
 <script>document.querySelectorAll('.cp').forEach(b=>b.onclick=()=>{{const t=b.closest('figure').querySelector('code').innerText;navigator.clipboard&&navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200)}})</script>
 </body></html>
 """
+    page = sitechrome.apply_header(page, "en", "../", "schema")
     (ROOT / "docs/schema/index.html").write_text(page)
     print("wrote docs/schema/index.html")
 

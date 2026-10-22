@@ -1,6 +1,6 @@
 {
-  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.6.json",
-  "contract_version": "0.6",
+  "$schema": "https://kajisho5.github.io/skillpact/schema/v0.7.json",
+  "contract_version": "0.7",
   "kind": "tool",
   "skill": {
     "name": "video-editing-skill",
@@ -255,7 +255,7 @@
       {
         "type": "ed25519",
         "key": "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=",
-        "sig": "sgP4RVOb39VaSstVMlSrcYMVKeOaaw6cXLqfZwVF1TNht4fltc82BIEn2XE93C39BkxUqe9lc37qJgPXFHEmBQ==",
+        "sig": "65OJHRUWHPxdKsvHUtYVAv+QX0AEZFtOv+tezDWOj+zfuTlMks+mAZ7rF7DqWsIEKI6peqL22Ac6mXvkuxuYBw==",
         "signer": "SEVENTHWELL"
       }
     ],

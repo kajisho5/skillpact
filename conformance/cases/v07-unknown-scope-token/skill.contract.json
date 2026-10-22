@@ -1,0 +1,40 @@
+{
+  "contract_version": "0.7",
+  "kind": "instructions",
+  "skill": {
+    "name": "v07-unknown-scope-token",
+    "version": "1.0.0"
+  },
+  "permissions": {
+    "read": {
+      "level": "none"
+    },
+    "write": {
+      "level": "none"
+    },
+    "network": {
+      "level": "scoped",
+      "scope": [
+        "@intranet"
+      ]
+    },
+    "exec": {
+      "level": "none"
+    },
+    "spend": {
+      "level": "none"
+    },
+    "send": {
+      "level": "none"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "guide",
+      "summary": "guidance only",
+      "effects": [
+        "network"
+      ]
+    }
+  ]
+}

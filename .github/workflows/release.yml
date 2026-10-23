@@ -1,6 +1,7 @@
 # Release: build the Python reference implementation (PyPI "skillpact") and the TypeScript verifier (npm "skillpact"),
 # attest their provenance, attach them to a GitHub release and, once the editor has enabled it, publish them.
-# Trigger: push a tag vX.Y.Z (or vX.Y.ZbN / vX.Y.Z-beta.N for pre-releases), or run manually for a dry run (build only).
+# Trigger: push a tag vX.Y.Z (or vX.Y.ZbN / vX.Y.Z-beta.N for pre-releases), or run manually: with release_tag on main it
+# creates that tag and releases (for environments that cannot push tags); without it, a dry run (build only).
 # Publishing runs on every tag (enabled by the editor, 2026-10-23). PyPI uses trusted publishing (OIDC); npm uses the
 # NPM_TOKEN secret until the package exists and has a trusted publisher. Setup is described in GOVERNANCE.md ("Release").
 name: release
@@ -8,6 +9,11 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release from main without pushing a tag first: the tag to create (e.g. v0.8.0b1). Empty = build only."
+        required: false
+        default: ""
 permissions:
   contents: read
 jobs:
@@ -27,7 +33,7 @@ jobs:
         with: { node-version: "22" }
       - name: versions agree (tag, pyproject.toml, package.json)
         id: ver
-        env: { REF_TYPE: "${{ github.ref_type }}", REF_NAME: "${{ github.ref_name }}" }
+        env: { REL_TAG: "${{ (github.ref_type == 'tag' || (inputs.release_tag != '' && github.ref == 'refs/heads/main')) && (github.ref_type == 'tag' && github.ref_name || inputs.release_tag) || '' }}" }
         run: |
           pip install -q packaging
           python - <<'PY'
@@ -36,8 +42,8 @@ jobs:
           py = tomllib.load(open("ref/pyproject.toml", "rb"))["project"]["version"]
           js = json.load(open("ts/package.json"))["version"]
           assert Version(py) == Version(js), f"pyproject {py} != package.json {js}"
-          if os.environ["REF_TYPE"] == "tag":
-              tag = os.environ["REF_NAME"].removeprefix("v")
+          if os.environ["REL_TAG"]:
+              tag = os.environ["REL_TAG"].removeprefix("v")
               assert Version(tag) == Version(py), f"tag {tag} != version {py}"
           open(os.environ["GITHUB_OUTPUT"], "a").write(f"version={py}\n")
           print("version", py)
@@ -49,13 +55,13 @@ jobs:
       - name: sha256 of every artifact
         run: cd dist && sha256sum * | tee SHA256SUMS
       - uses: actions/attest-build-provenance@v2
-        if: github.ref_type == 'tag'
+        if: (github.ref_type == 'tag' || (inputs.release_tag != '' && github.ref == 'refs/heads/main'))
         with: { subject-path: "dist/skillpact*" }
       - uses: actions/upload-artifact@v4
         with: { name: dist, path: dist/ }
 
   github-release:
-    if: github.ref_type == 'tag'
+    if: (github.ref_type == 'tag' || (inputs.release_tag != '' && github.ref == 'refs/heads/main'))
     needs: build
     runs-on: ubuntu-latest
     permissions: { contents: write }
@@ -63,18 +69,19 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { name: dist, path: dist }
       - name: create the release with the artifacts
-        env: { GH_TOKEN: "${{ github.token }}", TAG: "${{ github.ref_name }}", REPO: "${{ github.repository }}" }
+        env: { GH_TOKEN: "${{ github.token }}", TAG: "${{ github.ref_type == 'tag' && github.ref_name || inputs.release_tag }}", REPO: "${{ github.repository }}" }
         run: |
           pre=""; case "$TAG" in *a*|*b*|*rc*|*-*) pre="--prerelease";; esac
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then   # release created in the web UI (it made the tag)
             gh release upload "$TAG" dist/* --repo "$REPO" --clobber
           else
-            gh release create "$TAG" dist/* --repo "$REPO" --verify-tag $pre --title "SkillPact $TAG" \
+            verify="--verify-tag"; [ "$GITHUB_REF_TYPE" = tag ] || verify="--target $GITHUB_SHA"   # dispatch: create the tag here
+            gh release create "$TAG" dist/* --repo "$REPO" $verify $pre --title "SkillPact $TAG" \
               --notes "See CHANGELOG.md. Artifacts carry GitHub build provenance (gh attestation verify <file> --repo $REPO)."
           fi
 
   publish-pypi:
-    if: github.ref_type == 'tag'
+    if: (github.ref_type == 'tag' || (inputs.release_tag != '' && github.ref == 'refs/heads/main'))
     needs: build
     runs-on: ubuntu-latest
     environment: pypi
@@ -87,7 +94,7 @@ jobs:
         with: { packages-dir: pypi/ }
 
   publish-npm:
-    if: github.ref_type == 'tag'
+    if: (github.ref_type == 'tag' || (inputs.release_tag != '' && github.ref == 'refs/heads/main'))
     needs: build
     runs-on: ubuntu-latest
     environment: npm

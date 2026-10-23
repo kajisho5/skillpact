@@ -91,7 +91,7 @@ jobs:
         with: { name: dist, path: dist }
       - run: mkdir pypi && mv dist/*.whl dist/*.tar.gz pypi/
       - uses: pypa/gh-action-pypi-publish@release/v1
-        with: { packages-dir: pypi/ }
+        with: { packages-dir: pypi/, skip-existing: true }   # a re-run after a partial release
 
   publish-npm:
     if: (github.ref_type == 'tag' || (inputs.release_tag != '' && github.ref == 'refs/heads/main'))
@@ -109,4 +109,4 @@ jobs:
         run: |
           npm install -g npm@latest   # trusted publishing needs a recent npm CLI
           tag=latest; case "$VERSION" in *a*|*b*|*rc*|*-*) tag=next;; esac
-          npm publish dist/skillpact-*.tgz --access public --provenance --tag "$tag"
+          npm publish ./dist/skillpact-*.tgz --access public --provenance --tag "$tag"   # ./ : npm 11 reads dist/x.tgz as a GitHub user/repo

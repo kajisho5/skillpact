@@ -1,8 +1,8 @@
 # Release: build the Python reference implementation (PyPI "skillpact") and the TypeScript verifier (npm "skillpact"),
 # attest their provenance, attach them to a GitHub release and, once the editor has enabled it, publish them.
 # Trigger: push a tag vX.Y.Z (or vX.Y.ZbN / vX.Y.Z-beta.N for pre-releases), or run manually for a dry run (build only).
-# Publishing is off until the repository variables PUBLISH_PYPI / PUBLISH_NPM are "true"; both registries use trusted
-# publishing (OIDC), so no token is stored. One-time setup is described in GOVERNANCE.md ("Release").
+# Publishing runs on every tag (enabled by the editor, 2026-10-23). PyPI uses trusted publishing (OIDC); npm uses the
+# NPM_TOKEN secret until the package exists and has a trusted publisher. Setup is described in GOVERNANCE.md ("Release").
 name: release
 on:
   push:
@@ -70,7 +70,7 @@ jobs:
             --notes "See CHANGELOG.md. Artifacts carry GitHub build provenance (gh attestation verify <file> --repo $REPO)."
 
   publish-pypi:
-    if: github.ref_type == 'tag' && vars.PUBLISH_PYPI == 'true'
+    if: github.ref_type == 'tag'
     needs: build
     runs-on: ubuntu-latest
     environment: pypi
@@ -83,7 +83,7 @@ jobs:
         with: { packages-dir: pypi/ }
 
   publish-npm:
-    if: github.ref_type == 'tag' && vars.PUBLISH_NPM == 'true'
+    if: github.ref_type == 'tag'
     needs: build
     runs-on: ubuntu-latest
     environment: npm
@@ -93,8 +93,8 @@ jobs:
         with: { name: dist, path: dist }
       - uses: actions/setup-node@v4
         with: { node-version: "22", registry-url: "https://registry.npmjs.org" }
-      - name: publish with provenance (trusted publishing)
-        env: { VERSION: "${{ needs.build.outputs.version }}" }
+      - name: publish with provenance
+        env: { VERSION: "${{ needs.build.outputs.version }}", NODE_AUTH_TOKEN: "${{ secrets.NPM_TOKEN }}" }   # first publish; remove once trusted publishing is set
         run: |
           npm install -g npm@latest   # trusted publishing needs a recent npm CLI
           tag=latest; case "$VERSION" in *a*|*b*|*rc*|*-*) tag=next;; esac

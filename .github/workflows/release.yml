@@ -66,8 +66,12 @@ jobs:
         env: { GH_TOKEN: "${{ github.token }}", TAG: "${{ github.ref_name }}", REPO: "${{ github.repository }}" }
         run: |
           pre=""; case "$TAG" in *a*|*b*|*rc*|*-*) pre="--prerelease";; esac
-          gh release create "$TAG" dist/* --repo "$REPO" --verify-tag $pre --title "SkillPact $TAG" \
-            --notes "See CHANGELOG.md. Artifacts carry GitHub build provenance (gh attestation verify <file> --repo $REPO)."
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then   # release created in the web UI (it made the tag)
+            gh release upload "$TAG" dist/* --repo "$REPO" --clobber
+          else
+            gh release create "$TAG" dist/* --repo "$REPO" --verify-tag $pre --title "SkillPact $TAG" \
+              --notes "See CHANGELOG.md. Artifacts carry GitHub build provenance (gh attestation verify <file> --repo $REPO)."
+          fi
 
   publish-pypi:
     if: github.ref_type == 'tag'

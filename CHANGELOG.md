@@ -2,6 +2,9 @@
 All notable changes to the SkillPact spec and implementations. Drafts until 1.0.
 
 
+## 0.8.0 packages (2026-10-23)
+- First registry release of the reference implementation (PyPI `skillpact`) and the TypeScript verifier (npm `skillpact`), version 0.8.0, built from `main` with the 0.8.x errata below. Pre-release `0.8.0b1` was published the same day. The spec stays in public review until 2026-11-21; later errata ship as 0.8.x packages.
+
 ## 0.8.x errata (public review, 2026-10-22; no version tag)
 From the second adversarial self-review (the editor's working notes, not published in this repository). Spec text marked "erratum 0.8.x".
 - Integrity: `__pycache__/` and `*.pyc` are no longer default excludes (unchecked-hash bytecode could run instead of signed source); code and bytecode files are protected and cannot be excluded; `hash` refuses bytecode; coverage is checked even with an external `--contract`.

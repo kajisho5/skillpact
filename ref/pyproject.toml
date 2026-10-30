@@ -8,7 +8,7 @@ version = "0.8.0"
 description = "SkillPact: machine-readable contracts for Agent Skills (reference implementation)"
 license = "Apache-2.0"
 requires-python = ">=3.11"
-dependencies = ["jsonschema>=4.20", "PyYAML>=6", "cryptography>=42", "rfc8785>=0.1.4"]
+dependencies = ["jsonschema>=4.20", "PyYAML>=6", "cryptography>=50.0.0", "rfc8785>=0.1.4"]
 readme = "README.md"
 authors = [{ name = "shogo kajiyama (SEVENTHWELL)" }]
 keywords = ["agent-skills", "skill-md", "security", "supply-chain", "claude-code", "codex", "cursor"]
@@ -19,8 +19,8 @@ Homepage = "https://kajisho5.github.io/skillpact/"
 Source = "https://github.com/kajisho5/skillpact"
 
 [project.optional-dependencies]
-sigstore = ["sigstore>=4"]
-test = ["pytest>=8"]
+sigstore = ["sigstore>=4.4.0"]
+test = ["pytest>=9.0.3"]
 
 [project.scripts]
 skillpact = "skillpact.cli:main"

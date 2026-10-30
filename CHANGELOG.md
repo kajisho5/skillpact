@@ -2,6 +2,9 @@
 All notable changes to the SkillPact spec and implementations. Drafts until 1.0.
 
 
+## Unreleased
+- Reference implementation dependency floors (supply-chain audit, checked against OSV on 2026-10-30): `cryptography>=50.0.0` (was `>=42`, which allowed 9 advisories; 49.0.0 still has the HIGH PKCS#7 Bleichenbacher oracle GHSA-g6cj-pr64-35w5), the `sigstore` extra `>=4.4.0` (GHSA-hm8f-75xx-w2vr, OIDC CSRF while signing, is fixed in 4.2.0, but 4.2.0 and 4.3.0 cap `cryptography` below 47 and 49, so 4.4.0 is the first release installable next to `cryptography>=50`) and the `test` extra `pytest>=9.0.3` (GHSA-6w46-j5rx-g56g). All support Python 3.11, the oldest version `ref` declares. `samples/thumbnail-skill` keeps `Pillow>=10.0`: it is a signed snapshot of thumbnail-skill 0.1.0 and its `pyproject.toml` is covered by the SEVENTHWELL signature, so changing it needs the author to re-hash and re-sign; the live floor is fixed in thumbnail-skill itself.
+
 ## 0.8.0 packages (2026-10-23)
 - First registry release of the reference implementation (PyPI `skillpact`) and the TypeScript verifier (npm `skillpact`), version 0.8.0, built from `main` with the 0.8.x errata below. Pre-release `0.8.0b1` was published the same day. The spec stays in public review until 2026-11-21; later errata ship as 0.8.x packages.
 

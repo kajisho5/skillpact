@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/app-icon-dark.png">
+    <img src="brand/app-icon.png" width="128" alt="skillpact app icon">
+  </picture>
+</p>
+
 # SkillPact — machine-readable contracts for Agent Skills (draft 0.8)
 
 

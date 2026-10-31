@@ -203,6 +203,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 
 ## 14. 変換と下書き
 - `convert` は MDA Open Spec の `requires`、AutoVault の `capabilities` と相互に変換します。書き出しは `lossy` と、元の契約とその sha256 を示します。
+- 0.8.x、参考（参照実装のみ）：`convert --to os-capability` / `--from os-capability` は kajisho5/Velisa のレジストリの能力契約（`provides[]`）と相互に変換し、`--against` はスキルが公開する能力契約と照合します。対応と失われるもの：`spec/os_capability_mapping.md`。OS 側の情報は `x.os` に置くため、スキーマの変更はありません。
 - 取り込みや `init` の下書きは、推測した箇所を `x.import.uncertain` / `x.init.uncertain` に挙げ、`TODO(...)` を使うことがあります。こうした契約は未確認の下書きで、`UNCONFIRMED_DRAFT`（0.8 からエラー）になります。人が確認して印を消す必要があります。0.8.x 正誤（参考、参照実装の `init`）：capability は CLI のサブコマンドごと（console script のモジュールと `scripts/` の argparse の `add_parser`）、MCP のツールごと（`@*.tool` の関数、`Tool(name=...)`）、指示だけのスキルなら `SKILL.md` の一般的でない `##` 見出しごとに作ります。`doctor`・`validate`・`plan` などの読むだけの動詞は `read`・`exec` だけにし、network の scope は見つかった URL から、なければ `TODO(init)` にします。
 
 ## 15. スキーマ
@@ -273,7 +274,7 @@ L1 は整合性しか示しません。ハーネスは L1 だけを根拠に、�
 - MCP：annotations（§12）、`mcp-check`。
 - ハーネス設定：Claude Code、Cursor、Codex、Gemini CLI（§13.1）。それぞれ表せないものがあります。
 - 実行時ポリシー：HushSpec、Rego（APS・ACS 向け）。
-- 他の形式：MDA Open Spec、AutoVault（§14）。OWASP Agentic Skills Top 10 との対応：`spec/owasp_mapping.md`（部分的な対応であることを正直に記載）。
+- 他の形式：MDA Open Spec、AutoVault、kajisho5/Velisa の OS 能力契約（§14）。OWASP Agentic Skills Top 10 との対応：`spec/owasp_mapping.md`（部分的な対応であることを正直に記載）。
 
 ## 21. 参照文献
 規範：RFC 2119、RFC 8174（BCP 14）、RFC 8259（JSON）、RFC 7493（I-JSON）、RFC 8785（JCS）、RFC 8032（EdDSA / Ed25519）、JSON Schema 2020-12、Agent Skills 仕様（https://agentskills.io/specification）、Semantic Versioning 2.0.0。

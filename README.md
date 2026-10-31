@@ -38,6 +38,7 @@ Schema: `https://kajisho5.github.io/skillpact/schema/v0.8.json` · License: spec
 | `conformance/` | implementation-independent conformance suite + JCS / ed25519 test vectors |
 | `ts/` | second implementation (TypeScript, verify-only); also powers the browser checker |
 | `action.yml` | reusable GitHub Action (pin to a commit SHA) |
+| `SKILL.md` | SkillPact itself as an Agent Skill: when to use it, the authoring / checking workflow, every CLI command; `ref/tests/test_skill.py` keeps it to commands and options that exist |
 | `GOVERNANCE.md` | editor, change process, release checklist |
 | `spec/owasp_mapping.md` | OWASP Agentic Skills Top 10 mapping |
 | `spec/harness_research.md` | harness/runtime landscape, gap, harness_policy 0.1 (JA) |

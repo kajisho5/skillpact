@@ -1,0 +1,49 @@
+name: action
+# Runs this repository's GitHub Action (action.yml, `uses: ./`) the way a skill repository calls it, on fixtures whose
+# outcome is known. ref/tests/test_action.py covers the check step's logic; this covers the composite action as a whole.
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  signed-sample-l3:
+    # a signed sample reaches L3: validate + conformance tests in bubblewrap + author signature by a trusted key
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: sp
+        uses: ./
+        with:
+          path: samples/subtitle-skill
+          trusted-key: "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ="
+          min-level: L3
+      - run: test "${{ steps.sp.outputs.level }}" = L3-signed
+
+  contract-input-l1:
+    # the `contract` and `python-version` inputs: a manifest named explicitly, a quick L1 check on the oldest supported Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: sp
+        uses: ./
+        with:
+          path: conformance/cases/valid-minimal
+          contract: conformance/cases/valid-minimal/skill.contract.json
+          python-version: "3.11"
+          run-tests: "false"
+      - run: test "${{ steps.sp.outputs.level }}" = L1-declared
+      - name: the action ran on the requested Python
+        run: python --version | grep -q '^Python 3\.11\.'
+
+  invalid-contract-fails:
+    # an invalid contract must fail the step (level none), with the finding as an annotation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: sp
+        uses: ./
+        continue-on-error: true
+        with:
+          path: conformance/cases/scope-widened
+          run-tests: "false"
+      - name: the step failed and reported level none
+        run: test "${{ steps.sp.outcome }}" = failure && test "${{ steps.sp.outputs.level }}" = none

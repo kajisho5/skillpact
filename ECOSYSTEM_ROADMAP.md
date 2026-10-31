@@ -18,14 +18,14 @@ v0.8.0 (spec in public review until 2026-11-21). Python ref + TS verifier; 13 te
 
 ## Wiring
 
-Not related to execution. SkillPact contracts and the OS capability contract have no defined link.
+Not related to execution. SkillPact contracts and the OS capability contract are linked by `skillpact convert --to / --from os-capability` (step 2): the OS view lives under `x.os` in the SkillPact contract.
 
 ## Steps
 
 - [x] **1. Root SKILL.md** — contract authoring / checking workflow — [#32](https://github.com/kajisho5/skillpact/pull/32)
   - Done when: marketplace install shows 1 skill
-- [ ] **2. SkillPact <-> OS capability contract** — `export --to os-capability` with a lossy report
-  - Done when: round trip on the qc-skill fixture
+- [x] **2. SkillPact <-> OS capability contract** — `export --to os-capability` with a lossy report — [#34](https://github.com/kajisho5/skillpact/pull/34): shipped as `convert --to / --from os-capability` (plus `--against` to compare with a skill's published OS contract), since `export` is the policy -> runtime-policy command; mapping in [spec/os_capability_mapping.md](spec/os_capability_mapping.md)
+  - Done when: round trip on the qc-skill fixture (OS -> SkillPact -> OS identical on Velisa's qc-skill fixture and its four other registry fixtures; `ref/tests/test_os_capability.py`)
 - [x] **3. Reusable Action for skill repos** — document validate + test — [#33](https://github.com/kajisho5/skillpact/pull/33); first satellite: [imagemagick-skill#33](https://github.com/kajisho5/imagemagick-skill/pull/33) (L2 on every PR)
   - Done when: one satellite repo uses it
 - [ ] **4. (OS side) non-blocking conformance job** — qc-skill and ingest-skill first

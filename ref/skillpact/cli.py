@@ -19,7 +19,7 @@ def main(argv=None):
     p = sub.add_parser("mcp-annotations"); p.add_argument("skill_dir"); p.add_argument("--contract")
     p = sub.add_parser("export"); p.add_argument("skill_dir"); p.add_argument("policy"); p.add_argument("--format", required=True, choices=["hushspec", "rego", "aps", "acs"]); p.add_argument("--contract")
     p = sub.add_parser("sign-sigstore"); p.add_argument("skill_dir"); p.add_argument("--identity-token"); p.add_argument("--staging", action="store_true"); p.add_argument("--contract")
-    p = sub.add_parser("convert"); p.add_argument("source"); p.add_argument("--to", choices=["mda", "autovault"]); p.add_argument("--from", dest="from_", choices=["mda", "autovault"]); p.add_argument("--contract"); p.add_argument("-o", "--output")
+    p = sub.add_parser("convert"); p.add_argument("source"); p.add_argument("--to", choices=["mda", "autovault", "os-capability"]); p.add_argument("--from", dest="from_", choices=["mda", "autovault", "os-capability"]); p.add_argument("--contract"); p.add_argument("-o", "--output"); p.add_argument("--against", help="--to os-capability: an OS contract (the skill's `contract --json` output) to compare with")
     p = sub.add_parser("owasp"); p.add_argument("skill_dir"); p.add_argument("--contract"); p.add_argument("--no-tests", action="store_true")
     p = sub.add_parser("migrate"); p.add_argument("skill_dir"); p.add_argument("--contract"); p.add_argument("--to"); p.add_argument("--write", action="store_true")
     p = sub.add_parser("conformance"); p.add_argument("skill_dir"); p.add_argument("--contract"); p.add_argument("--trusted-key", nargs="*", default=[])
@@ -81,12 +81,19 @@ def main(argv=None):
     elif a.cmd == "convert":
         from . import interop
         if bool(a.to) == bool(a.from_): r = {"ok": False, "error": "give exactly one of --to or --from"}
+        elif a.against and a.to != "os-capability": r = {"ok": False, "error": "--against works with --to os-capability only"}
+        elif a.to == "os-capability":
+            c, cpath = core.load_contract(Path(a.source), cp); r = interop.to_os(c, cpath); r = {"ok": not r["schema_errors"], **r}
+            if a.output: Path(a.output).write_text(json.dumps(r["document"], ensure_ascii=False, indent=2) + "\n")
+            if a.against:
+                r["mismatches"] = interop.os_check(c, json.loads(Path(a.against).read_text())); r["ok"] = r["ok"] and not r["mismatches"]
         elif a.to:
             c, cpath = core.load_contract(Path(a.source), cp); r = {"ok": True, **(interop.to_mda(c, cpath) if a.to == "mda" else interop.to_autovault(c, cpath))}
         else:
-            src = Path(a.source); src = src / "SKILL.md" if src.is_dir() else src
+            src = Path(a.source); src = src / "SKILL.md" if src.is_dir() and a.from_ != "os-capability" else src
             fm = core.read_frontmatter(src)[0] if src.suffix == ".md" else json.loads(src.read_text())
-            c = interop.from_mda(fm) if a.from_ == "mda" else interop.from_autovault(fm)
+            try: c = interop.from_mda(fm) if a.from_ == "mda" else interop.from_autovault(fm) if a.from_ == "autovault" else interop.from_os(fm)
+            except ValueError as e: print(json.dumps({"ok": False, "error": str(e)}, ensure_ascii=False, indent=2)); return 1
             if a.output: Path(a.output).write_text(json.dumps(c, ensure_ascii=False, indent=2) + "\n")
             r = {"ok": True, "contract": c, "uncertain": c["x"]["import"]["uncertain"]}
     elif a.cmd == "owasp":

@@ -22,7 +22,7 @@ Not related to execution. SkillPact contracts and the OS capability contract hav
 
 ## Steps
 
-- [ ] **1. Root SKILL.md** — contract authoring / checking workflow
+- [x] **1. Root SKILL.md** — contract authoring / checking workflow — [#32](https://github.com/kajisho5/skillpact/pull/32)
   - Done when: marketplace install shows 1 skill
 - [ ] **2. SkillPact <-> OS capability contract** — `export --to os-capability` with a lossy report
   - Done when: round trip on the qc-skill fixture

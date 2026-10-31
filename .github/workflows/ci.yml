@@ -10,7 +10,7 @@ jobs:
       matrix: { python: ["3.11", "3.12", "3.13"] }
     env: { SKILLPACT_TIMEOUT_SCALE: "2" }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with: { python-version: "${{ matrix.python }}" }
       - name: ffmpeg 8.1 (Ubuntu's 6.1 hangs in media.pad; tracked as an ffmpeg-skill compat issue)
@@ -41,7 +41,7 @@ jobs:
   ts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - run: cd ts && npm ci && npm test
@@ -53,7 +53,7 @@ jobs:
   macos-sandbox:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with: { python-version: "3.13" }
       - run: cd ref && pip install -e .

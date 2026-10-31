@@ -13,8 +13,8 @@ v0.8.0 (spec in public review until 2026-11-21). Python ref + TS verifier; 13 te
 
 | Owned job | Status | Note |
 |---|---|---|
-| スキル契約・署名 | done | adopted by no ecosystem repo yet |
-| スキル適合性検査 | partial | no OS or skill CI runs it |
+| スキル契約・署名 | done | first adopter: imagemagick-skill (contract, unsigned) |
+| スキル適合性検査 | partial | imagemagick-skill CI runs it (L2) through the Action; no OS CI yet |
 
 ## Wiring
 
@@ -26,7 +26,7 @@ Not related to execution. SkillPact contracts and the OS capability contract hav
   - Done when: marketplace install shows 1 skill
 - [ ] **2. SkillPact <-> OS capability contract** — `export --to os-capability` with a lossy report
   - Done when: round trip on the qc-skill fixture
-- [ ] **3. Reusable Action for skill repos** — document validate + test
+- [x] **3. Reusable Action for skill repos** — document validate + test — [#33](https://github.com/kajisho5/skillpact/pull/33); first satellite: [imagemagick-skill#33](https://github.com/kajisho5/imagemagick-skill/pull/33) (L2 on every PR)
   - Done when: one satellite repo uses it
 - [ ] **4. (OS side) non-blocking conformance job** — qc-skill and ingest-skill first
   - Done when: L1 or better

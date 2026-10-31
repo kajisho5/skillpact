@@ -21,7 +21,7 @@ jobs:
       - name: browser checker bundle matches ts/src
         run: cd ts && npm ci && npx esbuild src/browser.ts --bundle --format=iife --minify --target=es2022 --outfile=../docs/check/skillpact-check.js && git diff --exit-code ../docs/check/skillpact-check.js
       - run: cd site && npm ci && npm run build
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v3
         with: { path: site/dist }
   deploy:

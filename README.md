@@ -41,6 +41,7 @@ Schema: `https://kajisho5.github.io/skillpact/schema/v0.8.json` · License: spec
 | `SKILL.md` | SkillPact itself as an Agent Skill: when to use it, the authoring / checking workflow, every CLI command; `ref/tests/test_skill.py` keeps it to commands and options that exist |
 | `GOVERNANCE.md` | editor, change process, release checklist |
 | `spec/owasp_mapping.md` | OWASP Agentic Skills Top 10 mapping |
+| `spec/os_capability_mapping.md` | SkillPact contract <-> kajisho5/Velisa OS capability contract (`convert --to/--from os-capability`); fixtures in `examples/os-capability/` |
 | `spec/harness_research.md` | harness/runtime landscape, gap, harness_policy 0.1 (JA) |
 | `spec/showcase.md` / `spec/showcase.en.md` | flagship: kajisho5/ffmpeg-skill at L3 (42 tools, 78 tests); Japanese original and English version |
 | `CHANGELOG.md` / `CONTRIBUTING.md` | history / how to propose changes |
@@ -99,17 +100,18 @@ python3 -m skillpact.cli policy-check   <skill_dir> policies/solo-dev.json
 python3 -m skillpact.cli policy-compile <skill_dir> policies/solo-dev.json --target claude-code --mcp-server NAME --render
 python3 -m skillpact.cli export         <skill_dir> policies/solo-dev.json --format hushspec|rego
 python3 -m skillpact.cli convert <skill_dir> --to mda|autovault   # or: convert SKILL.md --from mda|autovault
+python3 -m skillpact.cli convert <skill_dir> --to os-capability [--against os.json]   # Velisa OS capability contract; or: convert os.json --from os-capability
 python3 -m skillpact.cli sign-sigstore <skill_dir>                 # keyless, CI
 python3 -m skillpact.cli owasp <skill_dir>
 python3 -m skillpact.cli mcp-check      <skill_dir> python3 '$SKILL_DIR/mcp/server.py'
-python3 -m pytest -q ref/tests                                           # 152 tests (some skip without bwrap / opa / Sigstore)
+python3 -m pytest -q ref/tests                                           # 166 tests (some skip without bwrap / opa / Sigstore)
 ```
 Requires Python ≥ 3.11 (tomllib), ffmpeg for the flagship tests, bubblewrap (`bwrap`) for the test sandbox on Linux (fallback `unshare -rn`: network only, so no L2 / L3). `strace` for the exec audit (optional; without it, programs started by tests are not checked). Optional: `.tools/opa` for the Rego test.
 
 ## Layout
 ```
 ref/skillpact/                   schema.json, policy_schema.json, core.py (validate/test/sign/policy/mcp), compose.py, init.py,
-                                 native.py, harness.py (+ harness_schemas/), export.py, interop.py, owasp.py, sigstore_sig.py, cli.py
+                                 native.py, harness.py (+ harness_schemas/), export.py, interop.py (+ os_schemas/), owasp.py, sigstore_sig.py, cli.py
 ref/policies/                    solo-dev.json, strict-ci.json
 samples/ffmpeg-skill/            local copy of kajisho5/ffmpeg-skill @4334225 + skill.contract.json (L3, SEVENTHWELL key)
 samples/build_ffmpeg_contract.py regenerates it

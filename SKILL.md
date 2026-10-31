@@ -67,6 +67,7 @@ reads the contract from elsewhere. Every command prints one JSON object.
 | Effects of a skill set and dangerous combinations | `skillpact compose <skill_dir> <skill_dir> ... [--trusted-key KEY ...]` |
 | Runtime policy document | `skillpact export <skill_dir> policy.json --format hushspec\|rego\|aps\|acs` |
 | Convert to or from MDA / AutoVault | `skillpact convert <skill_dir> --to mda\|autovault` or `skillpact convert SKILL.md --from mda\|autovault [-o draft.json]` |
+| OS capability contract (kajisho5/Velisa registry): export, compare, import | `skillpact convert <skill_dir> --to os-capability [-o os.json] [--against contract.json]` or `skillpact convert contract.json --from os-capability [-o draft.json]` (spec/os_capability_mapping.md) |
 | OWASP Agentic Skills Top 10 view | `skillpact owasp <skill_dir> [--no-tests]` |
 | MCP server serves what the contract maps | `skillpact mcp-check <skill_dir> python3 '$SKILL_DIR/mcp/server.py'` |
 | MCP tool annotations from the effects | `skillpact mcp-annotations <skill_dir>` |

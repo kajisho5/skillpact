@@ -203,6 +203,7 @@ Installed skills share one agent. Data that one skill reads can reach another sk
 
 ## 14. Conversion and drafts
 - `convert` maps to and from MDA Open Spec `requires` and AutoVault `capabilities`; exports list `lossy` items and point back to the contract with its sha256.
+- 0.8.x, informative (reference implementation only): `convert --to os-capability` / `--from os-capability` maps to and from the capability contract of the kajisho5/Velisa registry (`provides[]`), and `--against` compares a contract with the one a skill publishes. The mapping and its losses: `spec/os_capability_mapping.md`. The OS view is kept under `x.os`, so a contract carries it without a schema change.
 - Imports and `init` drafts list guesses in `x.import.uncertain` / `x.init.uncertain`, and may use `TODO(...)` strings. Such a contract is an unconfirmed draft: `UNCONFIRMED_DRAFT` (error from 0.8). A person must confirm and remove the markers. Erratum 0.8.x (informative, reference `init`): one capability per CLI subcommand (argparse `add_parser` in console-script modules and `scripts/`), per MCP tool (`@*.tool` functions, `Tool(name=...)`), or per non-generic `##` heading of an instructions-only `SKILL.md`; read-only verbs such as `doctor`/`validate`/`plan` get only `read`/`exec`; network scope is taken from URLs found, else `TODO(init)`.
 
 ## 15. Schemas
@@ -273,7 +274,7 @@ Contracts before 0.8 do not sign the role and do not require full file coverage 
 - MCP: annotations (§12), `mcp-check`.
 - Harness settings: Claude Code, Cursor, Codex, Gemini CLI (§13.1), each with known losses.
 - Runtime policy: HushSpec, Rego (for APS / ACS).
-- Other formats: MDA Open Spec, AutoVault (§14). OWASP Agentic Skills Top 10: `spec/owasp_mapping.md` (partial coverage, stated honestly).
+- Other formats: MDA Open Spec, AutoVault, the kajisho5/Velisa OS capability contract (§14). OWASP Agentic Skills Top 10: `spec/owasp_mapping.md` (partial coverage, stated honestly).
 
 ## 21. References
 Normative: RFC 2119, RFC 8174 (BCP 14); RFC 8259 (JSON); RFC 7493 (I-JSON); RFC 8785 (JCS); RFC 8032 (EdDSA / Ed25519); JSON Schema 2020-12; Agent Skills specification (https://agentskills.io/specification); Semantic Versioning 2.0.0.

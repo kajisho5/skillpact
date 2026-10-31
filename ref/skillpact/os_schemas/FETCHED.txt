@@ -1,0 +1,2 @@
+capability_contract.schema.json: kajisho5/Velisa registry/capability_contract.schema.json @d579e24f8fc89f2de929a8668286973ebc5471d2 (copied unchanged, 2026-10-31)
+The same commit's registry/tests/fixtures/*.provides.json are in examples/os-capability/.

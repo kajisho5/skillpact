@@ -14,7 +14,7 @@ v0.8.0 (spec in public review until 2026-11-21). Python ref + TS verifier; 13 te
 | Owned job | Status | Note |
 |---|---|---|
 | スキル契約・署名 | done | first adopter: imagemagick-skill (contract, unsigned) |
-| スキル適合性検査 | partial | imagemagick-skill CI runs it (L2) through the Action; no OS CI yet |
+| スキル適合性検査 | partial | imagemagick-skill CI runs it (L2) through the Action; the OS runs it weekly, non-blocking, on every Skill with a contract ([Velisa#127](https://github.com/kajisho5/Velisa/pull/127)) |
 
 ## Wiring
 
@@ -28,7 +28,7 @@ Not related to execution. SkillPact contracts and the OS capability contract hav
   - Done when: round trip on the qc-skill fixture
 - [x] **3. Reusable Action for skill repos** — document validate + test — [#33](https://github.com/kajisho5/skillpact/pull/33); first satellite: [imagemagick-skill#33](https://github.com/kajisho5/imagemagick-skill/pull/33) (L2 on every PR)
   - Done when: one satellite repo uses it
-- [ ] **4. (OS side) non-blocking conformance job** — qc-skill and ingest-skill first
+- [x] **4. (OS side) non-blocking conformance job** — qc-skill and ingest-skill first — [Velisa#127](https://github.com/kajisho5/Velisa/pull/127) (`skillpact-conformance.yml`, ADR-014): every Skill in `ecosystem.json` with a `skill.contract.json` is checked; today that is imagemagick-skill, which reached L2. qc-skill and ingest-skill have no contract yet, and the job picks them up once they add one.
   - Done when: L1 or better
 
 ---

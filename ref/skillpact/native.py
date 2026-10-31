@@ -45,7 +45,8 @@ def native_to_contract(n: dict, skill_dir_name: str) -> dict:
     prefix = "media." if "ffmpeg" in req else ("image." if "magick" in str(req.get("backends", "")) else "tool.")
     caps = []
     for t in n["tools"]:
-        writes = bool(t.get("produces_artifact"))
+        # produces_artifact (most *-skill contracts) and writes_output (imagemagick-skill) both mean the tool writes a file.
+        writes = bool(t.get("produces_artifact") or t.get("writes_output"))
         effects = ["read", "exec"] + (["write"] if writes else [])
         ce = []
         props = t["input_schema"].get("properties", {})

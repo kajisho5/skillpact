@@ -30,6 +30,12 @@ Not related to execution. SkillPact contracts and the OS capability contract are
   - Done when: one satellite repo uses it
 - [x] **4. (OS side) non-blocking conformance job** — qc-skill and ingest-skill first — [Velisa#127](https://github.com/kajisho5/Velisa/pull/127) (`skillpact-conformance.yml`, ADR-014): every Skill in `ecosystem.json` with a `skill.contract.json` is checked; today that is imagemagick-skill, which reached L2. qc-skill and ingest-skill have no contract yet, and the job picks them up once they add one.
   - Done when: L1 or better
+- [ ] **5. Progress events and error classes in the contract** — contracts declare the progress events an op emits (JSON lines: step, percent, ETA) and map every error code to one class (`input`, `environment`, `engine`, `policy`, `transient`); conformance cases check both. Field review 2026-11-05 (Velisa ROADMAP, third round)
+  - なぜ要るか：エージェントがどのスキルでも「あと何分か」「直すのは何か」を同じ読み方で扱える
+  - Done when: conformance cases for both, and the OS weekly run reports which skills declare them
+- [ ] **6. Idempotency conformance** — an op whose contract says `bit_exact` or idempotent is run twice on a fixture and the outputs compared by hash; a skill that declares it and differs fails
+  - なぜ要るか：再実行・途中再開で結果が変わらないという約束を、各スキルについて機械で確かめられる
+  - Done when: a conformance case that catches a non-deterministic fixture skill
 
 ---
 Engine for every media operation: [ffmpeg-skill](https://github.com/kajisho5/ffmpeg-skill) (42 tools, treated as complete). Orchestrator: [video-production-agent](https://github.com/kajisho5/video-production-agent).

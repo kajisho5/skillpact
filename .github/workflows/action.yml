@@ -9,7 +9,7 @@ jobs:
     # a signed sample reaches L3: validate + conformance tests in bubblewrap + author signature by a trusted key
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: sp
         uses: ./
         with:
@@ -22,7 +22,7 @@ jobs:
     # the `contract` and `python-version` inputs: a manifest named explicitly, a quick L1 check on the oldest supported Python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: sp
         uses: ./
         with:
@@ -38,7 +38,7 @@ jobs:
     # an invalid contract must fail the step (level none), with the finding as an annotation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: sp
         uses: ./
         continue-on-error: true

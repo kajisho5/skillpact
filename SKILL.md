@@ -54,7 +54,7 @@ reads the contract from elsewhere. Every command prints one JSON object.
 |---|---|
 | Draft a contract | `skillpact init <skill_dir> [-o draft.json] [--force] [--from-native CMD ...]` |
 | Check the contract and the file hashes (L1) | `skillpact validate <skill_dir> [--contract FILE]` |
-| Run the declared tests in the sandbox | `skillpact test <skill_dir> [--only ID ...] [--skills-path DIR ...] [--pass-env NAME ...] [--no-net-sandbox]` |
+| Run the declared tests in the sandbox | `skillpact test <skill_dir> [--only ID ...] [--skills-path DIR ...] [--pass-env NAME ...] [--no-net-sandbox] [--check-idempotent]` |
 | Write the hash of every file into the contract | `skillpact hash <skill_dir>` |
 | Make an ed25519 key | `skillpact keygen key.pem` |
 | Sign | `skillpact sign <skill_dir> key.pem [--signer NAME] [--role author\|reviewer\|scanner]` |

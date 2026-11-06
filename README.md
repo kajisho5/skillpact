@@ -80,7 +80,7 @@ Get the SHA of a released version with `git ls-remote https://github.com/kajisho
 | `min-level` | `L1` | `L1`, `L2` or `L3`; L2 / L3 need `run-tests: true` |
 | `trusted-key` | (none) | space-separated `ed25519:<b64>` / `sigstore:<issuer>\|<identity>` keys; L3 needs your author key here |
 
-Output `level`: `none`, `L1-declared`, `L2-tested` or `L3-signed`. Output `declares` (with `run-tests: true`): what the contract declares under `x.runtime` (spec §7.1, erratum 0.8.x), as compact JSON `{"capabilities": N, "progress": [capability ids], "error_classes": {code: class}}`. `.github/workflows/action.yml` runs the action on this repository's fixtures (a signed sample at L3, an explicit `contract` on Python 3.11, an invalid contract that must fail).
+Output `level`: `none`, `L1-declared`, `L2-tested` or `L3-signed`. Output `declares` (with `run-tests: true`): what the contract declares under `x.runtime` (spec §7.1, erratum 0.8.x), as compact JSON `{"capabilities": N, "progress": [capability ids], "error_classes": {code: class}, "idempotency": {"bit_exact": [ids], "content_equivalent": [ids], "none": [ids]}}`. `.github/workflows/action.yml` runs the action on this repository's fixtures (a signed sample at L3, an explicit `contract` on Python 3.11, an invalid contract that must fail).
 
 ## Install
 Packages are **not published yet** (PyPI / npm come with 1.0). Install from the repository:

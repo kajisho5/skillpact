@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kajisho5.github.io/skillpact/schema/runtime-v0.8-r1.json",
+  "title": "SkillPact runtime declarations x.runtime (erratum 0.8.x, optional), revision 1: idempotency",
+  "description": "Progress events, error classes and idempotency of a skill's ops. Contract level: x.runtime; capability level: capabilities[].x.runtime, which overrides the contract level key by key. Revision 1 of runtime-v0.8.json adds capabilities[].x.runtime.idempotency.",
+  "$defs": {
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "progress": {
+          "$ref": "#/$defs/progress"
+        },
+        "errors": {
+          "$ref": "#/$defs/errors"
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "progress": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/progress"
+            },
+            {
+              "const": false
+            }
+          ],
+          "description": "false: this op emits no progress events"
+        },
+        "errors": {
+          "$ref": "#/$defs/errors"
+        },
+        "idempotency": {
+          "enum": [
+            "bit_exact",
+            "content_equivalent",
+            "none"
+          ],
+          "description": "bit_exact: the same inputs give byte-identical output files, checked by running a case twice and comparing hashes; content_equivalent: the same content, not the same bytes (not hash-checked); none: a rerun may differ"
+        }
+      }
+    },
+    "progress": {
+      "type": "object",
+      "required": [
+        "stream"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "stream": {
+          "enum": [
+            "stderr",
+            "stdout"
+          ],
+          "description": "where the JSON lines go"
+        },
+        "flag": {
+          "type": "string",
+          "pattern": "^-",
+          "description": "the flag that turns the events on, when they are not always emitted"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "every step name an event may carry"
+        }
+      }
+    },
+    "errors": {
+      "type": "object",
+      "required": [
+        "classes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "dotted path of the error code in the JSON result on stdout (default error.code)"
+        },
+        "classes": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/class"
+          }
+        }
+      }
+    },
+    "class": {
+      "enum": [
+        "input",
+        "environment",
+        "engine",
+        "policy",
+        "transient"
+      ],
+      "description": "input: fix the request; environment: install or configure something; engine: the tool or model failed; policy: refused by a rule or permission; transient: retry later"
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "event",
+        "step",
+        "percent",
+        "eta_s"
+      ],
+      "properties": {
+        "event": {
+          "const": "progress"
+        },
+        "step": {
+          "type": "string",
+          "minLength": 1
+        },
+        "percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100,
+          "description": "of the whole op; never decreases; null when unknown"
+        },
+        "eta_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "seconds left; null when unknown"
+        }
+      }
+    }
+  }
+}

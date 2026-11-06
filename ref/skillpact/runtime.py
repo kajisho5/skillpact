@@ -1,5 +1,5 @@
-"""Runtime declarations (erratum 0.8.x, optional; ECOSYSTEM_ROADMAP.md step 5): the progress events an op emits and the
-class of every error code it returns, under `x.runtime` (contract) and `capabilities[].x.runtime` (per op, overriding
+"""Runtime declarations (erratum 0.8.x, optional; ECOSYSTEM_ROADMAP.md steps 5 and 6): the progress events an op emits,
+the class of every error code it returns, and whether a rerun gives byte-identical output (`idempotency`, per op), under `x.runtime` (contract) and `capabilities[].x.runtime` (per op, overriding
 the contract key by key). No schema change: `x` is the extension space, and a contract without `x.runtime` gets no
 finding (optional now; proposed as recommended for 0.9).
 
@@ -10,6 +10,10 @@ finding (optional now; proposed as recommended for 0.9).
                          decrease -> PROGRESS_EVENT; a case tagged `progress` must emit at least one -> PROGRESS_MISSING
                errors    an error code found in the JSON result on stdout (code_path, default error.code) must have a
                          class -> ERROR_UNCLASSIFIED
+               idempotency  `bit_exact`: the case runs a second time after its output files (expect.files) are
+                         removed, and every file must hash the same -> IDEMPOTENCY_DIFFERS (core.run_tests; with
+                         --check-idempotent, capabilities that only say `idempotent: true` are checked and reported,
+                         never failed)
   declares   what a contract declares, for `conformance` and the Action (the OS weekly run reports it)"""
 from __future__ import annotations
 import json, re
@@ -47,6 +51,9 @@ def validate(c, r) -> None:
         w = f"/capabilities/{i}/x/runtime"
         errs = sorted(_CAPABILITY.iter_errors(d), key=lambda e: list(e.path))
         for e in errs: r.err("RUNTIME_DECL", f"{cap.get('id')}: x.runtime: {e.message}", w + "".join(f"/{p}" for p in e.path))
+        idem = d.get("idempotency") if not errs else None
+        if idem is not None and isinstance(cap.get("idempotent"), bool) and cap["idempotent"] != (idem != "none"):
+            r.err("RUNTIME_DECL", f"{cap.get('id')}: x.runtime.idempotency {idem!r} contradicts idempotent: {str(cap['idempotent']).lower()}", w + "/idempotency")
         if errs or not isinstance(top_classes, dict): continue
         for code, cls in ((d.get("errors") or {}).get("classes") or {}).items():
             if code in top_classes and top_classes[code] != cls:
@@ -65,7 +72,17 @@ def effective(c, cap) -> dict:
     if te or oe:
         out["errors"] = {"code_path": oe.get("code_path") or te.get("code_path") or DEFAULT_CODE_PATH,
                          "classes": {**(te.get("classes") or {}), **(oe.get("classes") or {})}}
+    if own.get("idempotency"): out["idempotency"] = own["idempotency"]       # per op only
     return out
+
+
+def idempotency_check(c, cap, check_idempotent=False):
+    """(mode, enforced) for one capability's cases, or (None, False) when nothing is checked. `bit_exact` is enforced;
+    `idempotent: true` without x.runtime.idempotency is checked only with check_idempotent, and only reported."""
+    mode = effective(c, cap or {}).get("idempotency")
+    if mode == "bit_exact": return "bit_exact", True
+    if mode is None and check_idempotent and (cap or {}).get("idempotent") is True: return "idempotent", False
+    return None, False
 
 
 def _events(text):
@@ -132,4 +149,5 @@ def declares(c) -> dict:
     codes = {}
     for e in eff: codes.update((e.get("errors") or {}).get("classes") or {})
     return {"capabilities": len(caps), "progress": sorted(cap["id"] for cap, e in zip(caps, eff) if e.get("progress")),
-            "error_classes": dict(sorted(codes.items()))}
+            "error_classes": dict(sorted(codes.items())),
+            "idempotency": {m: sorted(cap["id"] for cap, e in zip(caps, eff) if e.get("idempotency") == m) for m in ("bit_exact", "content_equivalent", "none")}}

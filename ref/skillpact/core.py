@@ -792,9 +792,15 @@ def network_scope(c, cap=None):
     return scope, pe["level"]
 
 
-def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, skills_path=(), pass_env=()) -> dict:
+def _output_hashes(paths) -> dict:
+    return {rel: (sha256(fp) if fp.is_file() else None) for rel, fp in paths}
+
+
+def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, skills_path=(), pass_env=(), check_idempotent=False) -> dict:
     """Run the declared tests (spec 0.8 s10): setup and cases in a sandbox, allowlisted environment only,
-    writes outside $WORKDIR prevented (bwrap) or detected by content hash (fallback)."""
+    writes outside $WORKDIR prevented (bwrap) or detected by content hash (fallback). A case of a capability whose
+    x.runtime.idempotency is `bit_exact` runs twice and its output files must hash the same (spec 7.1, erratum 0.8.x);
+    with check_idempotent, so do the cases of capabilities that say `idempotent: true`, reported but never failed."""
     skill_dir = Path(skill_dir).resolve(); c, _ = load_contract(skill_dir, contract_path)
     skill_env, skill_reqs = locate_skills(c, skill_dir, skills_path)
     reqs = check_requirements(c) + skill_reqs
@@ -875,6 +881,35 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
                 if f.get("exists", True) and not fp.exists(): fails.append(f"file missing: {f['path']}")
                 elif not f.get("exists", True) and fp.exists(): fails.append(f"file should not exist: {f['path']}")
                 elif fp.exists() and fp.stat().st_size < f.get("min_bytes", 0): fails.append(f"file too small: {f['path']}")
+            idem = None
+            imode, enforced = runtime.idempotency_check(c, caps.get(t.get("capability")), check_idempotent)
+            if imode:   # erratum 0.8.x (step 6): run the case again on the same fixture and compare its outputs by hash
+                outs = []
+                for f in ex.get("files", []):
+                    if not f.get("exists", True): continue
+                    fp = Path(_subst(f["path"], env)); outs.append((f["path"], fp if fp.is_absolute() else work / fp))
+                idem = {"mode": imode, "enforced": enforced, "compared": [], "differs": []}
+                if t.get("network"): idem["skipped"] = "network case"
+                elif fails: idem["skipped"] = "the first run failed"
+                elif not any(fp.is_file() for _, fp in outs): idem["skipped"] = "the case lists no output file (expect.files)"
+                else:
+                    first = _output_hashes(outs)
+                    for _, fp in outs:
+                        if fp.is_file(): fp.unlink()
+                    try:
+                        p2 = subprocess.run(wrap(run_, False), cwd=work, env=cenv, capture_output=True, text=True, stdin=subprocess.DEVNULL, start_new_session=True,
+                                            timeout=t.get("timeout_s", 120) * float(os.environ.get("SKILLPACT_TIMEOUT_SCALE", "1")))
+                        code2 = p2.returncode
+                    except subprocess.TimeoutExpired:
+                        code2 = None
+                    second = _output_hashes(outs)
+                    idem["compared"] = [k for k, v in first.items() if v]
+                    idem["differs"] = [k for k in idem["compared"] if second[k] != first[k]]
+                    if code2 != code: idem["rerun_exit_code"] = code2
+                    if enforced and (idem["differs"] or code2 != code):
+                        why = [f"{k} sha256 {first[k][:12]} then {second[k][:12] if second[k] else 'missing'}" for k in idem["differs"]]
+                        if code2 != code: why.append(f"exit code {code} then {code2}")
+                        fails.append("IDEMPOTENCY_DIFFERS: bit_exact, but a second run on the same fixture gave " + "; ".join(why))
             undeclared = []
             if tracer:
                 inline = len(t["run"]) > 1 and os.path.basename(t["run"][0]) in TEST_SHELLS and t["run"][1] == "-c"
@@ -885,7 +920,7 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
             if eg:
                 hosts = {"allowed": eg.proxy.allowed_hosts, "denied": eg.proxy.denied_hosts}; eg.close()
                 if hosts["denied"]: fails.append(f"undeclared host (not in the network scope): {', '.join(hosts['denied'])}")
-            results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails, "exec_undeclared": undeclared, **({"network_hosts": hosts} if hosts else {}), **rt_info,
+            results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails, "exec_undeclared": undeclared, **({"network_hosts": hosts} if hosts else {}), **rt_info, **({"idempotency": idem} if idem else {}),
                             "seconds": round(time.time() - t0, 2), "network_sandboxed": bool(mode and not t.get("network")),
                             "stderr_tail": errout[-300:] if fails else ""})
     finally:

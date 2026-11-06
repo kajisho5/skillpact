@@ -36,7 +36,8 @@ def case(tmp_path, name, decl=None, cap=None, script="echo hi\n", tags=None, exi
 def test_valid_minimal_is_still_valid_and_declares_nothing():
     assert core.validate(CASES / "valid-minimal")["ok"]
     c, _ = core.load_contract(CASES / "valid-minimal")
-    assert runtime.declares(c) == {"capabilities": len(c["capabilities"]), "progress": [], "error_classes": {}}
+    assert runtime.declares(c) == {"capabilities": len(c["capabilities"]), "progress": [], "error_classes": {},
+                                   "idempotency": {"bit_exact": [], "content_equivalent": [], "none": []}}
 
 
 def test_no_existing_contract_changes_level():
@@ -103,12 +104,16 @@ def test_conformance_reports_what_is_declared(tmp_path, capsys):
              script='printf \'{"event":"progress","step":"read","percent":0,"eta_s":null}\\n\' >&2\n', tags=["progress"])
     cli.main(["conformance", str(d)])
     r = json.loads(capsys.readouterr().out)
-    assert r["declares"] == {"capabilities": 1, "progress": ["hello"], "error_classes": {"BAD_INPUT": "input", "BUSY": "transient", "OOPS": "engine"}}
+    assert r["declares"] == {"capabilities": 1, "progress": ["hello"], "error_classes": {"BAD_INPUT": "input", "BUSY": "transient", "OOPS": "engine"},
+                             "idempotency": {"bit_exact": [], "content_equivalent": [], "none": []}}
     p, outputs, summary = run_action(tmp_path, d, tests="true")
     assert json.loads(outputs["declares"])["error_classes"]["OOPS"] == "engine"
     assert "**declares**: progress events for 1 of 1 capabilities, error classes for 3 error code(s)" in summary
 
 
 def test_runtime_schema_copies_are_identical():
+    # revision 1 (step 6, idempotency) is the current one; the published runtime-v0.8.json is never edited in place
     ref = (REPO / "ref/skillpact/runtime_schema.json").read_text()
-    assert (REPO / "docs/schema/runtime-v0.8.json").read_text() == ref == (REPO / "ts/src/runtime_schema.json").read_text()
+    assert (REPO / "docs/schema/runtime-v0.8-r1.json").read_text() == ref == (REPO / "ts/src/runtime_schema.json").read_text()
+    old = json.loads((REPO / "docs/schema/runtime-v0.8.json").read_text())
+    assert old["$id"].endswith("/runtime-v0.8.json") and "idempotency" not in old["$defs"]["capability"]["properties"]

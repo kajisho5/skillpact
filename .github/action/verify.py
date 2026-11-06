@@ -96,7 +96,8 @@ def main():
         if dec is not None:   # erratum 0.8.x (step 5): progress events and error classes the contract declares
             _out("declares", json.dumps(dec, separators=(",", ":"), sort_keys=True))
             summary += [f"**declares**: progress events for {len(dec.get('progress', []))} of {dec.get('capabilities', 0)} capabilities, "
-                        f"error classes for {len(dec.get('error_classes', {}))} error code(s)", ""]
+                        f"error classes for {len(dec.get('error_classes', {}))} error code(s), "
+                        f"bit_exact (rerun and hash-compared) for {len((dec.get('idempotency') or {}).get('bit_exact', []))}", ""]
         t = report.get("tests") or {}
         if t: summary += [f"**tests**: {t.get('passed', 0)}/{t.get('total', 0)} passed, sandbox `{t.get('sandbox')}`, file system isolated: {t.get('fs_isolated')}, exec audit: {t.get('exec_audit') or 'off'}", ""]
         for r in report.get("requirements_failed", []):

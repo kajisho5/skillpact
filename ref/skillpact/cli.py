@@ -8,7 +8,7 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     for n in ("validate", "test", "hash", "verify"):
         p = sub.add_parser(n); p.add_argument("skill_dir"); p.add_argument("--contract")
-        if n == "test": p.add_argument("--only", nargs="*"); p.add_argument("--no-net-sandbox", action="store_true"); p.add_argument("--skills-path", nargs="*"); p.add_argument("--pass-env", nargs="*", default=[], help="environment variables a case may receive through skip_unless_env (default: none)")
+        if n == "test": p.add_argument("--only", nargs="*"); p.add_argument("--no-net-sandbox", action="store_true"); p.add_argument("--skills-path", nargs="*"); p.add_argument("--pass-env", nargs="*", default=[], help="environment variables a case may receive through skip_unless_env (default: none)"); p.add_argument("--check-idempotent", action="store_true", help="also run twice the cases of capabilities that say idempotent: true and report (never fail) output files that differ")
     p = sub.add_parser("keygen"); p.add_argument("key_path")
     p = sub.add_parser("sign"); p.add_argument("skill_dir"); p.add_argument("key_path"); p.add_argument("--signer", default=""); p.add_argument("--contract"); p.add_argument("--role", default="author", choices=["author", "reviewer", "scanner"])
     p = sub.add_parser("policy-check"); p.add_argument("skill_dir", nargs="+", help="one or more skill dirs, then the policy"); p.add_argument("policy"); p.add_argument("--contract")
@@ -26,7 +26,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     cp = Path(a.contract) if getattr(a, "contract", None) else None
     if a.cmd == "validate": r = core.validate(a.skill_dir, cp)
-    elif a.cmd == "test": r = core.run_tests(a.skill_dir, cp, a.only, not a.no_net_sandbox, a.skills_path or (), a.pass_env)
+    elif a.cmd == "test": r = core.run_tests(a.skill_dir, cp, a.only, not a.no_net_sandbox, a.skills_path or (), a.pass_env, a.check_idempotent)
     elif a.cmd == "hash": r = {"ok": True, "files": core.hash_files(a.skill_dir, cp)}
     elif a.cmd == "keygen": r = {"ok": True, "public_key": core.keygen(a.key_path)}
     elif a.cmd == "sign": r = {"ok": True, "public_key": core.sign(a.skill_dir, a.key_path, a.signer, cp, a.role)}

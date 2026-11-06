@@ -610,6 +610,55 @@
       }
     },
     {
+      "id": "v08x-idempotency-nondeterministic",
+      "description": "0.8.x runner: declares bit_exact, but its output changes from run to run",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [],
+        "test": {
+          "ok": false,
+          "failures_include": [
+            "IDEMPOTENCY_DIFFERS"
+          ]
+        }
+      }
+    },
+    {
+      "id": "v08x-idempotency-deterministic",
+      "description": "0.8.x runner: declares bit_exact, and a second run gives the same bytes",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [],
+        "test": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "id": "v08x-idempotency-contradiction",
+      "description": "0.8.x: idempotency bit_exact with idempotent: false",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "RUNTIME_DECL"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08x-idempotency-bad-value",
+      "description": "0.8.x: idempotency must be bit_exact, content_equivalent or none",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "RUNTIME_DECL"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
       "id": "v08-json-bigint",
       "description": "M2: integer outside +-(2^53-1) is not I-JSON",
       "expect": {

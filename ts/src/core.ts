@@ -6,7 +6,7 @@ import RUNTIME_JSON from "./runtime_schema.json" with { type: "json" };
 
 const Ajv2020: any = (Ajv2020Mod as any).default ?? Ajv2020Mod;
 export const SCHEMA: any = SCHEMA_JSON;
-/** x.runtime: progress events and error classes (erratum 0.8.x, optional; schema/runtime-v0.8.json). */
+/** x.runtime: progress events, error classes, idempotency (erratum 0.8.x, optional; schema/runtime-v0.8-r1.json). */
 export const RUNTIME_SCHEMA: any = RUNTIME_JSON;
 export const EFFECTS = ["read", "write", "network", "exec", "spend", "send"] as const;
 export const KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8"];
@@ -226,7 +226,8 @@ export function checkContract(cIn: any, env: Env, F: Finding[]): any | null {
 const runtimeDecl = (o: any) => (o?.x && typeof o.x === "object" && !Array.isArray(o.x) && "runtime" in o.x) ? o.x.runtime : undefined;
 const isObj = (v: any) => v !== null && typeof v === "object" && !Array.isArray(v);
 
-/** RUNTIME_DECL: x.runtime against the runtime schema, and one error code in two classes (contract vs capability). */
+/** RUNTIME_DECL: x.runtime against the runtime schema, one error code in two classes (contract vs capability), and an
+ * idempotency that contradicts the capability's idempotent flag. */
 export function checkRuntime(c: any, err: (code: string, message: string, where?: string) => void): void {
   const compile = (name: string) => makeAjv({ allErrors: true, strict: false, validateFormats: false })
     .compile({ $schema: RUNTIME_SCHEMA.$schema, $defs: RUNTIME_SCHEMA.$defs, $ref: `#/$defs/${name}` });
@@ -237,6 +238,8 @@ export function checkRuntime(c: any, err: (code: string, message: string, where?
     const d = runtimeDecl(cap); if (d === undefined) return;
     const w = `/capabilities/${i}/x/runtime`; const f = compile("capability");
     if (!f(d)) { for (const e of f.errors ?? []) err("RUNTIME_DECL", `${cap.id}: x.runtime: ${e.message}`, w + e.instancePath); return; }
+    if (d.idempotency !== undefined && typeof cap.idempotent === "boolean" && cap.idempotent !== (d.idempotency !== "none"))
+      err("RUNTIME_DECL", `${cap.id}: x.runtime.idempotency ${JSON.stringify(d.idempotency)} contradicts idempotent: ${cap.idempotent}`, w + "/idempotency");
     if (!topClasses) return;
     for (const [code, cls] of Object.entries(d.errors?.classes ?? {}))
       if (code in topClasses && topClasses[code] !== cls) err("RUNTIME_DECL", `${cap.id}: error code ${code} is ${JSON.stringify(cls)} here but ${JSON.stringify(topClasses[code])} in x.runtime.errors`, w + "/errors/classes");

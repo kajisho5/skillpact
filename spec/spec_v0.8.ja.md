@@ -121,7 +121,9 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - `errors`：`classes` は処理が返しうる全エラーコードを 1 つの種類に対応させます。`input`（依頼を直す）、`environment`（何かを入れる・設定する）、`engine`（ツールやモデルが失敗した）、`policy`（規則や権限で断られた）、`transient`（後でやり直す）。`code_path` は標準出力の JSON 結果でのコードの位置（ドット区切り、既定 `error.code`）。
 - この節を実装する検証者は、スキーマに合わない宣言と、2 つの種類を与えたコードを `RUNTIME_DECL`（エラー）として報告しなければなりません（MUST）。
 - この節を実装するランナーは、各ケースで宣言された出力先のイベントを確かめ（`PROGRESS_EVENT`：スキーマに合わない、宣言にない段階、`percent` の減少）、`progress` タグのケースがイベントを 1 つも出さなければ失敗とし（`PROGRESS_MISSING`）、JSON 結果のエラーコードに種類がなければ失敗としなければなりません（MUST、`ERROR_UNCLASSIFIED`）。いずれもケースの失敗で、この接頭辞で示します。
-- 段階的な導入：0.8.x では任意で、`x.runtime` のない契約には何も指摘しません。0.9 では推奨とし、どちらも宣言しない tool 契約に警告を出す案です（公開レビューで決めます）。
+- `idempotency`（capability のみ。スキーマ改訂版 `runtime-v0.8-r1.json`）：`bit_exact`（同じ入力ならバイト単位で同じ出力ファイル）、`content_equivalent`（内容は同じだがバイトまで同じとは限らない）、`none`。capability の `idempotent` と両方あるときは一致しなければなりません（MUST。`idempotent: true` に `none`、`idempotent: false` にそれ以外は `RUNTIME_DECL`）。
+- これを実装するランナーは、`bit_exact` の capability の合格したネットワークなしのケースを、`expect.files` のファイルを消したうえで同じ `$WORKDIR` でもう一度実行し、ファイルの SHA-256 が違う・ファイルがない・終了コードが変わる場合はケースを失敗としなければなりません（MUST、`IDEMPOTENCY_DIFFERS`）。出力ファイルを挙げていないケースは比べず、そのことを結果に書きます。`content_equivalent` はハッシュで確かめません。参照ランナーは `idempotent: true` だけの capability のケースも確かめられます（`test --check-idempotent`）。違いは報告しますが、失敗にはしません。
+- 段階的な導入：0.8.x では任意で、`x.runtime` のない契約には何も指摘せず、`idempotent: true` だけでは既定でハッシュを確かめません。0.9 では推奨とし、進捗もエラーの種類も宣言しない tool 契約に警告を出す案です（公開レビューで決めます）。
 
 ## 8. requirements
 - `binaries[]` / `runtimes[]`：`name`、`version`（例 `>=4.4`）、`check`、`version_regex`、`optional`、`when`、`alternatives`、`features_check`。
@@ -215,7 +217,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - 取り込みや `init` の下書きは、推測した箇所を `x.import.uncertain` / `x.init.uncertain` に挙げ、`TODO(...)` を使うことがあります。こうした契約は未確認の下書きで、`UNCONFIRMED_DRAFT`（0.8 からエラー）になります。人が確認して印を消す必要があります。0.8.x 正誤（参考、参照実装の `init`）：capability は CLI のサブコマンドごと（console script のモジュールと `scripts/` の argparse の `add_parser`）、MCP のツールごと（`@*.tool` の関数、`Tool(name=...)`）、指示だけのスキルなら `SKILL.md` の一般的でない `##` 見出しごとに作ります。`doctor`・`validate`・`plan` などの読むだけの動詞は `read`・`exec` だけにし、network の scope は見つかった URL から、なければ `TODO(init)` にします。
 
 ## 15. スキーマ
-- 契約：`schema/v0.8.json`（`$id` `https://kajisho5.github.io/skillpact/schema/v0.8.json`）。ポリシー：`schema/policy-v0.8.json`。改訂版として `schema/policy-v0.8-r1.json`（`policy_version` "0.8"、0.8.x 正誤）と `schema/policy-v0.8-r2.json`（`compositions` を追加、§13.3）があります。実行時の宣言（§7.1）：`schema/runtime-v0.8.json`（0.8.x 正誤）。公開したスキーマファイルは書き換えません。
+- 契約：`schema/v0.8.json`（`$id` `https://kajisho5.github.io/skillpact/schema/v0.8.json`）。ポリシー：`schema/policy-v0.8.json`。改訂版として `schema/policy-v0.8-r1.json`（`policy_version` "0.8"、0.8.x 正誤）と `schema/policy-v0.8-r2.json`（`compositions` を追加、§13.3）があります。実行時の宣言（§7.1）：`schema/runtime-v0.8.json`（0.8.x 正誤）と、その改訂版 `schema/runtime-v0.8-r1.json`（`idempotency` を追加）。公開したスキーマファイルは書き換えません。
 
 ## 16. 適合
 ### 16.1 レベル（契約について）
@@ -236,7 +238,7 @@ L3 の意味は「このファイル一式は、あなたが信頼する人が�
 | ハーネス | `decision_worst_case` に従い、実行前に integrity を確かめ直すべき（SHOULD） |
 
 ### 16.3 適合スイート
-`conformance/manifest.json` と `conformance/cases/<id>/`（0.8 と 0.8.x 正誤で 57 ケース）。適合を名乗る検証者は全ケースに合格しなければなりません（MUST）：`python3 conformance/run.py --cmd '<validator> {dir}'`。`test` の期待値を持つケース（0.8.x 正誤、§7.1）はランナーでも `--test-cmd '<runner> {dir}'` で実行します。0.8 のケースは `conformance/gen_v08.py` が作ります。Python の参照実装と TypeScript 実装の両方が全ケースに合格しています。
+`conformance/manifest.json` と `conformance/cases/<id>/`（0.8 と 0.8.x 正誤で 61 ケース）。適合を名乗る検証者は全ケースに合格しなければなりません（MUST）：`python3 conformance/run.py --cmd '<validator> {dir}'`。`test` の期待値を持つケース（0.8.x 正誤、§7.1）はランナーでも `--test-cmd '<runner> {dir}'` で実行します。0.8 のケースは `conformance/gen_v08.py` が作ります。Python の参照実装と TypeScript 実装の両方が全ケースに合格しています。
 
 ## 17. バージョン・安定性・非推奨
 - 検証者は知っているすべての版を受け付け、知らない major 版を拒否しなければなりません（MUST、`CONTRACT_VERSION_UNSUPPORTED`）。0.x の間は、知らない minor 版も知らない major 版として扱います。

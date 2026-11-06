@@ -108,6 +108,26 @@ mk("v08x-error-unclassified", base("v08x-error-unclassified"), integ=None, post=
 mk("v08x-error-classified", base("v08x-error-classified"), integ=None, post=rt(RT, exit_code=2),
    files={"scripts/run.sh": 'echo \'{"ok": false, "error": {"code": "NO_TOOL", "message": "magick not found"}}\'\nexit 2\n'},
    desc="0.8.x runner: the op returns a declared error code", expect=TEST_OK())
+# erratum 0.8.x, ECOSYSTEM_ROADMAP.md step 6: x.runtime.idempotency "bit_exact" -> the runner runs a case twice and
+# compares its output files (expect.files) by hash.
+def idem(mode, idempotent=None):
+    def post(c, d):
+        c["permissions"]["write"] = {"level": "scoped", "scope": ["$WORKDIR/**"]}
+        c["permissions"]["exec"]["scope"] = ["sh", "date"]
+        cap = c["capabilities"][0]; cap["effects"] = ["exec", "write"]; cap["x"] = {"runtime": {"idempotency": mode}}
+        if idempotent is not None: cap["idempotent"] = idempotent
+        c["tests"]["cases"][0]["expect"] = {"exit_code": 0, "files": [{"path": "out.txt"}]}
+    return post
+mk("v08x-idempotency-nondeterministic", base("v08x-idempotency-nondeterministic"), integ=None, post=idem("bit_exact", True),
+   files={"scripts/run.sh": 'date +%s%N > "$WORKDIR/out.txt"\n'},
+   desc="0.8.x runner: declares bit_exact, but its output changes from run to run", expect=TEST_FAIL("IDEMPOTENCY_DIFFERS"))
+mk("v08x-idempotency-deterministic", base("v08x-idempotency-deterministic"), integ=None, post=idem("bit_exact", True),
+   files={"scripts/run.sh": 'echo same > "$WORKDIR/out.txt"\n'},
+   desc="0.8.x runner: declares bit_exact, and a second run gives the same bytes", expect=TEST_OK())
+mk("v08x-idempotency-contradiction", base("v08x-idempotency-contradiction"), integ=None, post=idem("bit_exact", False),
+   desc="0.8.x: idempotency bit_exact with idempotent: false", expect=ERR("RUNTIME_DECL"))
+mk("v08x-idempotency-bad-value", base("v08x-idempotency-bad-value"), integ=None, post=idem("sometimes"),
+   desc="0.8.x: idempotency must be bit_exact, content_equivalent or none", expect=ERR("RUNTIME_DECL"))
 (HERE / "cases" / "v08-json-bigint").mkdir(exist_ok=True)
 (HERE / "cases/v08-json-bigint/SKILL.md").write_text("---\nname: v08-json-bigint\ndescription: c\n---\nb\n")
 (HERE / "cases/v08-json-bigint/skill.contract.json").write_text('{"contract_version":"0.8","x":{"n":9007199254740993}}\n')

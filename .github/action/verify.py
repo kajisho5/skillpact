@@ -5,7 +5,7 @@ SP_KEYS      space-separated trusted signer keys   SP_TESTS     "true" = run the
 SP_MIN       lowest level that passes (L1, L2, L3)
 
 It runs `skillpact validate` (every finding becomes an annotation), then `skillpact conformance` when tests are on,
-writes `level` to $GITHUB_OUTPUT and a report to $GITHUB_STEP_SUMMARY, and exits 1 when the level is below SP_MIN.
+writes `level` (and, from conformance, `declares`) to $GITHUB_OUTPUT and a report to $GITHUB_STEP_SUMMARY, and exits 1 when the level is below SP_MIN.
 Reports go to $RUNNER_TEMP, never into the skill directory: a file written there would itself be an unlisted file
 for integrity (L3) and a change the test runner reports. Standard library only: it runs before anything else is known
 to be installed, with the Python the action set up.
@@ -92,6 +92,11 @@ def main():
         if report is None:
             annotate("error", f"`skillpact conformance` did not print JSON:\n{raw[-2000:]}", "SkillPact: conformance crashed", cfile); return finish("none", 1)
         level = report.get("level", "none")
+        dec = report.get("declares")
+        if dec is not None:   # erratum 0.8.x (step 5): progress events and error classes the contract declares
+            _out("declares", json.dumps(dec, separators=(",", ":"), sort_keys=True))
+            summary += [f"**declares**: progress events for {len(dec.get('progress', []))} of {dec.get('capabilities', 0)} capabilities, "
+                        f"error classes for {len(dec.get('error_classes', {}))} error code(s)", ""]
         t = report.get("tests") or {}
         if t: summary += [f"**tests**: {t.get('passed', 0)}/{t.get('total', 0)} passed, sandbox `{t.get('sandbox')}`, file system isolated: {t.get('fs_isolated')}, exec audit: {t.get('exec_audit') or 'off'}", ""]
         for r in report.get("requirements_failed", []):

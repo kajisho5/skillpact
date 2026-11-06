@@ -2,9 +2,12 @@
 import Ajv2020Mod from "ajv/dist/2020.js";
 import { jcs, legacySorted } from "./jcs.js";
 import SCHEMA_JSON from "./schema.json" with { type: "json" };
+import RUNTIME_JSON from "./runtime_schema.json" with { type: "json" };
 
 const Ajv2020: any = (Ajv2020Mod as any).default ?? Ajv2020Mod;
 export const SCHEMA: any = SCHEMA_JSON;
+/** x.runtime: progress events and error classes (erratum 0.8.x, optional; schema/runtime-v0.8.json). */
+export const RUNTIME_SCHEMA: any = RUNTIME_JSON;
 export const EFFECTS = ["read", "write", "network", "exec", "spend", "send"] as const;
 export const KNOWN_VERSIONS = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8"];
 export const MAX_PATH_LEN = 1024, MAX_PATH_SEGMENTS = 32, MAX_FILES = 10000;
@@ -194,6 +197,7 @@ export function checkContract(cIn: any, env: Env, F: Finding[]): any | null {
   }
   const drafts = draftMarkers(c);
   if (drafts.length) (v08 ? err : warn)("UNCONFIRMED_DRAFT", `unconfirmed draft content: ${drafts.slice(0, 5).join(", ")}`);
+  checkRuntime(c, err);
   if (!cases.length && (c.kind ?? "tool") === "tool") warn("NO_TESTS", "no conformance tests declared");
   const tested = new Set(cases.map((t: any) => t.capability)); const untested = [...ids].filter(i => !tested.has(i));
   if (cases.length && untested.length) warn("UNTESTED_CAPABILITY", `${untested.length} capabilities have no test`);
@@ -216,6 +220,27 @@ export function checkContract(cIn: any, env: Env, F: Finding[]): any | null {
     if (!v08 && c.integrity.signatures?.length) warn("SIGNATURE_ROLE_UNSIGNED", "before 0.8 the signer role is not signed, so it can be changed: such signatures never give L3 (0.8 errata); migrate and re-sign");
   }
   return c;
+}
+
+
+const runtimeDecl = (o: any) => (o?.x && typeof o.x === "object" && !Array.isArray(o.x) && "runtime" in o.x) ? o.x.runtime : undefined;
+const isObj = (v: any) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+/** RUNTIME_DECL: x.runtime against the runtime schema, and one error code in two classes (contract vs capability). */
+export function checkRuntime(c: any, err: (code: string, message: string, where?: string) => void): void {
+  const compile = (name: string) => makeAjv({ allErrors: true, strict: false, validateFormats: false })
+    .compile({ $schema: RUNTIME_SCHEMA.$schema, $defs: RUNTIME_SCHEMA.$defs, $ref: `#/$defs/${name}` });
+  const top = runtimeDecl(c);
+  if (top !== undefined) { const f = compile("contract"); if (!f(top)) for (const e of f.errors ?? []) err("RUNTIME_DECL", `x.runtime: ${e.message}`, "/x/runtime" + e.instancePath); }
+  const topClasses = isObj(top) && isObj(top.errors) && isObj(top.errors.classes) ? top.errors.classes : null;
+  c.capabilities.forEach((cap: any, i: number) => {
+    const d = runtimeDecl(cap); if (d === undefined) return;
+    const w = `/capabilities/${i}/x/runtime`; const f = compile("capability");
+    if (!f(d)) { for (const e of f.errors ?? []) err("RUNTIME_DECL", `${cap.id}: x.runtime: ${e.message}`, w + e.instancePath); return; }
+    if (!topClasses) return;
+    for (const [code, cls] of Object.entries(d.errors?.classes ?? {}))
+      if (code in topClasses && topClasses[code] !== cls) err("RUNTIME_DECL", `${cap.id}: error code ${code} is ${JSON.stringify(cls)} here but ${JSON.stringify(topClasses[code])} in x.runtime.errors`, w + "/errors/classes");
+  });
 }
 
 

@@ -133,6 +133,9 @@ def main(argv=None):
                     elif r_ok: note = "only reviewer/scanner signatures are trusted: L3 needs a trusted author signature (spec 0.8 s11)"
                     else: note = "signature is valid but no --trusted-key matched: L3 not granted (spec 0.8 s11)"
                 r_extra["attestations"] = [{"key": k, "role": roles.get(k, "author"), "trusted": k in a.trusted_key} for k, ok in sig.items() if ok and roles.get(k, "author") != "author"]
+        if v["ok"]:   # erratum 0.8.x: what the contract declares about progress and errors (step 5), so a fleet run can report it
+            from . import runtime
+            r_extra["declares"] = runtime.declares(core.load_contract(Path(a.skill_dir), cp)[0])
         r = {"ok": level != "none", "level": level, "validate_errors": v["errors"], "warnings": v["warnings"],
              "tests": {k: t.get(k) for k in ("passed", "total", "skipped", "network_cases", "sandbox", "fs_isolated", "exec_audit", "error") if t.get(k) is not None} if t else None, **r_extra}
         if note: r["note"] = note

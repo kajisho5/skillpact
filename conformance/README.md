@@ -5,7 +5,7 @@
 - `manifest.json`: ケースの一覧と期待結果（valid / errors / errors_any / warnings_include）
 - `cases/<id>/`: `SKILL.md` と `skill.contract.json`
 - `vectors/jcs-ed25519.json`: 正規化（RFC 8785）と ed25519 署名の既知の答え
-- `run.py`: ランナー。`--cmd` に、`{dir}` を受け取り JSON（`ok`, `findings[].level/code`）を出すコマンドを渡す
+- `run.py`: ランナー。`--cmd` に、`{dir}` を受け取り JSON（`ok`, `findings[].level/code`）を出すコマンドを渡す。`--test-cmd`（0.8.x）を渡すと、期待値に `test` のあるケースをテストランナーでも実行する（`ok` と `cases[].failures` を見る）
 
 ```
 python3 run.py --cmd 'python3 -m skillpact.cli validate {dir}'   # ref/ で実行

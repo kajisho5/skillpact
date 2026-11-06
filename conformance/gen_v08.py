@@ -73,6 +73,41 @@ mk("v08r-exclude-pth", base("v08r-exclude-pth"), files={"hook.pth": "import os\n
    post=lambda c, d: c["integrity"].update(exclude=["*.pth"]), sign=["author"], desc="N4: start-up hooks (*.pth) cannot be excluded", expect=ERR("INTEGRITY_UNLISTED"))
 mk("v08r-legacy-role-unsigned", base("v08r-legacy-role-unsigned", "0.7"), sign=["author"],
    desc="N3: before 0.8 the role is not signed; valid, but warned and never L3", expect={"warnings_include": ["SIGNATURE_ROLE_UNSIGNED"]})
+# erratum 0.8.x, ECOSYSTEM_ROADMAP.md step 5: x.runtime declares progress events and error classes (optional). The
+# validator checks the declaration (RUNTIME_DECL); `test` expectations are for runners (run.py --test-cmd).
+RT = {"progress": {"stream": "stderr", "flag": "--progress", "steps": ["read", "write"]},
+      "errors": {"classes": {"BAD_INPUT": "input", "NO_TOOL": "environment", "BUSY": "transient"}}}
+def rt(decl, script=None, tags=None, exit_code=0, cap_decl=None):
+    def post(c, d):
+        c["x"] = {"runtime": decl}
+        if cap_decl is not None: c["capabilities"][0]["x"] = {"runtime": cap_decl}
+        c["tests"]["cases"][0]["expect"] = {"exit_code": exit_code}
+        if tags: c["tests"]["cases"][0]["tags"] = tags
+    return post
+TEST_OK = lambda: {"test": {"ok": True}}
+TEST_FAIL = lambda *codes: {"test": {"ok": False, "failures_include": list(codes)}}
+EVENTS = ('printf \'{"event":"progress","step":"read","percent":0,"eta_s":null}\\n\' >&2\n'
+          'printf \'{"event":"progress","step":"write","percent":50,"eta_s":1.5}\\n\' >&2\n'
+          'printf \'{"event":"progress","step":"write","percent":100,"eta_s":0}\\n\' >&2\necho hi\n')
+mk("v08x-runtime-valid", base("v08x-runtime-valid"), integ=None, files={"scripts/run.sh": EVENTS}, post=rt(RT, tags=["progress"], cap_decl={"errors": {"classes": {"OOPS": "engine"}}}),
+   desc="0.8.x: x.runtime declares progress events and error classes; the events emitted match", expect=TEST_OK())
+mk("v08x-runtime-bad-class", base("v08x-runtime-bad-class"), integ=None, post=rt({"errors": {"classes": {"BAD_INPUT": "fatal"}}}),
+   desc="0.8.x: an error class outside input / environment / engine / policy / transient", expect=ERR("RUNTIME_DECL"))
+mk("v08x-runtime-bad-stream", base("v08x-runtime-bad-stream"), integ=None, post=rt({"progress": {"stream": "log"}}),
+   desc="0.8.x: progress stream must be stderr or stdout", expect=ERR("RUNTIME_DECL"))
+mk("v08x-runtime-class-conflict", base("v08x-runtime-class-conflict"), integ=None, post=rt(RT, cap_decl={"errors": {"classes": {"BAD_INPUT": "engine"}}}),
+   desc="0.8.x: one error code in two classes (contract and capability)", expect=ERR("RUNTIME_DECL"))
+mk("v08x-progress-bad-event", base("v08x-progress-bad-event"), integ=None, post=rt(RT),
+   files={"scripts/run.sh": 'printf \'{"event":"progress","step":"write","percent":80,"eta_s":2}\\n{"event":"progress","step":"write","percent":40,"eta_s":1}\\n{"event":"progress","step":"sing","percent":120}\\n\' >&2\necho hi\n'},
+   desc="0.8.x runner: percent goes down, an undeclared step, percent over 100 and no eta_s", expect=TEST_FAIL("PROGRESS_EVENT"))
+mk("v08x-progress-missing", base("v08x-progress-missing"), integ=None, post=rt(RT, tags=["progress"]),
+   desc="0.8.x runner: a case tagged progress emits no event", expect=TEST_FAIL("PROGRESS_MISSING"))
+mk("v08x-error-unclassified", base("v08x-error-unclassified"), integ=None, post=rt(RT, exit_code=2),
+   files={"scripts/run.sh": 'echo \'{"ok": false, "error": {"code": "DISK_FULL", "message": "no space"}}\'\nexit 2\n'},
+   desc="0.8.x runner: the op returns an error code that has no class", expect=TEST_FAIL("ERROR_UNCLASSIFIED"))
+mk("v08x-error-classified", base("v08x-error-classified"), integ=None, post=rt(RT, exit_code=2),
+   files={"scripts/run.sh": 'echo \'{"ok": false, "error": {"code": "NO_TOOL", "message": "magick not found"}}\'\nexit 2\n'},
+   desc="0.8.x runner: the op returns a declared error code", expect=TEST_OK())
 (HERE / "cases" / "v08-json-bigint").mkdir(exist_ok=True)
 (HERE / "cases/v08-json-bigint/SKILL.md").write_text("---\nname: v08-json-bigint\ndescription: c\n---\nb\n")
 (HERE / "cases/v08-json-bigint/skill.contract.json").write_text('{"contract_version":"0.8","x":{"n":9007199254740993}}\n')

@@ -25,6 +25,9 @@ outputs:
   level:
     description: "Achieved level: none, L1-declared, L2-tested or L3-signed"
     value: ${{ steps.check.outputs.level }}
+  declares:
+    description: "What the contract declares under x.runtime (erratum 0.8.x), as compact JSON: {capabilities, progress: [capability ids], error_classes: {code: class}}. Empty when tests are off or the contract is invalid"
+    value: ${{ steps.check.outputs.declares }}
 runs:
   using: composite
   steps:

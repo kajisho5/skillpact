@@ -24,8 +24,8 @@ jobs:
       - run: cd ref && python -m pytest -q tests
       - name: flagship conformance (L3)
         run: cd ref && python -m skillpact.cli conformance ../samples/ffmpeg-skill --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=" "sigstore:https://token.actions.githubusercontent.com|https://github.com/kajisho5/skillpact/.github/workflows/sigstore-sign.yml@refs/heads/main"
-      - name: conformance suite (reference implementation)
-        run: cd ref && python ../conformance/run.py --cmd "python -m skillpact.cli validate {dir}" > /dev/null
+      - name: conformance suite (reference implementation; validator, and runner for the cases with a `test` expectation)
+        run: cd ref && python ../conformance/run.py --cmd "python -m skillpact.cli validate {dir}" --test-cmd "python -m skillpact.cli test {dir}" > /dev/null
       - name: v0.8 conformance cases are reproducible from gen_v08.py
         run: python conformance/gen_v08.py && git diff --exit-code conformance/
       - name: example skills reach L3
@@ -36,7 +36,7 @@ jobs:
             python -m skillpact.cli conformance ../samples/$s --trusted-key "ed25519:moqKymSKFxCPXkaxDtETg/Qd8GvRwg8ckWAWIRQJXSQ=" "sigstore:https://token.actions.githubusercontent.com|https://github.com/kajisho5/skillpact/.github/workflows/sigstore-sign.yml@refs/heads/main" | python -c "import json,sys; r=json.load(sys.stdin); print('$s', r['level']); assert r['level']=='L3-signed'"
           done
       - name: schemas in docs and both implementations match
-        run: cmp ref/skillpact/schema.json docs/schema/v0.8.json && cmp ref/skillpact/schema.json ts/src/schema.json && cmp ref/skillpact/policy_schema.json docs/schema/policy-v0.8-r2.json
+        run: cmp ref/skillpact/schema.json docs/schema/v0.8.json && cmp ref/skillpact/schema.json ts/src/schema.json && cmp ref/skillpact/policy_schema.json docs/schema/policy-v0.8-r2.json && cmp ref/skillpact/runtime_schema.json docs/schema/runtime-v0.8.json && cmp ref/skillpact/runtime_schema.json ts/src/runtime_schema.json
 
   ts:
     runs-on: ubuntu-latest

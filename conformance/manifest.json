@@ -508,6 +508,108 @@
       }
     },
     {
+      "id": "v08x-runtime-valid",
+      "description": "0.8.x: x.runtime declares progress events and error classes; the events emitted match",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [],
+        "test": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "id": "v08x-runtime-bad-class",
+      "description": "0.8.x: an error class outside input / environment / engine / policy / transient",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "RUNTIME_DECL"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08x-runtime-bad-stream",
+      "description": "0.8.x: progress stream must be stderr or stdout",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "RUNTIME_DECL"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08x-runtime-class-conflict",
+      "description": "0.8.x: one error code in two classes (contract and capability)",
+      "expect": {
+        "valid": false,
+        "errors": [
+          "RUNTIME_DECL"
+        ],
+        "warnings_include": []
+      }
+    },
+    {
+      "id": "v08x-progress-bad-event",
+      "description": "0.8.x runner: percent goes down, an undeclared step, percent over 100 and no eta_s",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [],
+        "test": {
+          "ok": false,
+          "failures_include": [
+            "PROGRESS_EVENT"
+          ]
+        }
+      }
+    },
+    {
+      "id": "v08x-progress-missing",
+      "description": "0.8.x runner: a case tagged progress emits no event",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [],
+        "test": {
+          "ok": false,
+          "failures_include": [
+            "PROGRESS_MISSING"
+          ]
+        }
+      }
+    },
+    {
+      "id": "v08x-error-unclassified",
+      "description": "0.8.x runner: the op returns an error code that has no class",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [],
+        "test": {
+          "ok": false,
+          "failures_include": [
+            "ERROR_UNCLASSIFIED"
+          ]
+        }
+      }
+    },
+    {
+      "id": "v08x-error-classified",
+      "description": "0.8.x runner: the op returns a declared error code",
+      "expect": {
+        "valid": true,
+        "errors": [],
+        "warnings_include": [],
+        "test": {
+          "ok": true
+        }
+      }
+    },
+    {
       "id": "v08-json-bigint",
       "description": "M2: integer outside +-(2^53-1) is not I-JSON",
       "expect": {

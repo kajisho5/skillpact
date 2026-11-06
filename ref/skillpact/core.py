@@ -223,6 +223,8 @@ def validate(skill_dir, contract_path=None) -> dict:
             (r.err if v08 else r.warn)("TEST_UNDECLARED_NETWORK", f"test {t['id']} has network: true but permissions.network is 'none'")
     drafts = draft_markers(c)
     if drafts: (r.err if v08 else r.warn)("UNCONFIRMED_DRAFT", f"unconfirmed draft content: {', '.join(drafts[:5])}")
+    from . import runtime   # erratum 0.8.x: optional x.runtime declarations (progress events, error classes)
+    runtime.validate(c, r)
     if not c.get("tests", {}).get("cases") and c.get("kind", "tool") == "tool": r.warn("NO_TESTS", "no conformance tests declared")
     tested = {t.get("capability") for t in c.get("tests", {}).get("cases", [])}
     untested = [x for x in ids if x not in tested]
@@ -865,6 +867,9 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
                         except (KeyError, IndexError, TypeError, ValueError):
                             if chk.get("exists", True): fails.append(f"{chk['path']} missing")
                 except json.JSONDecodeError: fails.append("stdout is not JSON")
+            from . import runtime   # erratum 0.8.x: progress events and error classes the capability declares
+            rt_fails, rt_info = runtime.check_case(runtime.effective(c, caps.get(t.get("capability"), {})), out, errout, t.get("tags", []))
+            fails += rt_fails
             for f in ex.get("files", []):
                 fp = Path(_subst(f["path"], env)); fp = fp if fp.is_absolute() else work / fp
                 if f.get("exists", True) and not fp.exists(): fails.append(f"file missing: {f['path']}")
@@ -880,7 +885,7 @@ def run_tests(skill_dir, contract_path=None, only=None, sandbox_network=True, sk
             if eg:
                 hosts = {"allowed": eg.proxy.allowed_hosts, "denied": eg.proxy.denied_hosts}; eg.close()
                 if hosts["denied"]: fails.append(f"undeclared host (not in the network scope): {', '.join(hosts['denied'])}")
-            results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails, "exec_undeclared": undeclared, **({"network_hosts": hosts} if hosts else {}),
+            results.append({"id": t["id"], "capability": t.get("capability"), "ok": not fails, "failures": fails, "exec_undeclared": undeclared, **({"network_hosts": hosts} if hosts else {}), **rt_info,
                             "seconds": round(time.time() - t0, 2), "network_sandboxed": bool(mode and not t.get("network")),
                             "stderr_tail": errout[-300:] if fails else ""})
     finally:

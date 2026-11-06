@@ -83,7 +83,8 @@ stdout is one JSON object with `ok`. Exit `0` when `ok` is true, `1`
 otherwise, `2` for bad arguments. `validate` returns the `errors` and `warnings` counts
 and the `findings` (each with a `code` such as `INTEGRITY_MISMATCH`,
 `INTEGRITY_UNLISTED` or `UNCONFIRMED_DRAFT`); `conformance` returns `level`,
-the test summary and a `note` saying why a higher level was not granted;
+the test summary, a `note` saying why a higher level was not granted, and `declares`
+(the progress events and error classes the contract declares under `x.runtime`);
 `policy-check` returns `decision` and `decision_worst_case`;
 `policy-compile` returns `config`, `schema_errors` and `lossy` (what the
 harness format cannot express). With `--render`, `policy-compile` prints

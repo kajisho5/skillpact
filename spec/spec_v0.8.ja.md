@@ -114,6 +114,14 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - `conditional_effects[]`（`effect`、`when`、`scope`）：ある場合にだけ起きる効果。これも宣言が必要です。
 - `destructive: true` には write・send・spend のいずれかを付けるべきです（SHOULD、`DESTRUCTIVE_NO_EFFECT`）。
 - 任意：`idempotent`、`dry_run`、`inputs` / `outputs`（JSON Schema。不正なら `BAD_SUBSCHEMA`）、`requires`（requirements の名前。`UNKNOWN_REQUIREMENT`）、`requires_features` / `optional_features`（`<kind>:<name>`。kind は `features_check` にあること。`UNKNOWN_FEATURE_KIND`）、`mcp_annotations`。
+### 7.1 実行時の宣言（0.8.x 正誤、任意）
+処理の進み具合の知らせ方と、各エラーコードがどの種類の失敗かを宣言します。エージェントがどのスキルでも「あと何分か」「直すのは何か」を同じ読み方で扱えるようにするためです。拡張領域に置くのでスキーマの変更は要らず、この節を実装しない検証者は無視します（§5）。スキーマ：`schema/runtime-v0.8.json`。
+- `x.runtime`（契約）と `capabilities[].x.runtime`（1 つの処理）に `progress` と `errors` を置けます（MAY）。capability のキーは契約のキーに代わり（`progress: false` はその処理が進捗を出さないこと）、`errors.classes` は契約のコードに加わります。
+- `progress`：`stream`（`stderr` か `stdout`）、任意の `flag`（進捗を出す指定）と `steps`（イベントに入りうる段階名の全部）。イベントは 1 行に 1 つの JSON オブジェクト `{"event": "progress", "step": <文字列>, "percent": <0-100 か null>, "eta_s": <0 以上の秒数か null>}` で、他のキーがあってもかまいません。`percent` は処理全体に対する割合で、減ってはなりません（MUST NOT）。そうでない行は無視します。
+- `errors`：`classes` は処理が返しうる全エラーコードを 1 つの種類に対応させます。`input`（依頼を直す）、`environment`（何かを入れる・設定する）、`engine`（ツールやモデルが失敗した）、`policy`（規則や権限で断られた）、`transient`（後でやり直す）。`code_path` は標準出力の JSON 結果でのコードの位置（ドット区切り、既定 `error.code`）。
+- この節を実装する検証者は、スキーマに合わない宣言と、2 つの種類を与えたコードを `RUNTIME_DECL`（エラー）として報告しなければなりません（MUST）。
+- この節を実装するランナーは、各ケースで宣言された出力先のイベントを確かめ（`PROGRESS_EVENT`：スキーマに合わない、宣言にない段階、`percent` の減少）、`progress` タグのケースがイベントを 1 つも出さなければ失敗とし（`PROGRESS_MISSING`）、JSON 結果のエラーコードに種類がなければ失敗としなければなりません（MUST、`ERROR_UNCLASSIFIED`）。いずれもケースの失敗で、この接頭辞で示します。
+- 段階的な導入：0.8.x では任意で、`x.runtime` のない契約には何も指摘しません。0.9 では推奨とし、どちらも宣言しない tool 契約に警告を出す案です（公開レビューで決めます）。
 
 ## 8. requirements
 - `binaries[]` / `runtimes[]`：`name`、`version`（例 `>=4.4`）、`check`、`version_regex`、`optional`、`when`、`alternatives`、`features_check`。
@@ -207,7 +215,7 @@ SkillPact は Agent Skills の `SKILL.md`（変更しない）の隣に置く機
 - 取り込みや `init` の下書きは、推測した箇所を `x.import.uncertain` / `x.init.uncertain` に挙げ、`TODO(...)` を使うことがあります。こうした契約は未確認の下書きで、`UNCONFIRMED_DRAFT`（0.8 からエラー）になります。人が確認して印を消す必要があります。0.8.x 正誤（参考、参照実装の `init`）：capability は CLI のサブコマンドごと（console script のモジュールと `scripts/` の argparse の `add_parser`）、MCP のツールごと（`@*.tool` の関数、`Tool(name=...)`）、指示だけのスキルなら `SKILL.md` の一般的でない `##` 見出しごとに作ります。`doctor`・`validate`・`plan` などの読むだけの動詞は `read`・`exec` だけにし、network の scope は見つかった URL から、なければ `TODO(init)` にします。
 
 ## 15. スキーマ
-- 契約：`schema/v0.8.json`（`$id` `https://kajisho5.github.io/skillpact/schema/v0.8.json`）。ポリシー：`schema/policy-v0.8.json`。改訂版として `schema/policy-v0.8-r1.json`（`policy_version` "0.8"、0.8.x 正誤）と `schema/policy-v0.8-r2.json`（`compositions` を追加、§13.3）があります。公開したスキーマファイルは書き換えません。
+- 契約：`schema/v0.8.json`（`$id` `https://kajisho5.github.io/skillpact/schema/v0.8.json`）。ポリシー：`schema/policy-v0.8.json`。改訂版として `schema/policy-v0.8-r1.json`（`policy_version` "0.8"、0.8.x 正誤）と `schema/policy-v0.8-r2.json`（`compositions` を追加、§13.3）があります。実行時の宣言（§7.1）：`schema/runtime-v0.8.json`（0.8.x 正誤）。公開したスキーマファイルは書き換えません。
 
 ## 16. 適合
 ### 16.1 レベル（契約について）
@@ -228,7 +236,7 @@ L3 の意味は「このファイル一式は、あなたが信頼する人が�
 | ハーネス | `decision_worst_case` に従い、実行前に integrity を確かめ直すべき（SHOULD） |
 
 ### 16.3 適合スイート
-`conformance/manifest.json` と `conformance/cases/<id>/`（0.8 と 0.8.x 正誤で 49 ケース）。適合を名乗る検証者は全ケースに合格しなければなりません（MUST）：`python3 conformance/run.py --cmd '<validator> {dir}'`。0.8 のケースは `conformance/gen_v08.py` が作ります。Python の参照実装と TypeScript 実装の両方が全ケースに合格しています。
+`conformance/manifest.json` と `conformance/cases/<id>/`（0.8 と 0.8.x 正誤で 57 ケース）。適合を名乗る検証者は全ケースに合格しなければなりません（MUST）：`python3 conformance/run.py --cmd '<validator> {dir}'`。`test` の期待値を持つケース（0.8.x 正誤、§7.1）はランナーでも `--test-cmd '<runner> {dir}'` で実行します。0.8 のケースは `conformance/gen_v08.py` が作ります。Python の参照実装と TypeScript 実装の両方が全ケースに合格しています。
 
 ## 17. バージョン・安定性・非推奨
 - 検証者は知っているすべての版を受け付け、知らない major 版を拒否しなければなりません（MUST、`CONTRACT_VERSION_UNSUPPORTED`）。0.x の間は、知らない minor 版も知らない major 版として扱います。
@@ -328,6 +336,7 @@ L1 は整合性しか示しません。ハーネスは L1 だけを根拠に、�
 | `NO_TESTS` | 警告 | §10 | テストがない |
 | `UNTESTED_CAPABILITY` | 警告 | §10 | テストのない capability |
 | `BODY_LONG` | 警告 | §3 | SKILL.md 本文が 500 行超 |
+| `RUNTIME_DECL` | エラー（0.8.x、`x.runtime` があるとき） | §7.1 | 実行時の宣言がスキーマに合わない、またはコードに種類が 2 つある |
 
 ## 付録 B. 例
 最小（説明だけのスキル）：

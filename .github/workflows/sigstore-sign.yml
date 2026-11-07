@@ -42,7 +42,7 @@ jobs:
           [[ "$SAMPLES" =~ ^[a-z0-9-]+( [a-z0-9-]+)*$ ]] || { echo "::error::bad sample list"; exit 1; }
       - uses: actions/checkout@v7
         with: { ref: "${{ inputs.target }}" }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.13" }
       - run: cd ref && pip install -e .[sigstore]
       - name: sign (keyless, ambient GitHub OIDC), replacing an earlier signature by the same identity

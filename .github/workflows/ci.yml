@@ -11,7 +11,7 @@ jobs:
     env: { SKILLPACT_TIMEOUT_SCALE: "2" }
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "${{ matrix.python }}" }
       - name: ffmpeg 8.1 (Ubuntu's 6.1 hangs in media.pad; tracked as an ffmpeg-skill compat issue)
         run: |
@@ -54,7 +54,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.13" }
       - run: cd ref && pip install -e .
       - name: Seatbelt sandbox blocks network and writes outside $WORKDIR (experimental runner mode)

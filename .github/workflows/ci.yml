@@ -1,5 +1,13 @@
 name: ci
-on: [push, pull_request, workflow_dispatch]   # dispatched by sigstore-sign.yml after it pushes signatures
+on:
+  push:
+    branches: [main]   # a pull request branch is covered by pull_request; running on its pushes too ran everything twice
+  pull_request:
+  workflow_dispatch:   # dispatched by sigstore-sign.yml after it pushes signatures
+concurrency:
+  # a newer commit on a pull request cancels the runs of the commit it replaces; every other run has its own group
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
@@ -11,7 +19,7 @@ jobs:
     env: { SKILLPACT_TIMEOUT_SCALE: "2" }
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "${{ matrix.python }}" }
       - name: ffmpeg 8.1 (Ubuntu's 6.1 hangs in media.pad; tracked as an ffmpeg-skill compat issue)
         run: |
@@ -54,7 +62,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.13" }
       - run: cd ref && pip install -e .
       - name: Seatbelt sandbox blocks network and writes outside $WORKDIR (experimental runner mode)

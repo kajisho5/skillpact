@@ -86,12 +86,12 @@ export default function Schema({ lang }: { lang: Lang }) {
             <h2 id="files" className="text-xl font-semibold tracking-tight">{heads[0].text}</h2>
             <div className="mt-6">
               <Table className="text-[0.875rem]">
-                <TableHeader><TableRow><TableHead>{ja ? "版" : "Version"}</TableHead><TableHead>{ja ? "契約" : "Contract"}</TableHead><TableHead>{ja ? "ポリシー" : "Policy"}</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>{ja ? "版" : "Version"}</TableHead><TableHead>{ja ? "契約" : "Contract"}</TableHead><TableHead>{ja ? "ポリシー" : "Policy"}</TableHead><TableHead>{ja ? "ランタイム" : "Runtime"}</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {[...new Set(schemaFiles.map((s) => s.version))].map((v) => {
                     const f = (k: string) => schemaFiles.find((s) => s.kind === k && s.version === v);
                     const cell = (k: string) => { const x = f(k); return x ? <a className="kbd text-ink underline-offset-4 hover:underline" href={`/skillpact/schema/${x.file}`}>{x.file}</a> : <span className="text-muted-foreground">—</span>; };
-                    return <TableRow key={v}><TableCell className="kbd">{v}{v === latest && <span className="ml-2 text-muted-foreground">{ja ? "最新" : "latest"}</span>}</TableCell><TableCell>{cell("contract")}</TableCell><TableCell>{cell("policy")}</TableCell></TableRow>;
+                    return <TableRow key={v}><TableCell className="kbd">{v}{v === latest && <span className="ml-2 text-muted-foreground">{ja ? "最新" : "latest"}</span>}</TableCell><TableCell>{cell("contract")}</TableCell><TableCell>{cell("policy")}</TableCell><TableCell>{cell("runtime")}</TableCell></TableRow>;
                   })}
                 </TableBody>
               </Table>

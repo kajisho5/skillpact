@@ -1,7 +1,15 @@
 name: action
 # Runs this repository's GitHub Action (action.yml, `uses: ./`) the way a skill repository calls it, on fixtures whose
 # outcome is known. ref/tests/test_action.py covers the check step's logic; this covers the composite action as a whole.
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: [main]   # a pull request branch is covered by pull_request; running on its pushes too ran everything twice
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  # a newer commit on a pull request cancels the runs of the commit it replaces; every other run has its own group
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:

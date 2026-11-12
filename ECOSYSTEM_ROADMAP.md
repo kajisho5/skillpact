@@ -5,7 +5,7 @@ Written from a read-only audit of this repository on 2026-10-30. Each step below
 
 ## Where it stands
 
-v0.8.0 (spec in public review until 2026-11-21). Python ref + TS verifier; 13 test modules, 49 conformance cases.
+v0.8.1 (spec in public review until 2026-11-21). Python ref + TS verifier; 19 test modules, 61 conformance cases.
 
 ## What this repository owns
 
@@ -33,7 +33,7 @@ Not related to execution. SkillPact contracts and the OS capability contract are
 - [ ] **5. Progress events and error classes in the contract** — contracts declare the progress events an op emits (JSON lines: step, percent, ETA) and map every error code to one class (`input`, `environment`, `engine`, `policy`, `transient`); conformance cases check both. Field review 2026-11-05 (Velisa ROADMAP, third round)
   - なぜ要るか：エージェントがどのスキルでも「あと何分か」「直すのは何か」を同じ読み方で扱える
   - Done when: conformance cases for both, and the OS weekly run reports which skills declare them
-  - Status: partial ([#38](https://github.com/kajisho5/skillpact/pull/38), spec §7.1, erratum 0.8.x, optional). `x.runtime` declares `progress` and `errors.classes`. The validators report `RUNTIME_DECL`, and the runner reports `PROGRESS_EVENT`, `PROGRESS_MISSING` and `ERROR_UNCLASSIFIED`. Conformance has 8 new cases (57 in total), with the runner cases run through `run.py --test-cmd`. `conformance` and the Action expose `declares`. Still open: the OS weekly run has to read the Action's `declares` output (Velisa `skillpact-conformance.yml`).
+  - Status: partial ([#38](https://github.com/kajisho5/skillpact/pull/38), spec §7.1, erratum 0.8.x, optional). `x.runtime` declares `progress` and `errors.classes`. The validators report `RUNTIME_DECL`, and the runner reports `PROGRESS_EVENT`, `PROGRESS_MISSING` and `ERROR_UNCLASSIFIED`. Conformance has 8 new cases (57 in total), with the runner cases run through `run.py --test-cmd`. `conformance` and the Action expose `declares`. Released in 0.8.1. Still open: the OS weekly run has to read the Action's `declares` output (Velisa `skillpact-conformance.yml`).
 - [x] **6. Idempotency conformance** — Done (spec §7.1, erratum 0.8.x): `capabilities[].x.runtime.idempotency` (`bit_exact` / `content_equivalent` / `none`, schema `runtime-v0.8-r1.json`, must agree with `idempotent`). The runner runs each case of a `bit_exact` op a second time after removing its `expect.files`, compares the outputs by SHA-256, and fails with `IDEMPOTENCY_DIFFERS`. `idempotent: true` alone is checked only by `test --check-idempotent`, and only reported: on ffmpeg-skill's sample, 33 cases were compared and none differed. Conformance case `v08x-idempotency-nondeterministic` catches a fixture skill whose output changes on every run ([#39](https://github.com/kajisho5/skillpact/pull/39)) — an op whose contract says `bit_exact` or idempotent is run twice on a fixture and the outputs compared by hash; a skill that declares it and differs fails
   - なぜ要るか：再実行・途中再開で結果が変わらないという約束を、各スキルについて機械で確かめられる
   - Done when: a conformance case that catches a non-deterministic fixture skill

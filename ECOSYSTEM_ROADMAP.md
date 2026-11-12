@@ -38,5 +38,9 @@ Not related to execution. SkillPact contracts and the OS capability contract are
   - なぜ要るか：再実行・途中再開で結果が変わらないという約束を、各スキルについて機械で確かめられる
   - Done when: a conformance case that catches a non-deterministic fixture skill
 
+## Boundaries
+
+Contract checks have one role each ([Velisa ownership decisions 2026-11-12](https://github.com/kajisho5/Velisa/blob/main/docs/ecosystem/DECISION_LOG.md)): side effects, signatures and isolation tests are this repository's; the OS contract shape is system-intelligence's (Velisa CI calls it); runtime version gates are video-production-agent's; Velisa `registry/` is the reference definition of the collision policy.
+
 ---
 Engine for every media operation: [ffmpeg-skill](https://github.com/kajisho5/ffmpeg-skill) (42 tools, treated as complete). Orchestrator: [video-production-agent](https://github.com/kajisho5/video-production-agent).
